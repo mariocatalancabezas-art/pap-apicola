@@ -63,7 +63,8 @@ async function pushLocalChanges() {
 async function pullRemoteChanges(forceFull = false) {
   // En sync completo, traer todos los registros recientes (últimos 90 días)
   // En sync normal, solo traer los más recientes que el último sync
-  let query = supabase.from('visitas').select('*')
+  // IMPORTANTE: No traer registros marcados como eliminados (deleted_at IS NULL)
+  let query = supabase.from('visitas').select('*').is('deleted_at', null)
   
   if (!forceFull) {
     const lastSync = localStorage.getItem('last_sync_at') || '1970-01-01T00:00:00Z'
@@ -101,7 +102,7 @@ async function pullRemoteChanges(forceFull = false) {
 }
 
 async function syncDeletions() {
-  // Enviar eliminaciones locales al servidor
+  // Enviar eliminaciones locales al servidor (soft delete)
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
   
@@ -109,7 +110,13 @@ async function syncDeletions() {
   const localDeleted = await db.visitas.where('deleted_at').above('').toArray()
   
   for (const item of localDeleted) {
-    await supabase.from('visitas').delete().eq('uuid', item.uuid)
+    // Marcar como eliminado en Supabase (soft delete) en lugar de borrar físicamente
+    await supabase
+      .from('visitas')
+      .update({ deleted_at: item.deleted_at, updated_at: new Date().toISOString() })
+      .eq('uuid', item.uuid)
+    
+    // Ahora sí eliminar localmente definitivamente
     await db.visitas.delete(item.id)
   }
 }
