@@ -86,7 +86,10 @@ export default function Layout() {
 
       {/* ── SIDEBAR desktop (md+) ──────────────────────────────────────── */}
       <aside className="hidden md:flex flex-col w-60 xl:w-64 bg-white border-r border-honey-100 shadow-sm fixed inset-y-0 left-0 z-40">
-        <div className="flex items-center gap-3 px-4 py-3 bg-honey-500 border-b border-honey-600">
+        <div 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-3 px-4 py-3 bg-honey-500 border-b border-honey-600 cursor-pointer hover:bg-honey-600 transition-colors"
+        >
           <img
             src="/Logo/LOGO%20ASB.png.png"
             alt="Logo"
@@ -143,7 +146,10 @@ export default function Layout() {
 
         {/* Top header mobile */}
         <header className="md:hidden bg-honey-500 text-white px-4 py-3 flex items-center justify-between shadow-md sticky top-0 z-30">
-          <div className="flex items-center gap-2">
+          <div 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 cursor-pointer"
+          >
             <img
               src="/Logo/LOGO%20ASB.png.png"
               alt="Logo"
