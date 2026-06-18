@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Home, PlusCircle, ClipboardList,
   Settings, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Menu, X, Users, LogOut, UserCircle,
-  Stethoscope, FileText, FolderOpen, UsersRound
+  Stethoscope, FileText, FolderOpen, UsersRound, Download
 } from 'lucide-react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useSyncStatus } from '../hooks/useSyncStatus'
@@ -26,10 +26,40 @@ export default function Layout() {
   const isOnline = useOnlineStatus()
   const { syncStatus, pendingCount } = useSyncStatus()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [showInstall, setShowInstall] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const isAdmin = user?.rol === 'admin'
   const NAV = NAV_ALL.filter(n => !n.admin || isAdmin)
+
+  // Capturar evento de instalación PWA
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowInstall(true)
+    }
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    
+    // Verificar si ya está instalada
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstall(false)
+    }
+    
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  }, [])
+
+  async function handleInstall() {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    if (outcome === 'accepted') {
+      setShowInstall(false)
+    }
+    setDeferredPrompt(null)
+  }
 
   function handleLogout() {
     logout()
@@ -86,6 +116,15 @@ export default function Layout() {
           ))}
         </nav>
         <div className="px-4 py-3 border-t border-honey-100 space-y-2">
+          {showInstall && (
+            <button 
+              onClick={handleInstall}
+              className="w-full btn-primary flex items-center justify-center gap-2 py-2 text-sm mb-2"
+            >
+              <Download className="w-4 h-4" />
+              Instalar aplicación
+            </button>
+          )}
           <StatusBadge />
           <div className="flex items-center justify-between gap-1">
             <button onClick={() => navigate('/perfil')} className="flex items-center gap-2 min-w-0 flex-1 p-1.5 rounded-lg hover:bg-amber-50 transition-colors text-left">
@@ -154,6 +193,14 @@ export default function Layout() {
             >
               <UserCircle className="w-5 h-5 flex-shrink-0" />Mi perfil
             </NavLink>
+            {showInstall && (
+              <button 
+                onClick={() => { handleInstall(); setMobileOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-honey-500 text-white hover:bg-honey-600 transition-colors"
+              >
+                <Download className="w-5 h-5 flex-shrink-0" />Instalar aplicación
+              </button>
+            )}
             <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
               <LogOut className="w-5 h-5 flex-shrink-0" />Cerrar sesión
             </button>
