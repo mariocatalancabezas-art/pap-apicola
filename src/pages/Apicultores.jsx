@@ -26,9 +26,10 @@ export default function Apicultores() {
     programa_indap: ''
   })
 
-  // Verificar permisos - solo admin puede ver acciones y editar
+  // Verificar permisos - admin siempre puede todo, usuarios según permisos asignados
   const esAdmin = user?.rol === 'admin'
   const puedeEditar = esAdmin || user?.puede_editar_apicultores === true
+  const puedeVerAcciones = esAdmin || user?.puede_ver_acciones === true
 
   // Función para cargar datos del programa automáticamente
   async function handleCargarDatosPrograma() {
@@ -314,7 +315,7 @@ export default function Apicultores() {
                       {groupBy === 'programa_indap' && <Group className="w-4 h-4 text-amber-500" />}
                     </div>
                   </th>
-                  {esAdmin && <th className="text-center px-3 py-2 font-semibold text-gray-700">Acciones</th>}
+                  {puedeVerAcciones && <th className="text-center px-3 py-2 font-semibold text-gray-700">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -322,7 +323,7 @@ export default function Apicultores() {
                   <React.Fragment key={groupName}>
                     {groupBy && (
                       <tr className="bg-amber-50">
-                        <td colSpan={esAdmin ? 8 : 7} className="px-3 py-2 font-bold text-amber-800">
+                        <td colSpan={puedeVerAcciones ? 8 : 7} className="px-3 py-2 font-bold text-amber-800">
                           {groupBy === 'comuna' ? '📍 ' : '📋 '}
                           {groupName} ({items.length} apicultores)
                         </td>
@@ -330,7 +331,7 @@ export default function Apicultores() {
                     )}
                     {items.map(a => (
                   <tr key={a.id} className="hover:bg-gray-50">
-                    {editingId === a.id && esAdmin ? (
+                    {editingId === a.id && puedeVerAcciones ? (
                       // Modo edición - solo admin
                       <>
                         <td className="px-3 py-2">
@@ -420,7 +421,7 @@ export default function Apicultores() {
                             {a.programa_indap}
                           </span>
                         </td>
-                        {esAdmin && (
+                        {puedeVerAcciones && (
                           <td className="px-3 py-2 text-center">
                             <div className="flex justify-center gap-1">
                               <button 

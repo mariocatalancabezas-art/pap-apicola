@@ -16,6 +16,7 @@ const PERMISOS = [
   { key: 'puede_eliminar', label: 'Eliminar diagnósticos' },
   { key: 'puede_exportar', label: 'Exportar / Imprimir' },
   { key: 'puede_editar_apicultores', label: 'Editar planilla apicultores' },
+  { key: 'puede_ver_acciones', label: 'Ver columna acciones (apicultores)' },
 ]
 
 export default function Usuarios() {
