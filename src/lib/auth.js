@@ -26,6 +26,7 @@ export async function login(email, password, remember) {
     id: data.id, email: data.email, nombre: data.nombre, rol: data.rol,
     puede_crear: data.puede_crear, puede_editar: data.puede_editar,
     puede_eliminar: data.puede_eliminar, puede_exportar: data.puede_exportar,
+    puede_editar_apicultores: data.puede_editar_apicultores,
   }
   if (remember) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
@@ -61,7 +62,7 @@ export function logout() {
 export async function getUsuarios() {
   const { data, error } = await supabase
     .from('app_users')
-    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, created_at')
+    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, created_at')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data

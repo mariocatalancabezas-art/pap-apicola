@@ -5,8 +5,6 @@ import Dashboard from './pages/Dashboard'
 import NuevaVisita from './pages/NuevaVisita'
 import Historial from './pages/Historial'
 import Apicultores from './pages/Apicultores'
-import NuevoApicultor from './pages/NuevoApicultor'
-import EditarApicultor from './pages/EditarApicultor'
 import EditarVisita from './pages/EditarVisita'
 import Backups from './pages/Backups'
 import Configuracion from './pages/Configuracion'
@@ -40,8 +38,6 @@ function AppRoutes() {
         <Route path="historial" element={<Historial />} />
         <Route path="visita/editar/:id" element={<EditarVisita />} />
         <Route path="apicultores" element={<Apicultores />} />
-        <Route path="apicultores/nuevo" element={<NuevoApicultor />} />
-        <Route path="apicultores/editar/:id" element={<EditarApicultor />} />
         <Route path="backups" element={<Backups />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="usuarios" element={<Usuarios />} />

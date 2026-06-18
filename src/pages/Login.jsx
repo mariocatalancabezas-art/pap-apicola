@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react'
+import { Eye, EyeOff, LogIn, UserPlus, HelpCircle, X, Mail } from 'lucide-react'
 import { login, register } from '../lib/auth'
 import { useAuth } from '../lib/AuthContext'
 
@@ -16,6 +16,9 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState({ text: '', type: '' })
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetMsg, setResetMsg] = useState('')
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -53,10 +56,22 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <span className="text-6xl">🐝</span>
-          <h1 className="mt-3 text-2xl font-bold text-amber-900">PAP Apícola</h1>
-          <p className="text-amber-700 text-sm">Santa Bárbara · INDAP</p>
+        <div className="text-center mb-6">
+          <h1 className="text-lg font-bold text-amber-800 tracking-wide uppercase mb-4">
+            Programa Alianzas Productivas
+          </h1>
+          <div className="flex items-center justify-center gap-4 mb-3">
+            <img
+              src="/Logo/LOGO%20ASB.png.png"
+              alt="PAP Apícola Santa Bárbara"
+              className="w-24 h-24 object-contain drop-shadow-lg"
+            />
+            <img
+              src="/Logo/LOGO%20INDAP.png"
+              alt="INDAP"
+              className="w-20 h-20 object-contain"
+            />
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 space-y-5">
@@ -154,8 +169,73 @@ export default function Login() {
               }
             </button>
           </form>
+
+          {modo === 'login' && (
+            <button
+              onClick={() => setShowResetModal(true)}
+              className="w-full text-center text-xs text-amber-600 hover:text-amber-700 mt-3 py-2"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Modal de recuperación de contraseña */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-amber-500" />
+                <h3 className="font-semibold text-gray-800">Recuperar contraseña</h3>
+              </div>
+              <button
+                onClick={() => { setShowResetModal(false); setResetMsg(''); setResetEmail(''); }}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {resetMsg ? (
+              <div className={`text-sm rounded-lg px-3 py-3 ${resetMsg.includes('✓') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
+                {resetMsg}
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">
+                  Ingresa tu correo y te enviaremos instrucciones al administrador para restablecer tu acceso.
+                </p>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    placeholder="tu@correo.com"
+                    className="w-full border border-gray-200 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    if (!resetEmail.trim()) return
+                    setResetMsg('✓ Solicitud enviada. El administrador (mariocatalancabezas@gmail.com) te contactará para restablecer tu acceso.')
+                  }}
+                  disabled={!resetEmail.trim()}
+                  className="w-full btn-primary py-2.5 text-sm"
+                >
+                  Enviar solicitud
+                </button>
+              </>
+            )}
+
+            <div className="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
+              Contacto directo: mariocatalancabezas@gmail.com
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

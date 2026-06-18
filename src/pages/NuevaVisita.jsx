@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Save, ChevronLeft, GitFork, FileSpreadsheet, Printer } from 'lucide-react'
+import { Save, ChevronLeft, GitFork, FileSpreadsheet, Printer, Search, User } from 'lucide-react'
 import { db, SYNC_STATUS, generateUUID } from '../lib/db'
 import { syncAll } from '../lib/sync'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
@@ -8,6 +8,7 @@ import HelpTooltip from '../components/HelpTooltip'
 import BreachasModal from '../components/BreachasModal'
 import { exportVisitaExcel, exportVisitaPDF, printVisitaPDF } from '../lib/exports'
 import { REGIONES_CHILE, TIPOS_PC, NIVELES, TIPOS_ESTANDAR, PROGRAMAS_INDAP } from '../lib/fieldDescriptions'
+import { buscarApicultoresPorNombre } from '../lib/importApicultores'
 
 function SectionTitle({ letter, title }) {
   return (
@@ -93,6 +94,12 @@ export default function NuevaVisita() {
   const [saved, setSaved] = useState(false)
   const [showBrechas, setShowBrechas] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
+  
+  // Estados para búsqueda de apicultores
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
 
   useEffect(() => {
     async function initNumero() {
@@ -161,6 +168,47 @@ export default function NuevaVisita() {
     set('f66_margen_bruto', String(ing - cos))
   }
 
+  // Función de búsqueda con debounce
+  useEffect(() => {
+    if (searchQuery.length < 4) {
+      setSearchResults([])
+      setShowSearchResults(false)
+      return
+    }
+    
+    const timer = setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const results = await buscarApicultoresPorNombre(searchQuery)
+        setSearchResults(results)
+        setShowSearchResults(results.length > 0)
+      } catch (err) {
+        console.error('Error buscando apicultores:', err)
+      } finally {
+        setSearchLoading(false)
+      }
+    }, 300)
+    
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Función para seleccionar apicultor y rellenar campos
+  function seleccionarApicultor(apicultor) {
+    setForm(prev => ({
+      ...prev,
+      f1_nombre: apicultor.nombres || '',
+      f2_apellido: apicultor.apellidos || '',
+      f3_rut: apicultor.rut || '',
+      f4_telefono: apicultor.telefono || '',
+      f7_comuna: apicultor.comuna || '',
+      f9_dir_propiedad: apicultor.direccion || '',
+      f18_programa_indap: apicultor.programa_indap || '',
+    }))
+    setSearchQuery('')
+    setSearchResults([])
+    setShowSearchResults(false)
+  }
+
   async function saveData(andClose = false) {
     if (!form.f1_nombre.trim()) return alert('El nombre del productor es obligatorio')
     setSaving(true)
@@ -218,10 +266,57 @@ export default function NuevaVisita() {
         {/* === SECCIÓN A: ANTECEDENTES GENERALES === */}
         <div className="card space-y-3">
           <SectionTitle letter="A" title="Antecedentes Generales" />
+          
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="relative">
               <FieldLabel num={1} text="Nombres" required />
-              <input name="f1_nombre" value={form.f1_nombre} onChange={handleChange} className="input-field" required autoCapitalize="words" />
+              <div className="relative">
+                <input 
+                  name="f1_nombre" 
+                  value={form.f1_nombre} 
+                  onChange={e => {
+                    handleChange(e)
+                    setSearchQuery(e.target.value)
+                  }}
+                  className="input-field pr-10" 
+                  required 
+                  autoCapitalize="words"
+                  placeholder="Escribe para buscar apicultor..."
+                />
+                {searchLoading && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Resultados de búsqueda */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-48 overflow-y-auto">
+                  {searchResults.map((apicultor, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => seleccionarApicultor(apicultor)}
+                      className="w-full text-left px-3 py-2 hover:bg-amber-50 border-b border-gray-100 last:border-0 flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {apicultor.nombre_completo}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          RUT: {apicultor.rut} · {apicultor.comuna}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {form.f1_nombre.length >= 4 && !searchLoading && searchResults.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">No se encontraron apicultores</p>
+              )}
             </div>
             <div>
               <FieldLabel num={2} text="Apellidos" />

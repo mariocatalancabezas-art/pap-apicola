@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Home, PlusCircle, ClipboardList,
   Settings, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Menu, X, Users, LogOut, UserCircle,
-  Stethoscope, FileText, FolderOpen
+  Stethoscope, FileText, FolderOpen, UsersRound
 } from 'lucide-react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useSyncStatus } from '../hooks/useSyncStatus'
@@ -16,6 +16,7 @@ const NAV_ALL = [
   { to: '/visita-tecnica',           icon: Stethoscope,   label: 'Nueva Visita Técnica',       admin: false },
   { to: '/visita-administrativa',    icon: FileText,      label: 'Nueva Visita Administrativa', admin: false },
   { to: '/otras-planillas',          icon: FolderOpen,    label: 'Otras Planillas',             admin: false },
+  { to: '/apicultores',              icon: UsersRound,    label: 'Apicultores del programa',    admin: false },
   { to: '/historial',                icon: ClipboardList, label: 'Historial',                   admin: false },
   { to: '/configuracion',            icon: Settings,      label: 'Configuración',              admin: true  },
   { to: '/usuarios',                 icon: Users,         label: 'Usuarios',                    admin: true  },
@@ -55,8 +56,12 @@ export default function Layout() {
 
       {/* ── SIDEBAR desktop (md+) ──────────────────────────────────────── */}
       <aside className="hidden md:flex flex-col w-60 xl:w-64 bg-white border-r border-honey-100 shadow-sm fixed inset-y-0 left-0 z-40">
-        <div className="flex items-center gap-3 px-4 py-4 bg-honey-500 border-b border-honey-600">
-          <span className="text-3xl">🐝</span>
+        <div className="flex items-center gap-3 px-4 py-3 bg-honey-500 border-b border-honey-600">
+          <img
+            src="/Logo/LOGO%20ASB.png.png"
+            alt="Logo"
+            className="w-10 h-10 object-contain"
+          />
           <div>
             <h1 className="font-bold text-white text-sm leading-tight">PAP Apícola Santa Bárbara-Indap</h1>
           </div>
@@ -100,7 +105,11 @@ export default function Layout() {
         {/* Top header mobile */}
         <header className="md:hidden bg-honey-500 text-white px-4 py-3 flex items-center justify-between shadow-md sticky top-0 z-30">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🐝</span>
+            <img
+              src="/Logo/LOGO%20ASB.png.png"
+              alt="Logo"
+              className="w-8 h-8 object-contain"
+            />
             <div>
               <h1 className="font-bold text-sm leading-tight">PAP Apícola Santa Bárbara-Indap</h1>
             </div>

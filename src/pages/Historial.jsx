@@ -140,7 +140,11 @@ export default function Historial() {
 
       {filtered.length === 0 && (
         <div className="card text-center py-8 text-gray-400">
-          <p className="text-4xl mb-2">📋</p>
+          <img
+            src="/Logo/LOGO%20ASB.png.png"
+            alt="PAP Apícola"
+            className="w-16 h-16 mx-auto mb-3 object-contain opacity-50"
+          />
           <p>No hay diagnósticos registrados</p>
         </div>
       )}
