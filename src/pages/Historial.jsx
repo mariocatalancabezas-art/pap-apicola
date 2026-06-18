@@ -17,7 +17,9 @@ export default function Historial() {
 
   const load = useCallback(async () => {
     const vs = await db.visitas.orderBy('f19_fecha_encuesta').reverse().toArray()
-    setVisitas(vs)
+    // Filtrar los marcados como eliminados (soft delete)
+    const activas = vs.filter(v => !v.deleted_at)
+    setVisitas(activas)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -71,8 +73,24 @@ export default function Historial() {
   }
 
   async function deleteVisita(id) {
-    if (!confirm('¿Eliminar este diagnóstico?')) return
-    await db.visitas.delete(id)
+    if (!confirm('¿Eliminar este diagnóstico?\n\nSe sincronizará la eliminación en todos los dispositivos.')) return
+    
+    const visita = await db.visitas.get(id)
+    if (!visita) return
+    
+    // Soft delete: marcar como eliminado en lugar de borrar
+    await db.visitas.update(id, {
+      deleted_at: new Date().toISOString(),
+      sync_status: 'pending',
+      updated_at: new Date().toISOString()
+    })
+    
+    // Intentar sincronizar inmediatamente
+    if (navigator.onLine) {
+      const { syncAll } = await import('../lib/sync')
+      await syncAll()
+    }
+    
     load()
   }
 

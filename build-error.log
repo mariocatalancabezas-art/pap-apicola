@@ -1,0 +1,60 @@
+﻿
+> pap-apicola@1.0.0 build
+> vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32mÔ£ô[39m 1951 modules transformed.
+rendering chunks...
+node.exe : [1m[33m[plugin:vite:reporter][39m[22m [33m[plugin vite:reporter] 
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([1m[33m[plugi...vite:reporter] :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(!) C:/Users/Mario/Mi unidad (papapicolasantabarbara@gmail.com)/PAP Apicola/APP (no abrir)/src/lib/supabase.js is dynamically imported by 
+C:/Users/Mario/Mi unidad (papapicolasantabarbara@gmail.com)/PAP Apicola/APP (no abrir)/src/pages/Perfil.jsx but also statically imported by 
+C:/Users/Mario/Mi unidad (papapicolasantabarbara@gmail.com)/PAP Apicola/APP (no abrir)/src/lib/auth.js, C:/Users/Mario/Mi unidad 
+(papapicolasantabarbara@gmail.com)/PAP Apicola/APP (no abrir)/src/lib/sync.js, C:/Users/Mario/Mi unidad (papapicolasantabarbara@gmail.com)/PAP 
+Apicola/APP (no abrir)/src/pages/Configuracion.jsx, C:/Users/Mario/Mi unidad (papapicolasantabarbara@gmail.com)/PAP Apicola/APP (no 
+abrir)/src/pages/Dashboard.jsx, dynamic import will not move module into another chunk.
+[39m
+computing gzip size...
+[2mdist/[22m[32mregisterSW.js                       [39m[1m[2m    0.13 kB[22m[1m[22m
+[2mdist/[22m[32mmanifest.webmanifest                [39m[1m[2m    0.51 kB[22m[1m[22m
+[2mdist/[22m[32mindex.html                          [39m[1m[2m    1.00 kB[22m[1m[22m[2m Ôöé gzip:   0.48 kB[22m
+[2mdist/[22m[35massets/index-Cnkft5g7.css           [39m[1m[2m   29.37 kB[22m[1m[22m[2m Ôöé gzip:   5.49 kB[22m
+[2mdist/[22m[36massets/purify.es-BwoZCkIS.js        [39m[1m[2m   22.03 kB[22m[1m[22m[2m Ôöé gzip:   8.77 kB[22m
+[2mdist/[22m[36massets/index.es-BCZJjRZl.js         [39m[1m[2m  150.69 kB[22m[1m[22m[2m Ôöé gzip:  51.55 kB[22m
+[2mdist/[22m[36massets/html2canvas.esm-CBrSDip1.js  [39m[1m[2m  201.42 kB[22m[1m[22m[2m Ôöé gzip:  48.03 kB[22m
+[2mdist/[22m[36massets/index-XGXKHvDe.js            [39m[1m[33m2,026.16 kB[39m[22m[2m Ôöé gzip: 752.79 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32mÔ£ô built in 40.16s[39m
+[31merror during build:
+Error: 
+  Configure "workbox.maximumFileSizeToCacheInBytes" to change the limit: the default value is 2 MiB.
+  Check https://vite-pwa-org.netlify.app/guide/faq.html#missing-assets-from-sw-precache-manifest for more information.
+  Assets exceeding the limit:
+  - assets/index-XGXKHvDe.js is 2.27 MB, and won't be precached.
+
+    at logWorkboxResult (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_modules/vite-pl
+ugin-pwa/dist/chunk-5JSAQONO.js:44:13)
+    at generateServiceWorker (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_modules/vi
+te-plugin-pwa/dist/index.js:353:3)
+    at async _generateSW (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_modules/vite-p
+lugin-pwa/dist/index.js:486:5)
+    at async Object.handler (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_modules/vit
+e-plugin-pwa/dist/index.js:644:13)
+    at async PluginDriver.hookParallel (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_
+modules/rollup/dist/es/shared/node-entry.js:22906:17)
+    at async Object.close (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_modules/rollu
+p/dist/es/shared/node-entry.js:23925:13)
+    at async build (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_modules/vite/dist/no
+de/chunks/dep-BK3b2jBa.js:65732:17)
+    at async CAC.<anonymous> (file:///C:/Users/Mario/Mi%20unidad%20(papapicolasantabarbara@gmail.com)/PAP%20Apicola/APP%20(no%20abrir)/node_modules/vi
+te/dist/node/cli.js:829:5)[39m

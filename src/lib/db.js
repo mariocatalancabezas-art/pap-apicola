@@ -2,7 +2,7 @@ import Dexie from 'dexie'
 
 export const db = new Dexie('PAPApicola')
 
-db.version(4).stores({
+db.version(5).stores({
   visitas: `++id, uuid, 
     f1_nombre, f2_apellido, f3_rut, f4_telefono, f5_email,
     f6_region, f7_comuna, f8_area_indap, f9_dir_propiedad, f10_dir_predio,
@@ -39,7 +39,7 @@ db.version(4).stores({
     brechas_pc4, brechas_tipo_pc4, brechas_solucion_pc4, brechas_inversion_pc4,
     brechas_pc5, brechas_tipo_pc5, brechas_solucion_pc5, brechas_inversion_pc5,
     brechas_nota,
-    sync_status, created_at, updated_at`,
+    sync_status, created_at, updated_at, deleted_at`,
   sync_queue: '++id, table_name, record_uuid, operation, created_at',
   apicultores: '++id, nombre_completo, nombres, apellidos, rut, telefono, comuna, direccion, programa_indap',
 })

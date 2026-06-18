@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download } from 'lucide-react'
+import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, RefreshCw } from 'lucide-react'
 import { db } from '../lib/db'
 import { syncAll, onSyncChange } from '../lib/sync'
 import { isSupabaseConfigured } from '../lib/supabase'
@@ -138,6 +138,28 @@ export default function Dashboard() {
           <ClipboardList className="w-5 h-5" />
           Historial de diagnósticos
         </Link>
+      </div>
+
+      {/* ── SINCRONIZACIÓN ─────────────────────────────────────────── */}
+      <div className="card bg-amber-50 border border-amber-200">
+        <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 text-amber-500" />
+          Sincronización
+        </h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Si los datos no aparecen correctamente en todos tus dispositivos, usa la sincronización completa.
+        </p>
+        <button 
+          onClick={async () => {
+            const { syncAll } = await import('../lib/sync')
+            await syncAll(true) // force full sync
+            alert('✓ Sincronización completa realizada. Recarga la página si es necesario.')
+          }}
+          className="btn-secondary w-full flex items-center justify-center gap-2 py-2 text-sm"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Forzar sincronización completa
+        </button>
       </div>
 
       {/* ── DOCUMENTOS SAG ─────────────────────────────────────────── */}
