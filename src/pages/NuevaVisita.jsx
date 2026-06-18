@@ -222,7 +222,10 @@ export default function NuevaVisita() {
         updated_at: now,
       })
       setSaved(true)
-      if (isOnline) syncAll()
+      // Sincronización automática completa después de guardar
+      if (isOnline) {
+        syncAll(true).catch(err => console.error('Sync error:', err))
+      }
       if (andClose) setTimeout(() => navigate('/historial'), 1500)
     } catch (err) {
       alert('Error al guardar: ' + err.message)

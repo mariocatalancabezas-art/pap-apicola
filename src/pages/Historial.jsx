@@ -85,10 +85,10 @@ export default function Historial() {
       updated_at: new Date().toISOString()
     })
     
-    // Intentar sincronizar inmediatamente
+    // Sincronización automática completa después de eliminar
     if (navigator.onLine) {
       const { syncAll } = await import('../lib/sync')
-      await syncAll()
+      await syncAll(true).catch(err => console.error('Sync error:', err))
     }
     
     load()
