@@ -9,48 +9,14 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 export default function Dashboard() {
   const [stats, setStats] = useState({ visitas: 0, hoy: 0, pendientes: 0 })
 
-  // Función para imprimir PDF directamente
-  async function printPDF(url) {
-    // Abrir PDF en nueva pestaña primero para asegurar que se cargue
-    const printWindow = window.open(url, '_blank')
+  // Función para imprimir PDF: abre en nueva pestaña para que el usuario use Ctrl+P
+  function printPDF(url) {
+    // Abrir PDF en nueva pestaña - el usuario puede usar Ctrl+P desde ahí
+    const newWindow = window.open(url, '_blank')
     
-    if (!printWindow) {
-      // Si el popup fue bloqueado, intentar con iframe
-      const iframe = document.createElement('iframe')
-      iframe.style.position = 'fixed'
-      iframe.style.width = '1px'
-      iframe.style.height = '1px'
-      iframe.style.opacity = '0'
-      iframe.style.pointerEvents = 'none'
-      iframe.src = url
-      document.body.appendChild(iframe)
-      
-      iframe.onload = () => {
-        setTimeout(() => {
-          try {
-            iframe.contentWindow.focus()
-            iframe.contentWindow.print()
-          } catch (e) {
-            console.error('Error al imprimir:', e)
-            alert('No se pudo abrir el diálogo de impresión automáticamente. Por favor usa Ctrl+P en el PDF.')
-          }
-          setTimeout(() => {
-            try { document.body.removeChild(iframe) } catch (e) {}
-          }, 1000)
-        }, 1000)
-      }
-      return
+    if (!newWindow) {
+      alert('Por favor permite ventanas emergentes para abrir el PDF, o usa el botón Descargar.')
     }
-    
-    // Esperar a que el PDF cargue y ejecutar print()
-    setTimeout(() => {
-      try {
-        printWindow.focus()
-        printWindow.print()
-      } catch (e) {
-        console.error('Error al imprimir en nueva pestaña:', e)
-      }
-    }, 1500)
   }
 
   // Función para descargar PDF
