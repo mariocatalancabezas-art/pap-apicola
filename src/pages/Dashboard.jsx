@@ -180,14 +180,14 @@ export default function Dashboard() {
             <p className="text-sm font-medium text-gray-700 mb-2">Pauta Sala Primaria SAG</p>
             <div className="grid grid-cols-2 gap-2">
               <button 
-                onClick={() => printPDF('/Planillas/Pauta_Sala_Primaria_SAG.pdf')}
+                onClick={() => printPDF('/Planillas/PAUTA%20SALA%20PRIMARIA.pdf')}
                 className="btn-secondary flex items-center justify-center gap-1.5 py-2 text-xs"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Imprimir
               </button>
               <button 
-                onClick={() => downloadPDF('/Planillas/Pauta_Sala_Primaria_SAG.pdf', 'Pauta_Sala_Primaria_SAG.pdf')}
+                onClick={() => downloadPDF('/Planillas/PAUTA%20SALA%20PRIMARIA.pdf', 'PAUTA_SALA_PRIMARIA.pdf')}
                 className="btn-secondary flex items-center justify-center gap-1.5 py-2 text-xs"
               >
                 <Download className="w-3.5 h-3.5" />
