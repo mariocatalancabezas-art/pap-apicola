@@ -15,6 +15,7 @@ import VisitaTecnica from './pages/VisitaTecnica'
 import VisitaAdministrativa from './pages/VisitaAdministrativa'
 import OtrasPlanillas from './pages/OtrasPlanillas'
 import { AuthProvider, useAuth } from './lib/AuthContext'
+import { initApicultores } from './lib/initApicultores'
 import { setupAutoSync } from './lib/sync'
 
 function PrivateRoute({ children }) {
@@ -26,6 +27,8 @@ function AppRoutes() {
   const { user } = useAuth()
 
   useEffect(() => {
+    // Cargar apicultores automáticamente
+    initApicultores().catch(console.error)
     setupAutoSync()
   }, [])
 
