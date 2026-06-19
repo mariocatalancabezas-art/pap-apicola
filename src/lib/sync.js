@@ -268,31 +268,115 @@ export function setupAutoSync() {
     }
   })
 
-  // Sync INMEDIATO al iniciar la app (no esperar 2 segundos)
-  // y hacer FULL SYNC para dispositivos nuevos o que no han sincronizado
+  // Sync INMEDIATO al iniciar la app
   if (navigator.onLine) {
     const lastSync = localStorage.getItem('last_sync_at')
-    const isNewDevice = !lastSync
+    const hardResetDone = localStorage.getItem('hard_reset_done')
+    const isNewDevice = !lastSync || !hardResetDone
     
     if (isNewDevice) {
-      console.log('[Sync] Nuevo dispositivo detectado - ejecutando FULL SYNC inmediato')
-      syncAll(true) // Full sync para nuevo dispositivo
+      console.log('[Sync] Nuevo dispositivo detectado - ejecutando HARD RESET')
+      // Usar setTimeout para no bloquear el inicio de la app
+      setTimeout(() => hardResetAndSync(), 100)
     } else {
       console.log('[Sync] Sincronización normal al iniciar')
-      syncAll(false)
+      syncAll(true) // Forzar full sync en cada inicio para asegurar consistencia
     }
   }
 
-  // Sync periódico cada 30 segundos
+  // Sync periódico cada 15 segundos (más frecuente)
   setInterval(() => {
     if (navigator.onLine) syncAll(false)
-  }, 30 * 1000)
+  }, 15 * 1000)
+}
+
+// Exponer función global para debugging
+if (typeof window !== 'undefined') {
+  window.hardResetAndSync = hardResetAndSync
+  window.forceFullSync = forceFullSync
+  window.getSyncStatus = getSyncStatus
 }
 
 // Función para forzar sincronización completa (útil para debugging)
 export async function forceFullSync() {
   console.log('[Sync] Forzando sincronización completa...')
   await syncAll(true)
+}
+
+// Función de HARD RESET - limpia todo local y trae desde servidor
+export async function hardResetAndSync() {
+  console.log('[Sync] HARD RESET - Limpiando base de datos local...')
+  
+  if (!isSupabaseConfigured() || !navigator.onLine) {
+    console.error('[Sync] No se puede hacer hard reset sin conexión')
+    return
+  }
+  
+  isSyncing = true
+  notifySyncListeners('syncing')
+  
+  try {
+    // 1. Limpiar completamente las tablas locales
+    await db.visitas.clear()
+    await db.apicultores.clear()
+    console.log('[Sync] Base de datos local limpiada')
+    
+    // 2. Traer TODOS los datos desde Supabase
+    console.log('[Sync] Trayendo todos los datos desde servidor...')
+    
+    // Traer todas las visitas no eliminadas
+    const { data: remoteVisitas, error: errVisitas } = await supabase
+      .from('visitas')
+      .select('*')
+      .is('deleted_at', null)
+    
+    if (errVisitas) {
+      console.error('[Sync] Error trayendo visitas:', errVisitas)
+    } else if (remoteVisitas) {
+      console.log(`[Sync] Recibidas ${remoteVisitas.length} visitas`)
+      for (const remote of remoteVisitas) {
+        await db.visitas.add({
+          ...remote,
+          sync_status: SYNC_STATUS.SYNCED
+        })
+      }
+    }
+    
+    // Traer todos los apicultores no eliminados
+    const { data: remoteApicultores, error: errApicultores } = await supabase
+      .from('apicultores')
+      .select('*')
+      .is('deleted_at', null)
+    
+    if (errApicultores) {
+      console.error('[Sync] Error trayendo apicultores:', errApicultores)
+    } else if (remoteApicultores) {
+      console.log(`[Sync] Recibidos ${remoteApicultores.length} apicultores`)
+      for (const remote of remoteApicultores) {
+        await db.apicultores.add({
+          ...remote,
+          sync_status: SYNC_STATUS.SYNCED
+        })
+      }
+    }
+    
+    // 3. Resetear timestamps
+    localStorage.setItem('last_sync_at', new Date().toISOString())
+    localStorage.setItem('last_sync_apicultores', new Date().toISOString())
+    localStorage.setItem('hard_reset_done', new Date().toISOString())
+    
+    console.log('[Sync] Hard reset completado exitosamente')
+    notifySyncListeners('synced')
+    
+    // 4. Recargar la página para aplicar cambios
+    window.location.reload()
+    
+  } catch (err) {
+    console.error('[Sync] Error en hard reset:', err)
+    notifySyncListeners('error')
+  } finally {
+    isSyncing = false
+  }
 }
 
 export async function getPendingCount() {
