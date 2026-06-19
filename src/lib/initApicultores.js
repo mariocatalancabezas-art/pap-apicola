@@ -3,7 +3,7 @@ import { db, generateUUID, SYNC_STATUS } from './db'
 import { formatRUT, separarNombreApellido } from './importApicultores'
 
 // URL del archivo Excel de apicultores (en public folder)
-const EXCEL_URL = '/Planillas/Lista Usuarios PAP ASB y ABB.xlsx'
+const EXCEL_URL = '/Planillas/Lista%20Usuarios%20PAP%20ASB%20y%20ABB.xlsx'
 
 // Función para verificar si ya hay apicultores cargados
 async function hayApicultoresCargados() {
