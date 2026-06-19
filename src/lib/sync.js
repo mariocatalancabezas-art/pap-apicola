@@ -16,7 +16,24 @@ function notifySyncListeners(status) {
 }
 
 export async function syncAll(forceFull = false) {
-  if (!isSupabaseConfigured() || !navigator.onLine || isSyncing) return
+  console.log('[Sync] syncAll llamado, forceFull=', forceFull)
+  console.log('[Sync] isSupabaseConfigured:', isSupabaseConfigured())
+  console.log('[Sync] navigator.onLine:', navigator.onLine)
+  console.log('[Sync] isSyncing:', isSyncing)
+  
+  if (!isSupabaseConfigured()) {
+    console.error('[Sync] ERROR: Supabase no está configurado')
+    return
+  }
+  if (!navigator.onLine) {
+    console.log('[Sync] Sin conexión, abortando')
+    return
+  }
+  if (isSyncing) {
+    console.log('[Sync] Ya hay sync en progreso, abortando')
+    return
+  }
+  
   isSyncing = true
   fullSyncInProgress = forceFull
   notifySyncListeners('syncing')
@@ -25,15 +42,19 @@ export async function syncAll(forceFull = false) {
     console.log('[Sync] Iniciando sincronización', forceFull ? 'COMPLETA' : 'incremental')
     
     // 1. Primero enviar cambios locales pendientes
+    console.log('[Sync] Paso 1: pushLocalChanges')
     await pushLocalChanges()
     
     // 2. Sincronizar apicultores
+    console.log('[Sync] Paso 2: syncApicultores')
     await syncApicultores(forceFull)
     
     // 3. Traer cambios remotos
+    console.log('[Sync] Paso 3: pullRemoteChanges')
     await pullRemoteChanges(forceFull)
     
     // 4. Procesar eliminaciones
+    console.log('[Sync] Paso 4: syncDeletions')
     await syncDeletions()
     
     hasDoneInitialSync = true
@@ -42,6 +63,7 @@ export async function syncAll(forceFull = false) {
     console.log('[Sync] Completada exitosamente')
   } catch (err) {
     console.error('[Sync] Error:', err)
+    console.error('[Sync] Stack:', err.stack)
     notifySyncListeners('error')
   } finally {
     isSyncing = false
@@ -124,6 +146,14 @@ async function syncApicultores(forceFull = false) {
 async function pushLocalChanges() {
   console.log('[Sync] Enviando cambios locales de visitas...')
   
+  // Verificar autenticación
+  const { data: { user } } = await supabase.auth.getUser()
+  console.log('[Sync] Usuario autenticado:', user ? user.email : 'NO')
+  if (!user) {
+    console.error('[Sync] ERROR: No hay usuario autenticado')
+    return
+  }
+  
   const pendingVisitas = await db.visitas
     .where('sync_status').equals(SYNC_STATUS.PENDING)
     .toArray()
@@ -132,25 +162,34 @@ async function pushLocalChanges() {
 
   for (const item of pendingVisitas) {
     const { id: localId, sync_status, ...payload } = item
+    console.log(`[Sync] Enviando visita UUID: ${payload.uuid}, Nombre: ${payload.f1_nombre}`)
     
     // Si está marcado para eliminación
     if (payload.deleted_at) {
-      await supabase
+      console.log(`[Sync] Marcando como eliminada: ${payload.uuid}`)
+      const { error } = await supabase
         .from('visitas')
         .update({ deleted_at: payload.deleted_at, updated_at: new Date().toISOString() })
         .eq('uuid', payload.uuid)
-      await db.visitas.delete(item.id)
+      if (error) {
+        console.error('[Sync] Error al eliminar en servidor:', error)
+      } else {
+        await db.visitas.delete(item.id)
+      }
       continue
     }
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('visitas')
       .upsert({ ...payload }, { onConflict: 'uuid' })
+      .select()
 
-    if (!error) {
-      await db.visitas.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
-    } else {
+    if (error) {
       console.error('[Sync] Error al sincronizar visita:', error)
+      console.error('[Sync] Error detalles:', error.message, error.code)
+    } else {
+      console.log(`[Sync] Visita sincronizada exitosamente: ${payload.uuid}`)
+      await db.visitas.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
     }
   }
 }
