@@ -253,9 +253,15 @@ export default function Apicultores() {
             className="w-16 h-16 mx-auto mb-3 object-contain opacity-50"
           />
           <p className="mb-2">No hay apicultores registrados</p>
-          <p className="text-xs text-gray-400">
-            Los apicultores se cargarán automáticamente desde la base de datos
-          </p>
+          <button
+            onClick={async () => {
+              await initApicultores()
+              load()
+            }}
+            className="btn-primary mt-4"
+          >
+            Cargar apicultores desde Excel
+          </button>
         </div>
       )}
 
