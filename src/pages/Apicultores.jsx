@@ -31,18 +31,30 @@ export default function Apicultores() {
   const puedeVerAcciones = esAdmin || user?.puede_ver_acciones === true
 
   async function load() {
+    console.log('[Apicultores] Iniciando carga...')
     setLoading(true)
     try {
+      // Verificar que db.apicultores existe
+      if (!db || !db.apicultores) {
+        console.error('[Apicultores] db.apicultores no está disponible')
+        setApicultores([])
+        return
+      }
+      
       // Filtrar eliminados (soft delete) y ordenar
       const all = await db.apicultores
         .filter(a => !a.deleted_at)
         .toArray()
+      
+      console.log('[Apicultores] Cargados:', all.length)
       setApicultores(all)
     } catch (err) {
-      console.error('Error cargando apicultores:', err)
+      console.error('[Apicultores] Error:', err)
       alert('Error al cargar apicultores: ' + err.message)
+      setApicultores([])
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   // Función para ordenar
