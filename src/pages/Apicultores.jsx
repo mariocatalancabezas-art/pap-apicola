@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { PlusCircle, Pencil, Trash2, Search, Phone, Save, X, User, ChevronUp, ChevronDown, Group, Copy, Printer, Download } from 'lucide-react'
+import { PlusCircle, Pencil, Trash2, Search, Phone, Save, X, User, ChevronUp, ChevronDown, Group, Copy, Printer } from 'lucide-react'
 import { db, generateUUID, SYNC_STATUS } from '../lib/db'
 import { useAuth } from '../lib/AuthContext'
-import { cargarApicultoresDesdeExcel } from '../lib/cargarApicultores'
 import { syncAll } from '../lib/sync'
 
 export default function Apicultores() {
@@ -12,7 +11,6 @@ export default function Apicultores() {
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({})
-  const [cargandoDatos, setCargandoDatos] = useState(false)
   const [sortField, setSortField] = useState('nombre_completo')
   const [sortDirection, setSortDirection] = useState('asc')
   const [groupBy, setGroupBy] = useState(null)
@@ -31,20 +29,6 @@ export default function Apicultores() {
   const esAdmin = user?.rol === 'admin'
   const puedeEditar = esAdmin || user?.puede_editar_apicultores === true
   const puedeVerAcciones = esAdmin || user?.puede_ver_acciones === true
-
-  // Función para cargar datos del programa automáticamente
-  async function handleCargarDatosPrograma() {
-    setCargandoDatos(true)
-    const result = await cargarApicultoresDesdeExcel()
-    setCargandoDatos(false)
-    
-    if (result.success) {
-      alert(`✓ ${result.count} apicultores del programa cargados correctamente`)
-      load()
-    } else {
-      alert('Error al cargar: ' + result.error)
-    }
-  }
 
   async function load() {
     setLoading(true)
@@ -268,31 +252,10 @@ export default function Apicultores() {
             alt="PAP Apícola"
             className="w-16 h-16 mx-auto mb-3 object-contain opacity-50"
           />
-          <p className="mb-4">No hay apicultores registrados</p>
-          
-          {/* Botón para cargar datos del programa automáticamente */}
-          <button
-            onClick={handleCargarDatosPrograma}
-            disabled={cargandoDatos}
-            className="btn-primary inline-flex items-center gap-2 px-4 py-2"
-          >
-            {cargandoDatos ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Cargando datos del programa…
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Cargar apicultores del programa
-              </>
-            )}
-          </button>
-          
-          <p className="text-xs text-gray-400 mt-3">
-            Esto cargará todos los apicultores desde la planilla oficial del programa
+          <p className="mb-2">No hay apicultores registrados</p>
+          <p className="text-xs text-gray-400">
+            Los apicultores se cargarán automáticamente desde la base de datos
           </p>
-          
         </div>
       )}
 

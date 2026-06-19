@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, RefreshCw, AlertTriangle } from 'lucide-react'
+import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download } from 'lucide-react'
 import { db } from '../lib/db'
-import { syncAll, onSyncChange, hardResetAndSync } from '../lib/sync'
+import { onSyncChange } from '../lib/sync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
@@ -84,47 +84,19 @@ export default function Dashboard() {
       </div>
 
       {supabaseOk && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg ${
-            syncStatus === 'syncing' ? 'bg-blue-50 text-blue-600' :
-            syncStatus === 'synced'  ? 'bg-green-50 text-green-600' :
-            syncStatus === 'error'   ? 'bg-red-50 text-red-600' :
-            isOnline ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
-          }`}>
-            {isOnline
-              ? <Cloud className="w-3.5 h-3.5" />
-              : <CloudOff className="w-3.5 h-3.5" />}
-            {syncStatus === 'syncing' ? 'Sincronizando…' :
-             syncStatus === 'synced'  ? 'Sincronizado ✓' :
-             syncStatus === 'error'   ? 'Error de sincronización' :
-             isOnline ? 'En línea · auto-sync' : 'Sin conexión'}
-          </div>
-          
-          {/* Botón de sync manual */}
-          <button
-            onClick={() => syncAll(true)}
-            disabled={syncStatus === 'syncing' || !isOnline}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Sincronizar ahora"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-            Sync
-          </button>
-          
-          {/* Botón de HARD RESET - solo visible si hay problemas */}
-          <button
-            onClick={() => {
-              if (confirm('⚠️ Esto borrará todos los datos locales y los descargará nuevamente desde el servidor.\n\n¿Estás seguro?')) {
-                hardResetAndSync()
-              }
-            }}
-            disabled={syncStatus === 'syncing' || !isOnline}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-amber-50 border border-amber-200 text-amber-700 rounded-lg hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Forzar sincronización completa (borra datos locales)"
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Forzar Sync
-          </button>
+        <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg ${
+          syncStatus === 'syncing' ? 'bg-blue-50 text-blue-600' :
+          syncStatus === 'synced'  ? 'bg-green-50 text-green-600' :
+          syncStatus === 'error'   ? 'bg-red-50 text-red-600' :
+          isOnline ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
+        }`}>
+          {isOnline
+            ? <Cloud className="w-3.5 h-3.5" />
+            : <CloudOff className="w-3.5 h-3.5" />}
+          {syncStatus === 'syncing' ? 'Sincronizando…' :
+           syncStatus === 'synced'  ? 'Sincronizado ✓' :
+           syncStatus === 'error'   ? 'Error de sincronización' :
+           isOnline ? 'En línea · sincronización automática activa' : 'Sin conexión · datos locales'}
         </div>
       )}
 
