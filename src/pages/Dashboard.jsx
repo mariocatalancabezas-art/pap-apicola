@@ -9,14 +9,17 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 export default function Dashboard() {
   const [stats, setStats] = useState({ visitas: 0, hoy: 0, pendientes: 0 })
 
-  // Función para imprimir PDF: abre en nueva pestaña para que el usuario use Ctrl+P
+  // Función para imprimir/abrir PDF: usa un enlace <a> que funciona en móviles
+  // (window.open suele ser bloqueado en teléfonos). Abre en nueva pestaña donde
+  // el usuario puede imprimir desde el visor del navegador.
   function printPDF(url) {
-    // Abrir PDF en nueva pestaña - el usuario puede usar Ctrl+P desde ahí
-    const newWindow = window.open(url, '_blank')
-    
-    if (!newWindow) {
-      alert('Por favor permite ventanas emergentes para abrir el PDF, o usa el botón Descargar.')
-    }
+    const link = document.createElement('a')
+    link.href = url
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   // Función para descargar PDF

@@ -103,11 +103,12 @@ export default function NuevaVisita() {
 
   useEffect(() => {
     async function initNumero() {
+      // El número de encuesta es correlativo según la cantidad de diagnósticos
+      // guardados (no eliminados). Si no hay ninguno parte desde 1.
+      // El usuario siempre puede editarlo manualmente (puede repetirse).
       const all = await db.visitas.toArray()
-      const nums = all
-        .map(v => parseInt(v.f20_numero_encuesta, 10))
-        .filter(n => !isNaN(n))
-      const next = nums.length > 0 ? Math.max(...nums) + 1 : 1
+      const guardados = all.filter(v => !v.deleted_at)
+      const next = guardados.length + 1
       setForm(f => ({ ...f, f20_numero_encuesta: String(next) }))
     }
     initNumero()
