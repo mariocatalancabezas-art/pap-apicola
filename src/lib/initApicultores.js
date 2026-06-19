@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { db } from './db'
+import { db, generateUUID, SYNC_STATUS } from './db'
 import { formatRUT, separarNombreApellido } from './importApicultores'
 
 // URL del archivo Excel de apicultores (en public folder)
@@ -36,6 +36,7 @@ export async function initApicultores() {
     const dataRows = rows.slice(1)
     
     const apicultores = []
+    const now = new Date().toISOString()
     
     for (const row of dataRows) {
       // Columnas: B=nombre, C=rut, D=telefono, E=comuna, F=direccion, G=asesoria_base
@@ -52,6 +53,7 @@ export async function initApicultores() {
       const rut = formatRUT(rutRaw)
       
       apicultores.push({
+        uuid: generateUUID(),
         nombre_completo: nombreCompleto.toUpperCase(),
         nombres: nombres.toUpperCase(),
         apellidos: apellidos.toUpperCase(),
@@ -60,6 +62,10 @@ export async function initApicultores() {
         comuna: comuna.toString().toUpperCase(),
         direccion: direccion.toString().toUpperCase(),
         programa_indap: programaIndap.toString().toUpperCase(),
+        sync_status: SYNC_STATUS.SYNCED, // Inicialmente synched ya que vienen del Excel oficial
+        created_at: now,
+        updated_at: now,
+        deleted_at: null,
       })
     }
     

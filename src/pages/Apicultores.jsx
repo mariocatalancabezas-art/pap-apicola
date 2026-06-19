@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { PlusCircle, Pencil, Trash2, Search, Phone, Save, X, User, ChevronUp, ChevronDown, Group, Copy, Printer, Download } from 'lucide-react'
-import { db } from '../lib/db'
+import { db, generateUUID, SYNC_STATUS } from '../lib/db'
 import { useAuth } from '../lib/AuthContext'
 import { cargarApicultoresDesdeExcel } from '../lib/cargarApicultores'
+import { syncAll } from '../lib/sync'
 
 export default function Apicultores() {
   const { user } = useAuth()
@@ -48,7 +49,10 @@ export default function Apicultores() {
   async function load() {
     setLoading(true)
     try {
-      const all = await db.apicultores.toArray()
+      // Filtrar eliminados (soft delete) y ordenar
+      const all = await db.apicultores
+        .filter(a => !a.deleted_at)
+        .toArray()
       setApicultores(all)
     } catch (err) {
       console.error('Error cargando apicultores:', err)
@@ -81,8 +85,19 @@ export default function Apicultores() {
 
   async function deleteApicultor(id) {
     if (!confirm('¿Eliminar este apicultor?')) return
-    await db.apicultores.delete(id)
+    const apicultor = await db.apicultores.get(id)
+    if (apicultor) {
+      // Soft delete
+      await db.apicultores.update(id, {
+        ...apicultor,
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sync_status: SYNC_STATUS.PENDING
+      })
+    }
     load()
+    // Sincronizar automáticamente
+    syncAll(true)
   }
 
   function startEdit(apicultor) {
@@ -122,16 +137,31 @@ export default function Apicultores() {
       return
     }
     
+    const now = new Date().toISOString()
+    
     try {
       const apicultorData = {
-        ...newApicultor,
-        nombre_completo: `${newApicultor.nombres} ${newApicultor.apellidos}`.trim()
+        uuid: generateUUID(),
+        nombres: newApicultor.nombres.toUpperCase(),
+        apellidos: newApicultor.apellidos.toUpperCase(),
+        nombre_completo: `${newApicultor.nombres} ${newApicultor.apellidos}`.toUpperCase().trim(),
+        rut: newApicultor.rut || '',
+        telefono: newApicultor.telefono || '',
+        comuna: (newApicultor.comuna || '').toUpperCase(),
+        direccion: (newApicultor.direccion || '').toUpperCase(),
+        programa_indap: (newApicultor.programa_indap || '').toUpperCase(),
+        sync_status: SYNC_STATUS.PENDING,
+        created_at: now,
+        updated_at: now,
+        deleted_at: null,
       }
       
       await db.apicultores.add(apicultorData)
       alert('✓ Apicultor creado correctamente')
       closeAddModal()
       load()
+      // Sincronizar automáticamente
+      syncAll(false)
     } catch (err) {
       alert('Error al crear apicultor: ' + err.message)
     }
@@ -143,10 +173,17 @@ export default function Apicultores() {
   }
 
   async function saveEdit() {
-    await db.apicultores.update(editingId, editForm)
+    const now = new Date().toISOString()
+    await db.apicultores.update(editingId, {
+      ...editForm,
+      updated_at: now,
+      sync_status: SYNC_STATUS.PENDING
+    })
     setEditingId(null)
     setEditForm({})
     load()
+    // Sincronizar automáticamente
+    syncAll(false)
   }
 
   function handleEditChange(field, value) {

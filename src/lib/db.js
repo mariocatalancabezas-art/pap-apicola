@@ -2,8 +2,8 @@ import Dexie from 'dexie'
 
 export const db = new Dexie('PAPApicola')
 
-db.version(5).stores({
-  visitas: `++id, uuid, 
+db.version(6).stores({
+  visitas: `++id, uuid,
     f1_nombre, f2_apellido, f3_rut, f4_telefono, f5_email,
     f6_region, f7_comuna, f8_area_indap, f9_dir_propiedad, f10_dir_predio,
     f11_fecha_nacimiento, f12_genero, f13_pueblo_originario, f14_nivel_educacional,
@@ -41,7 +41,8 @@ db.version(5).stores({
     brechas_nota,
     sync_status, created_at, updated_at, deleted_at`,
   sync_queue: '++id, table_name, record_uuid, operation, created_at',
-  apicultores: '++id, nombre_completo, nombres, apellidos, rut, telefono, comuna, direccion, programa_indap',
+  apicultores: `++id, uuid, nombre_completo, nombres, apellidos, rut, telefono, comuna, direccion, programa_indap,
+    sync_status, created_at, updated_at, deleted_at`,
 })
 
 export const SYNC_STATUS = {

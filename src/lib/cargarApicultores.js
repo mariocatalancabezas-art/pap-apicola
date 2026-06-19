@@ -1,6 +1,6 @@
 // Función para cargar apicultores desde el Excel en public/Planillas
 import * as XLSX from 'xlsx'
-import { db } from './db'
+import { db, generateUUID, SYNC_STATUS } from './db'
 import { formatRUT, separarNombreApellido } from './importApicultores'
 
 const EXCEL_URL = '/Planillas/Lista%20Usuarios%20PAP%20ASB%20y%20ABB.xlsx'
@@ -19,6 +19,7 @@ export async function cargarApicultoresDesdeExcel() {
     
     const dataRows = rows.slice(1)
     const apicultores = []
+    const now = new Date().toISOString()
     
     for (const row of dataRows) {
       const nombreCompleto = row[1] || ''
@@ -34,6 +35,7 @@ export async function cargarApicultoresDesdeExcel() {
       const rut = formatRUT(rutRaw)
       
       apicultores.push({
+        uuid: generateUUID(),
         nombre_completo: nombreCompleto.toUpperCase(),
         nombres: nombres.toUpperCase(),
         apellidos: apellidos.toUpperCase(),
@@ -42,6 +44,10 @@ export async function cargarApicultoresDesdeExcel() {
         comuna: comuna.toString().toUpperCase(),
         direccion: direccion.toString().toUpperCase(),
         programa_indap: programaIndap.toString().toUpperCase(),
+        sync_status: SYNC_STATUS.PENDING,
+        created_at: now,
+        updated_at: now,
+        deleted_at: null,
       })
     }
     
