@@ -59,8 +59,6 @@ export default function Dashboard() {
 
   const cards = [
     { label: 'Total diagnósticos', value: stats.visitas, icon: ClipboardList, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Encuestas hoy', value: stats.hoy, icon: CalendarDays, color: 'bg-green-50 text-green-600' },
-    { label: 'Por sincronizar', value: stats.pendientes, icon: CloudOff, color: stats.pendientes > 0 ? 'bg-amber-50 text-amber-600' : 'bg-gray-50 text-gray-400' },
   ]
 
   return (
@@ -103,7 +101,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {cards.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="card flex items-center gap-3 p-3 sm:p-4">
             <div className={`p-2 sm:p-2.5 rounded-lg ${color} flex-shrink-0`}>
