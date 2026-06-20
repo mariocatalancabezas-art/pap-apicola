@@ -146,14 +146,6 @@ async function syncApicultores(forceFull = false) {
 async function pushLocalChanges() {
   console.log('[Sync] Enviando cambios locales de visitas...')
   
-  // Verificar autenticación
-  const { data: { user } } = await supabase.auth.getUser()
-  console.log('[Sync] Usuario autenticado:', user ? user.email : 'NO')
-  if (!user) {
-    console.error('[Sync] ERROR: No hay usuario autenticado')
-    return
-  }
-  
   const pendingVisitas = await db.visitas
     .where('sync_status').equals(SYNC_STATUS.PENDING)
     .toArray()
