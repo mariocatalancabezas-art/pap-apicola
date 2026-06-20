@@ -5,6 +5,8 @@ import { db } from '../lib/db'
 import { onSyncChange } from '../lib/sync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { shareURL } from '../lib/exports'
+import ShareButton from '../components/ShareButton'
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ visitas: 0, hoy: 0, pendientes: 0, tecnicas: 0, administrativas: 0 })
@@ -139,7 +141,7 @@ export default function Dashboard() {
           {/* Manual SIPEC */}
           <div className="border border-gray-100 rounded-lg p-3 bg-gray-50">
             <p className="text-sm font-medium text-gray-700 mb-2">Manual Apicultor(a) SIPEC Apícola 2026</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button 
                 onClick={() => printPDF('/Planillas/Manual%20Apicultor(a)%20SIPEC%20Ap%C3%ADcola%202026.pdf')}
                 className="btn-secondary flex items-center justify-center gap-1.5 py-2 text-xs"
@@ -154,13 +156,14 @@ export default function Dashboard() {
                 <Download className="w-3.5 h-3.5" />
                 Descargar
               </button>
+              <ShareButton onClick={() => shareURL('/Planillas/Manual%20Apicultor(a)%20SIPEC%20Ap%C3%ADcola%202026.pdf', 'Manual_Apicola_SIPEC_2026.pdf')} title="Compartir manual" size="sm" className="mx-auto" />
             </div>
           </div>
 
           {/* Registros SAG */}
           <div className="border border-gray-100 rounded-lg p-3 bg-gray-50">
             <p className="text-sm font-medium text-gray-700 mb-2">Registros SAG</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button 
                 onClick={() => printPDF('/Planillas/Registros%20SAG.pdf')}
                 className="btn-secondary flex items-center justify-center gap-1.5 py-2 text-xs"
@@ -175,13 +178,14 @@ export default function Dashboard() {
                 <Download className="w-3.5 h-3.5" />
                 Descargar
               </button>
+              <ShareButton onClick={() => shareURL('/Planillas/Registros%20SAG.pdf', 'Registros_SAG.pdf')} title="Compartir registros" size="sm" className="mx-auto" />
             </div>
           </div>
 
           {/* Pauta Sala Primaria SAG */}
           <div className="border border-gray-100 rounded-lg p-3 bg-gray-50">
             <p className="text-sm font-medium text-gray-700 mb-2">Pauta Sala Primaria SAG</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button 
                 onClick={() => printPDF('/Planillas/PAUTA%20SALA%20PRIMARIA.pdf')}
                 className="btn-secondary flex items-center justify-center gap-1.5 py-2 text-xs"
@@ -196,6 +200,7 @@ export default function Dashboard() {
                 <Download className="w-3.5 h-3.5" />
                 Descargar
               </button>
+              <ShareButton onClick={() => shareURL('/Planillas/PAUTA%20SALA%20PRIMARIA.pdf', 'PAUTA_SALA_PRIMARIA.pdf')} title="Compartir pauta" size="sm" className="mx-auto" />
             </div>
           </div>
         </div>

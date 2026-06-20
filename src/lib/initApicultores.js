@@ -1,31 +1,25 @@
-import * as XLSX from 'xlsx'
-import { db, generateUUID, SYNC_STATUS } from './db'
-import { formatRUT, separarNombreApellido } from './importApicultores'
-import { supabase } from './supabase'
+import { db, SYNC_STATUS, generateUUID } from './db'
 
-// URL del archivo Excel de apicultores (en public folder)
-const EXCEL_URL = '/Planillas/Lista%20Usuarios%20PAP%20ASB%20y%20ABB.xlsx'
+// NOTA: El import desde Excel fue eliminado. Los apicultores se mantienen
+// exclusivamente en Supabase y se sincronizan en todos los dispositivos.
 
-// Función para verificar si ya hay apicultores cargados localmente
-async function hayApicultoresCargados() {
-  const count = await db.apicultores.count()
-  return count > 0
-}
+// Migración: los apicultores importados previamente desde Excel quedaron como
+// SYNCED aunque no estuvieran en Supabase. Esta función los marca como PENDING
+// una sola vez para que se sincronicen a Supabase y estén disponibles en todos
+// los dispositivos.
+async function migrarApicultoresSincronizados() {
+  const MIGRATION_KEY = 'migracion_apicultores_synced_a_pending'
+  if (localStorage.getItem(MIGRATION_KEY)) return
 
-// Verifica si Supabase ya tiene apicultores (para no re-importar el Excel
-// en cada dispositivo y así evitar duplicados).
-async function supabaseTieneApicultores() {
-  if (!supabase) return false
-  try {
-    const { count, error } = await supabase
-      .from('apicultores')
-      .select('*', { count: 'exact', head: true })
-      .is('deleted_at', null)
-    if (error) return false
-    return (count || 0) > 0
-  } catch {
-    return false
+  const apicultores = await db.apicultores.toArray()
+  const paraMigrar = apicultores.filter(a => a.sync_status === SYNC_STATUS.SYNCED && !a.deleted_at)
+  if (paraMigrar.length > 0) {
+    console.log(`[Migración] Marcando ${paraMigrar.length} apicultores como PENDING para sincronizar a Supabase`)
+    for (const a of paraMigrar) {
+      await db.apicultores.update(a.id, { sync_status: SYNC_STATUS.PENDING })
+    }
   }
+  localStorage.setItem(MIGRATION_KEY, new Date().toISOString())
 }
 
 // Elimina apicultores duplicados en la base de datos local, conservando
@@ -56,81 +50,60 @@ export async function dedupeApicultoresLocal() {
   return toDelete.length
 }
 
-// Función para importar apicultores desde el Excel en public
-export async function initApicultores() {
-  try {
-    // Si ya hay apicultores locales, no hacer nada
-    if (await hayApicultoresCargados()) {
-      console.log('Apicultores ya cargados previamente')
-      return { count: await db.apicultores.count(), imported: false }
-    }
+// Crea apicultores faltantes a partir de diagnósticos existentes. Útil cuando
+// un productor fue registrado en una visita pero aún no existe en la lista de
+// apicultores (por ejemplo Javier Sanhueza).
+export async function seedApicultoresFromVisitas() {
+  const visitas = await db.visitas.toArray()
+  const apicultores = await db.apicultores.toArray()
+  const existingNames = new Set(apicultores.map(a => (a.nombre_completo || '').trim().toUpperCase()))
+  const existingRuts = new Set(apicultores.map(a => (a.rut || '').trim().toUpperCase()))
+  const now = new Date().toISOString()
+  let added = 0
 
-    // Si Supabase ya tiene apicultores, NO importar el Excel: la sincronización
-    // los traerá. Esto evita crear duplicados al instalar la app en un nuevo
-    // dispositivo o navegador.
-    if (await supabaseTieneApicultores()) {
-      console.log('Supabase ya tiene apicultores; se omite la importación del Excel')
-      return { count: 0, imported: false }
-    }
+  for (const v of visitas) {
+    const nombres = (v.f1_nombre || '').trim().toUpperCase()
+    const apellidos = (v.f2_apellido || '').trim().toUpperCase()
+    const nombre_completo = `${nombres} ${apellidos}`.trim()
+    const rut = (v.f3_rut || '').trim().toUpperCase()
+    if (!nombre_completo) continue
 
-    // Cargar el archivo Excel
-    const response = await fetch(EXCEL_URL)
-    if (!response.ok) {
-      console.log('Archivo Excel de apicultores no encontrado')
-      return { count: 0, imported: false }
-    }
+    const alreadyExists = existingNames.has(nombre_completo) || (rut && existingRuts.has(rut))
+    if (alreadyExists) continue
 
-    const arrayBuffer = await response.arrayBuffer()
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
-    
-    // Saltar la primera fila (encabezados)
-    const dataRows = rows.slice(1)
-    
-    const apicultores = []
-    const now = new Date().toISOString()
-    
-    for (const row of dataRows) {
-      // Columnas: B=nombre, C=rut, D=telefono, E=comuna, F=direccion, G=asesoria_base
-      const nombreCompleto = row[1] || '' // Columna B
-      const rutRaw = row[2] || '' // Columna C
-      const telefono = row[3] || '' // Columna D
-      const comuna = row[4] || '' // Columna E
-      const direccion = row[5] || '' // Columna F
-      const programaIndap = row[6] || '' // Columna G
-      
-      if (!nombreCompleto) continue // Saltar filas vacías
-      
-      const { nombres, apellidos } = separarNombreApellido(nombreCompleto)
-      const rut = formatRUT(rutRaw)
-      
-      apicultores.push({
-        uuid: generateUUID(),
-        nombre_completo: nombreCompleto.toUpperCase(),
-        nombres: nombres.toUpperCase(),
-        apellidos: apellidos.toUpperCase(),
-        rut,
-        telefono: telefono.toString(),
-        comuna: comuna.toString().toUpperCase(),
-        direccion: direccion.toString().toUpperCase(),
-        programa_indap: programaIndap.toString().toUpperCase(),
-        sync_status: SYNC_STATUS.SYNCED, // Inicialmente synched ya que vienen del Excel oficial
-        created_at: now,
-        updated_at: now,
-        deleted_at: null,
-      })
+    const nuevo = {
+      uuid: generateUUID(),
+      nombres,
+      apellidos,
+      nombre_completo,
+      rut,
+      telefono: (v.f4_telefono || '').trim(),
+      comuna: (v.f7_comuna || '').trim().toUpperCase(),
+      direccion: (v.f9_dir_propiedad || '').trim().toUpperCase(),
+      programa_indap: (v.f18_programa_indap || '').trim().toUpperCase(),
+      sync_status: SYNC_STATUS.PENDING,
+      created_at: now,
+      updated_at: now,
+      deleted_at: null,
     }
-    
-    // Guardar en la base de datos local
-    if (apicultores.length > 0) {
-      await db.apicultores.bulkAdd(apicultores)
-      console.log(`✓ ${apicultores.length} apicultores importados automáticamente`)
-    }
-    
-    return { count: apicultores.length, imported: true }
-  } catch (err) {
-    console.error('Error importando apicultores:', err)
-    return { count: 0, imported: false, error: err.message }
+    await db.apicultores.add(nuevo)
+    existingNames.add(nombre_completo)
+    if (rut) existingRuts.add(rut)
+    added++
   }
+
+  if (added > 0) {
+    console.log(`[Apicultores] Creados ${added} apicultores desde diagnósticos existentes`)
+  }
+  return added
+}
+
+// Ya no importa desde Excel. Solo retorna la cantidad actual mientras la
+// sincronización normal trae los datos desde Supabase.
+export async function initApicultores() {
+  await migrarApicultoresSincronizados()
+  await seedApicultoresFromVisitas()
+  const count = await db.apicultores.count()
+  console.log(`[Apicultores] initApicultores: ${count} apicultores locales. Sincronización desde Supabase.`)
+  return { count, imported: false }
 }

@@ -2,9 +2,11 @@ import { db, SYNC_STATUS } from './db'
 import { supabase, isSupabaseConfigured } from './supabase'
 
 let isSyncing = false
+let pendingSync = false
 let syncListeners = []
 let fullSyncInProgress = false
 let hasDoneInitialSync = false
+let autoSyncSetup = false
 
 export function onSyncChange(fn) {
   syncListeners.push(fn)
@@ -30,45 +32,50 @@ export async function syncAll(forceFull = false) {
     return
   }
   if (isSyncing) {
-    console.log('[Sync] Ya hay sync en progreso, abortando')
+    console.log('[Sync] Ya hay sync en progreso, encolando')
+    pendingSync = true
     return
   }
   
-  isSyncing = true
-  fullSyncInProgress = forceFull
-  notifySyncListeners('syncing')
+  do {
+    const runFullSync = forceFull || pendingSync
+    pendingSync = false
+    isSyncing = true
+    fullSyncInProgress = runFullSync
+    notifySyncListeners('syncing')
 
-  try {
-    console.log('[Sync] Iniciando sincronización', forceFull ? 'COMPLETA' : 'incremental')
-    
-    // 1. Primero enviar cambios locales pendientes
-    console.log('[Sync] Paso 1: pushLocalChanges')
-    await pushLocalChanges()
-    
-    // 2. Sincronizar apicultores
-    console.log('[Sync] Paso 2: syncApicultores')
-    await syncApicultores(forceFull)
-    
-    // 3. Traer cambios remotos
-    console.log('[Sync] Paso 3: pullRemoteChanges')
-    await pullRemoteChanges(forceFull)
-    
-    // 4. Procesar eliminaciones
-    console.log('[Sync] Paso 4: syncDeletions')
-    await syncDeletions()
-    
-    hasDoneInitialSync = true
-    localStorage.setItem('last_sync_at', new Date().toISOString())
-    notifySyncListeners('synced')
-    console.log('[Sync] Completada exitosamente')
-  } catch (err) {
-    console.error('[Sync] Error:', err)
-    console.error('[Sync] Stack:', err.stack)
-    notifySyncListeners('error')
-  } finally {
-    isSyncing = false
-    fullSyncInProgress = false
-  }
+    try {
+      console.log('[Sync] Iniciando sincronización', fullSyncInProgress ? 'COMPLETA' : 'incremental')
+      
+      // 1. Primero enviar cambios locales pendientes
+      console.log('[Sync] Paso 1: pushLocalChanges')
+      await pushLocalChanges()
+      
+      // 2. Sincronizar apicultores
+      console.log('[Sync] Paso 2: syncApicultores')
+      await syncApicultores(fullSyncInProgress)
+      
+      // 3. Traer cambios remotos
+      console.log('[Sync] Paso 3: pullRemoteChanges')
+      await pullRemoteChanges(fullSyncInProgress)
+      
+      // 4. Procesar eliminaciones
+      console.log('[Sync] Paso 4: syncDeletions')
+      await syncDeletions()
+      
+      hasDoneInitialSync = true
+      localStorage.setItem('last_sync_at', new Date().toISOString())
+      notifySyncListeners('synced')
+      console.log('[Sync] Completada exitosamente')
+    } catch (err) {
+      console.error('[Sync] Error:', err)
+      console.error('[Sync] Stack:', err.stack)
+      notifySyncListeners('error')
+    } finally {
+      isSyncing = false
+      fullSyncInProgress = false
+    }
+  } while (pendingSync)
 }
 
 // Sincronización de apicultores
@@ -80,16 +87,24 @@ async function syncApicultores(forceFull = false) {
     .where('sync_status').equals(SYNC_STATUS.PENDING)
     .toArray()
   
+  console.log(`[Sync] ${pendingApicultores.length} apicultores pendientes, ${pendingApicultores.filter(a => a.deleted_at).length} eliminados`)  
+  
+  let pushErrors = []
   for (const item of pendingApicultores) {
     const { id: localId, sync_status, ...payload } = item
     
     if (payload.deleted_at) {
       // Soft delete en servidor
-      await supabase
+      const { error } = await supabase
         .from('apicultores')
         .update({ deleted_at: payload.deleted_at, updated_at: new Date().toISOString() })
         .eq('uuid', payload.uuid)
-      await db.apicultores.delete(item.id)
+      if (error) {
+        console.error('[Sync] Error al eliminar apicultor en servidor:', error)
+        pushErrors.push(error)
+      } else {
+        await db.apicultores.delete(item.id)
+      }
       continue
     }
     
@@ -97,12 +112,38 @@ async function syncApicultores(forceFull = false) {
       .from('apicultores')
       .upsert({ ...payload }, { onConflict: 'uuid' })
     
-    if (!error) {
+    if (error) {
+      console.error('[Sync] Error al sincronizar apicultor:', error)
+      pushErrors.push(error)
+    } else {
       await db.apicultores.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
     }
   }
   
-  // 2. Traer apicultores del servidor
+  if (pushErrors.length > 0) {
+    throw new Error(`${pushErrors.length} apicultores no pudieron sincronizarse`)
+  }
+  
+  // 2. En modo full sync, eliminar locales que no existen en servidor
+  if (forceFull) {
+    const localApicultores = await db.apicultores.toArray()
+    const { data: remoteUUIDs } = await supabase
+      .from('apicultores')
+      .select('uuid')
+      .is('deleted_at', null)
+    
+    if (remoteUUIDs) {
+      const remoteUUIDSet = new Set(remoteUUIDs.map(a => a.uuid))
+      for (const local of localApicultores) {
+        if (!remoteUUIDSet.has(local.uuid) && local.sync_status === SYNC_STATUS.SYNCED) {
+          console.log(`[Sync] Eliminando apicultor local que ya no existe en servidor: ${local.uuid}`)
+          await db.apicultores.delete(local.id)
+        }
+      }
+    }
+  }
+  
+  // 3. Traer apicultores del servidor
   let query = supabase.from('apicultores').select('*').is('deleted_at', null)
   
   if (!forceFull) {
@@ -114,7 +155,7 @@ async function syncApicultores(forceFull = false) {
   
   if (error) {
     console.error('[Sync] Error al traer apicultores:', error)
-    return
+    throw error
   }
   
   if (remoteApicultores && remoteApicultores.length > 0) {
@@ -129,7 +170,8 @@ async function syncApicultores(forceFull = false) {
           id: undefined, // Dejar que Dexie asigne nuevo id local
           sync_status: SYNC_STATUS.SYNCED 
         })
-      } else if (new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
+      } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
+        // No sobrescribir registros locales pendientes (evita que una eliminación en curso se revierta)
         await db.apicultores.update(existing.id, { 
           ...remote, 
           id: existing.id, // Mantener id local
@@ -152,6 +194,7 @@ async function pushLocalChanges() {
   
   console.log(`[Sync] ${pendingVisitas.length} visitas pendientes de sincronizar`)
 
+  let errors = []
   for (const item of pendingVisitas) {
     const { id: localId, sync_status, ...payload } = item
     // Preguntas ASB: solo locales, no sincronizar con Supabase
@@ -169,6 +212,7 @@ async function pushLocalChanges() {
         .eq('uuid', payload.uuid)
       if (error) {
         console.error('[Sync] Error al eliminar en servidor:', error)
+        errors.push(error)
       } else {
         await db.visitas.delete(item.id)
       }
@@ -183,10 +227,15 @@ async function pushLocalChanges() {
     if (error) {
       console.error('[Sync] Error al sincronizar visita:', error)
       console.error('[Sync] Error detalles:', error.message, error.code)
+      errors.push(error)
     } else {
       console.log(`[Sync] Visita sincronizada exitosamente: ${payload.uuid}`)
       await db.visitas.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
     }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`${errors.length} visitas no pudieron sincronizarse`)
   }
 }
 
@@ -227,7 +276,7 @@ async function pullRemoteChanges(forceFull = false) {
 
   if (error) {
     console.error('[Sync] Error al traer visitas:', error)
-    return
+    throw error
   }
   
   if (remoteVisitas && remoteVisitas.length > 0) {
@@ -243,8 +292,8 @@ async function pullRemoteChanges(forceFull = false) {
           id: undefined, // Dejar que Dexie asigne nuevo id local
           sync_status: SYNC_STATUS.SYNCED 
         })
-      } else if (new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
-        // Actualizar si el remoto es más nuevo
+      } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
+        // Actualizar si el remoto es más nuevo, pero no sobrescribir locales pendientes
         await db.visitas.update(existing.id, { 
           ...remote, 
           id: existing.id, // Mantener id local
@@ -257,20 +306,23 @@ async function pullRemoteChanges(forceFull = false) {
 
 async function syncDeletions() {
   console.log('[Sync] Procesando eliminaciones...')
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+  let errors = []
   
   // Procesar eliminaciones de visitas
   const localDeletedVisitas = await db.visitas.where('deleted_at').above('').toArray()
   console.log(`[Sync] ${localDeletedVisitas.length} visitas marcadas para eliminación`)
   
   for (const item of localDeletedVisitas) {
-    await supabase
+    const { error } = await supabase
       .from('visitas')
       .update({ deleted_at: item.deleted_at, updated_at: new Date().toISOString() })
       .eq('uuid', item.uuid)
-    await db.visitas.delete(item.id)
+    if (error) {
+      console.error('[Sync] Error al sincronizar eliminación de visita:', error)
+      errors.push(error)
+    } else {
+      await db.visitas.delete(item.id)
+    }
   }
   
   // Procesar eliminaciones de apicultores
@@ -278,15 +330,29 @@ async function syncDeletions() {
   console.log(`[Sync] ${localDeletedApicultores.length} apicultores marcados para eliminación`)
   
   for (const item of localDeletedApicultores) {
-    await supabase
+    const { error } = await supabase
       .from('apicultores')
       .update({ deleted_at: item.deleted_at, updated_at: new Date().toISOString() })
       .eq('uuid', item.uuid)
-    await db.apicultores.delete(item.id)
+    if (error) {
+      console.error('[Sync] Error al sincronizar eliminación de apicultor:', error)
+      errors.push(error)
+    } else {
+      await db.apicultores.delete(item.id)
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`${errors.length} eliminaciones no pudieron sincronizarse`)
   }
 }
 
 export function setupAutoSync() {
+  if (autoSyncSetup) {
+    console.log('[Sync] Auto-sync ya configurado, ignorando llamada duplicada')
+    return
+  }
+  autoSyncSetup = true
   console.log('[Sync] Configurando auto-sync...')
   
   // Evento: volver a estar online
@@ -319,13 +385,13 @@ export function setupAutoSync() {
     }
   }
 
-  // Sync periódico cada 15 segundos (más frecuente)
+  // Sync periódico cada 60 segundos - full sync para garantizar consistencia
   setInterval(() => {
-    if (navigator.onLine) syncAll(false)
-  }, 15 * 1000)
+    if (navigator.onLine) syncAll(true)
+  }, 60 * 1000)
 }
 
-// Exponer función global para debugging
+// Exponer funciones globales para debugging
 if (typeof window !== 'undefined') {
   window.hardResetAndSync = hardResetAndSync
   window.forceFullSync = forceFullSync

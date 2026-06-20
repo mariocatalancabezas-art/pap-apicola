@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { X, Mic, MicOff, Save, GitFork } from 'lucide-react'
+import React, { useEffect } from 'react'
+import { X, Save, GitFork } from 'lucide-react'
 import { TIPOS_PC } from '../lib/fieldDescriptions'
 
 const FIELDS = [1,2,3,4,5]
@@ -12,11 +12,6 @@ const PC_MAP = [
 ]
 
 export default function BreachasModal({ form, onChange, onClose, onSave }) {
-  const [listening, setListening] = useState(null)
-  const [transcript, setTranscript] = useState('')
-  const [targetField, setTargetField] = useState(null)
-  const recognitionRef = useRef(null)
-
   useEffect(() => {
     FIELDS.forEach(i => {
       const src = PC_MAP[i - 1]
@@ -29,52 +24,6 @@ export default function BreachasModal({ form, onChange, onClose, onSave }) {
       }
     })
   }, [])
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-
-  function startVoice(fieldName) {
-    if (!SpeechRecognition) return alert('Tu dispositivo no soporta reconocimiento de voz. Intenta desde Chrome en Android.')
-    if (recognitionRef.current) recognitionRef.current.stop()
-
-    const rec = new SpeechRecognition()
-    rec.lang = 'es-ES'
-    rec.continuous = false
-    rec.interimResults = true
-
-    setTargetField(fieldName)
-    setListening(fieldName)
-    setTranscript('')
-
-    rec.onresult = (e) => {
-      let interim = ''
-      let final = ''
-      for (let r of e.results) {
-        if (r.isFinal) final += r[0].transcript
-        else interim += r[0].transcript
-      }
-      setTranscript(final || interim)
-      if (final) {
-        const existing = form[fieldName] ? form[fieldName] + ' ' : ''
-        onChange({ target: { name: fieldName, value: existing + final.trim() } })
-        setListening(null)
-        setTargetField(null)
-        setTranscript('')
-      }
-    }
-    rec.onerror = () => { setListening(null); setTargetField(null) }
-    rec.onend = () => { setListening(null) }
-
-    recognitionRef.current = rec
-    rec.start()
-  }
-
-  function stopVoice() {
-    if (recognitionRef.current) recognitionRef.current.stop()
-    setListening(null)
-    setTargetField(null)
-  }
-
-  useEffect(() => () => { if (recognitionRef.current) recognitionRef.current.stop() }, [])
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
@@ -93,16 +42,7 @@ export default function BreachasModal({ form, onChange, onClose, onSave }) {
         <div className="overflow-y-auto flex-1 p-4 space-y-4">
           <p className="text-xs text-gray-500 bg-purple-50 rounded-lg p-3">
             Registra los principales puntos críticos para que el usuario sea proveedor estable de la empresa.
-            Usa el <strong>micrófono</strong> en cada campo para dictar por voz — el texto se transcribirá automáticamente.
           </p>
-
-          {/* Transcript live indicator */}
-          {listening && transcript && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-purple-700 flex items-center gap-2">
-              <Mic className="w-4 h-4 animate-pulse text-red-500 flex-shrink-0" />
-              <span className="italic">{transcript}</span>
-            </div>
-          )}
 
           {FIELDS.map(i => {
             const pcKey = `brechas_pc${i}`
@@ -123,23 +63,13 @@ export default function BreachasModal({ form, onChange, onClose, onSave }) {
                   {sincDesc ? (
                     <p className="input-field bg-gray-50 text-gray-700 cursor-default">{form[pcKey] || form[PC_MAP[i-1].desc]}</p>
                   ) : (
-                    <div className="flex gap-2">
-                      <input
-                        name={pcKey}
-                        value={form[pcKey] || ''}
-                        onChange={onChange}
-                        className="input-field flex-1"
-                        placeholder="Ej: Bajos rendimientos, Mala calidad…"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => listening === pcKey ? stopVoice() : startVoice(pcKey)}
-                        className={`flex-shrink-0 p-2 rounded-lg transition-colors ${listening === pcKey ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
-                        title="Dictar por voz"
-                      >
-                        {listening === pcKey ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      </button>
-                    </div>
+                    <input
+                      name={pcKey}
+                      value={form[pcKey] || ''}
+                      onChange={onChange}
+                      className="input-field w-full"
+                      placeholder="Ej: Bajos rendimientos, Mala calidad…"
+                    />
                   )}
                 </div>
 
@@ -160,50 +90,31 @@ export default function BreachasModal({ form, onChange, onClose, onSave }) {
                     {sincDesc ? (
                       <p className="input-field bg-gray-50 text-gray-700 cursor-default">{form[invKey] || '—'}</p>
                     ) : (
-                      <div className="flex gap-2">
-                        <input
-                          name={invKey}
-                          value={form[invKey] || ''}
-                          onChange={onChange}
-                          className="input-field flex-1"
-                          placeholder="SI-Equipamiento / NO"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => listening === invKey ? stopVoice() : startVoice(invKey)}
-                          className={`flex-shrink-0 p-2 rounded-lg transition-colors ${listening === invKey ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                        >
-                          {listening === invKey ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
+                      <input
+                        name={invKey}
+                        value={form[invKey] || ''}
+                        onChange={onChange}
+                        className="input-field w-full"
+                        placeholder="SI-Equipamiento / NO"
+                      />
                     )}
                   </div>
                 </div>
 
-                {/* Solution with voice */}
+                {/* Propuesta de solución */}
                 <div>
                   <label className="label text-xs">Propuesta de solución</label>
                   {sincDesc ? (
                     <p className="input-field bg-gray-50 text-gray-700 cursor-default">{form[solKey] || '—'}</p>
                   ) : (
-                  <div className="flex gap-2">
                     <textarea
                       name={solKey}
                       value={form[solKey] || ''}
                       onChange={onChange}
                       rows={2}
-                      className="input-field flex-1 resize-none"
+                      className="input-field w-full resize-none"
                       placeholder="Asesoría técnica, inversión en equipamiento…"
                     />
-                    <button
-                      type="button"
-                      onClick={() => listening === solKey ? stopVoice() : startVoice(solKey)}
-                      className={`flex-shrink-0 p-2 rounded-lg self-start transition-colors ${listening === solKey ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
-                      title="Dictar por voz"
-                    >
-                      {listening === solKey ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    </button>
-                  </div>
                   )}
                 </div>
               </div>
@@ -213,23 +124,14 @@ export default function BreachasModal({ form, onChange, onClose, onSave }) {
           {/* Nota final */}
           <div className="border border-gray-100 rounded-xl p-3 space-y-2">
             <label className="label text-xs">Nota adicional</label>
-            <div className="flex gap-2">
-              <textarea
-                name="brechas_nota"
-                value={form.brechas_nota || ''}
-                onChange={onChange}
-                rows={3}
-                className="input-field flex-1 resize-none"
-                placeholder="En caso que el usuario requiera inversión, deberá estar contemplado en el Plan de Inversión."
-              />
-              <button
-                type="button"
-                onClick={() => listening === 'brechas_nota' ? stopVoice() : startVoice('brechas_nota')}
-                className={`flex-shrink-0 p-2 rounded-lg self-start transition-colors ${listening === 'brechas_nota' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-              >
-                {listening === 'brechas_nota' ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
-            </div>
+            <textarea
+              name="brechas_nota"
+              value={form.brechas_nota || ''}
+              onChange={onChange}
+              rows={3}
+              className="input-field w-full resize-none"
+              placeholder="En caso que el usuario requiera inversión, deberá estar contemplado en el Plan de Inversión."
+            />
           </div>
         </div>
 

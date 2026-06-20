@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronUp, Printer, Database, Pencil, GitFork, PlusCircle, MessageCircleQuestion } from 'lucide-react'
+import { Search, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronUp, Printer, Database, Pencil, GitFork, PlusCircle, MessageCircleQuestion, ArrowDownUp } from 'lucide-react'
 import { db, SYNC_STATUS } from '../lib/db'
-import { exportPDF, exportExcel, exportVisitaPDF, exportVisitaExcel, exportBaseDatos, printVisitaPDF } from '../lib/exports'
+import { exportPDF, exportExcel, exportVisitaPDF, exportVisitaExcel, exportBaseDatos, printVisitaPDF, sharePDF, shareExcel, shareBaseDatos, shareVisitaPDF, shareVisitaExcel } from '../lib/exports'
+import ShareButton from '../components/ShareButton'
 import BreachasModal from '../components/BreachasModal'
 import PreguntasASBModal from '../components/PreguntasASBModal'
 
@@ -14,11 +15,12 @@ export default function Historial() {
   const [filtroDesde, setFiltroDesde] = useState('')
   const [filtroHasta, setFiltroHasta] = useState('')
   const [filtroRegion, setFiltroRegion] = useState('')
+  const [sortOrder, setSortOrder] = useState('desc')
   const [brechasVisita, setBrechasVisita] = useState(null)
   const [preguntasVisita, setPreguntasVisita] = useState(null)
 
   const load = useCallback(async () => {
-    const vs = await db.visitas.orderBy('f19_fecha_encuesta').reverse().toArray()
+    const vs = await db.visitas.orderBy('created_at').reverse().toArray()
     // Filtrar los marcados como eliminados (soft delete)
     const activas = vs.filter(v => !v.deleted_at)
     setVisitas(activas)
@@ -26,18 +28,24 @@ export default function Historial() {
 
   useEffect(() => { load() }, [load])
 
-  const filtered = visitas.filter(v2 => {
-    const nombre = `${v2.f1_nombre || ''} ${v2.f2_apellido || ''}`.toLowerCase()
-    const matchSearch = !search ||
-      nombre.includes(search.toLowerCase()) ||
-      (v2.f3_rut || '').toLowerCase().includes(search.toLowerCase()) ||
-      (v2.f15_poder_comprador || '').toLowerCase().includes(search.toLowerCase()) ||
-      (v2.f24_especie_principal || '').toLowerCase().includes(search.toLowerCase())
-    const matchDesde = !filtroDesde || (v2.f19_fecha_encuesta || '') >= filtroDesde
-    const matchHasta = !filtroHasta || (v2.f19_fecha_encuesta || '') <= filtroHasta
-    const matchRegion = !filtroRegion || v2.f6_region === filtroRegion
-    return matchSearch && matchDesde && matchHasta && matchRegion
-  })
+  const filtered = visitas
+    .filter(v2 => {
+      const nombre = `${v2.f1_nombre || ''} ${v2.f2_apellido || ''}`.toLowerCase()
+      const matchSearch = !search ||
+        nombre.includes(search.toLowerCase()) ||
+        (v2.f3_rut || '').toLowerCase().includes(search.toLowerCase()) ||
+        (v2.f15_poder_comprador || '').toLowerCase().includes(search.toLowerCase()) ||
+        (v2.f24_especie_principal || '').toLowerCase().includes(search.toLowerCase())
+      const matchDesde = !filtroDesde || (v2.f19_fecha_encuesta || '') >= filtroDesde
+      const matchHasta = !filtroHasta || (v2.f19_fecha_encuesta || '') <= filtroHasta
+      const matchRegion = !filtroRegion || v2.f6_region === filtroRegion
+      return matchSearch && matchDesde && matchHasta && matchRegion
+    })
+    .sort((a, b) => {
+      const da = new Date(a.created_at || 0)
+      const db = new Date(b.created_at || 0)
+      return sortOrder === 'desc' ? db - da : da - db
+    })
 
   async function handleBrechasChange(e) {
     const { name, value } = e.target
@@ -146,6 +154,7 @@ export default function Historial() {
           >
             <Database className="w-4 h-4" />
           </button>
+          <ShareButton onClick={() => shareBaseDatos(visitas)} title="Compartir Base de Datos" />
           <button
             onClick={() => exportExcel(filtered)}
             className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100"
@@ -153,6 +162,7 @@ export default function Historial() {
           >
             <FileSpreadsheet className="w-4 h-4" />
           </button>
+          <ShareButton onClick={() => shareExcel(filtered)} title="Compartir Excel" />
           <button
             onClick={() => exportPDF(filtered)}
             className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
@@ -160,6 +170,7 @@ export default function Historial() {
           >
             <FileText className="w-4 h-4" />
           </button>
+          <ShareButton onClick={() => sharePDF(filtered)} title="Compartir PDF" />
         </div>
       </div>
 
@@ -185,7 +196,17 @@ export default function Historial() {
         </div>
       </div>
 
-      <p className="text-sm text-gray-500">{filtered.length} diagnóstico{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">{filtered.length} diagnóstico{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}</p>
+        <button
+          onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+          className="flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 py-1 rounded-lg transition-colors"
+          title="Cambiar orden"
+        >
+          <ArrowDownUp className="w-3.5 h-3.5" />
+          {sortOrder === 'desc' ? 'Más reciente' : 'Más antiguo'}
+        </button>
+      </div>
 
       {filtered.length === 0 && (
         <div className="card text-center py-8 text-gray-400">
@@ -259,24 +280,33 @@ export default function Historial() {
                     >
                       <MessageCircleQuestion className="w-3.5 h-3.5" /> Preguntas ASB
                     </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); exportVisitaPDF(v2) }}
-                      className="flex items-center gap-1.5 text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium"
-                    >
-                      <FileText className="w-3.5 h-3.5" /> PDF
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); exportVisitaExcel(v2) }}
-                      className="flex items-center gap-1.5 text-xs bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-lg font-medium"
-                    >
-                      <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); printVisitaPDF(v2) }}
-                      className="flex items-center gap-1.5 text-xs bg-gray-50 text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-medium"
-                    >
-                      <Printer className="w-3.5 h-3.5" /> Imprimir
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={e => { e.stopPropagation(); exportVisitaPDF(v2) }}
+                        className="flex items-center gap-1.5 text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium"
+                      >
+                        <FileText className="w-3.5 h-3.5" /> PDF
+                      </button>
+                      <ShareButton onClick={e => { e.stopPropagation(); shareVisitaPDF(v2) }} title="Compartir PDF" size="sm" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={e => { e.stopPropagation(); exportVisitaExcel(v2) }}
+                        className="flex items-center gap-1.5 text-xs bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-lg font-medium"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+                      </button>
+                      <ShareButton onClick={e => { e.stopPropagation(); shareVisitaExcel(v2) }} title="Compartir Excel" size="sm" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={e => { e.stopPropagation(); printVisitaPDF(v2) }}
+                        className="flex items-center gap-1.5 text-xs bg-gray-50 text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg font-medium"
+                      >
+                        <Printer className="w-3.5 h-3.5" /> Imprimir
+                      </button>
+                      <ShareButton onClick={e => { e.stopPropagation(); shareVisitaPDF(v2) }} title="Compartir PDF" size="sm" />
+                    </div>
                     <button
                       onClick={e => { e.stopPropagation(); deleteVisita(v2.id) }}
                       className="flex items-center gap-1.5 text-xs bg-red-50 text-red-500 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium ml-auto"

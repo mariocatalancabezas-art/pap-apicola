@@ -84,6 +84,11 @@ export default function Layout() {
     if (syncStatus === 'syncing') return (
       <span className="badge-pending"><RefreshCw className="w-3 h-3 animate-spin" /> Sincronizando…</span>
     )
+    if (syncStatus === 'error') return (
+      <span className="badge-pending cursor-pointer bg-red-50 text-red-600" onClick={() => syncAll()}>
+        <AlertCircle className="w-3 h-3" /> Error de sync
+      </span>
+    )
     if (pendingCount > 0) return (
       <span className="badge-pending cursor-pointer" onClick={() => syncAll()}>
         <AlertCircle className="w-3 h-3" /> {pendingCount} pendiente{pendingCount !== 1 ? 's' : ''}

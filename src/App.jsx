@@ -31,7 +31,7 @@ function AppRoutes() {
     // Cargar apicultores automáticamente
     initApicultores().catch(console.error)
     setupAutoSync()
-  }, [])
+  }, [user])
 
   return (
     <Routes>

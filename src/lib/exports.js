@@ -80,7 +80,10 @@ function oneCol(doc, y, label, val) {
 }
 
 // ── PDF INDIVIDUAL POR VISITA (carta, 216×279mm) ──────────────────────────────
-export function exportVisitaPDF(visita) {
+export function generateVisitaPDF(visita, variant = 'encuesta') {
+  const esEncuesta = variant === 'encuesta'
+  const labelNumero = esEncuesta ? '20. N° Encuesta' : '20. N° Diagnóstico'
+  const labelFecha = esEncuesta ? '19. Fecha Encuesta' : '19. Fecha Diagnóstico'
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
   const W = 216, M = 15
   let y = 27
@@ -97,9 +100,9 @@ export function exportVisitaPDF(visita) {
   y = oneCol(doc, y, '9. Dirección Propiedad', visita.f9_dir_propiedad)
   y = oneCol(doc, y, '10. Dirección Predio Principal', visita.f10_dir_predio)
   y = twoCol(doc, y, '12. Género', visita.f12_genero, '13. Pueblo Originario', visita.f13_pueblo_originario)
-  y = twoCol(doc, y, '14. Nivel Educacional', visita.f14_nivel_educacional, '20. N° Encuesta', visita.f20_numero_encuesta)
+  y = twoCol(doc, y, '14. Nivel Educacional', visita.f14_nivel_educacional, labelNumero, visita.f20_numero_encuesta)
   y = twoCol(doc, y, '15. Poder Comprador', visita.f15_poder_comprador, '16. Rubro/Negocio', visita.f16_rubro_negocio)
-  y = twoCol(doc, y, '17. Unidad Operativa', visita.f17_unidad_operativa, '19. Fecha Encuesta', visita.f19_fecha_encuesta)
+  y = twoCol(doc, y, '17. Unidad Operativa', visita.f17_unidad_operativa, labelFecha, visita.f19_fecha_encuesta)
 
   y += 4
   // ─ SECCIÓN B ─────────────────────────────────────────────────────────────
@@ -279,93 +282,31 @@ export function exportVisitaPDF(visita) {
 
   const nombreApicultor = `${visita.f1_nombre || ''} ${visita.f2_apellido || ''}`.trim() || 'sin_nombre'
   const numEnc = visita.f20_numero_encuesta || '0'
-  const nombreArchivo = `Diagnostico ${numEnc} ${nombreApicultor}`.replace(/[/\\:*?"<>|]/g, '')
-  doc.save(`${nombreArchivo}.pdf`)
+  const filename = `Diagnostico ${numEnc} ${nombreApicultor}`.replace(/[/\\:*?"<>|]/g, '') + '.pdf'
+  return { doc, filename }
+}
+
+export function exportVisitaPDF(visita) {
+  const { doc, filename } = generateVisitaPDF(visita, 'encuesta')
+  doc.save(filename)
 }
 
 export function printVisitaPDF(visita) {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
-  const W = 216, M = 15
-  let y = 27
-
-  addHeader(doc, visita, 1, 3)
-  y = sectionHeader(doc, y, 'A', 'Antecedentes Generales')
-  y = twoCol(doc, y, '1. Nombre', visita.f1_nombre, '2. Apellido', visita.f2_apellido)
-  y = twoCol(doc, y, '3. RUT', visita.f3_rut, '4. Teléfono', visita.f4_telefono)
-  y = twoCol(doc, y, '5. Email', visita.f5_email, '11. Fecha Nacimiento', visita.f11_fecha_nacimiento)
-  y = twoCol(doc, y, '6. Región', visita.f6_region, '7. Comuna', visita.f7_comuna)
-  y = twoCol(doc, y, '8. Área INDAP', visita.f8_area_indap, '18. Programa INDAP', visita.f18_programa_indap)
-  y = oneCol(doc, y, '9. Dirección Propiedad', visita.f9_dir_propiedad)
-  y = oneCol(doc, y, '10. Dirección Predio Principal', visita.f10_dir_predio)
-  y = twoCol(doc, y, '12. Género', visita.f12_genero, '13. Pueblo Originario', visita.f13_pueblo_originario)
-  y = twoCol(doc, y, '14. Nivel Educacional', visita.f14_nivel_educacional, '20. N° Diagnóstico', visita.f20_numero_encuesta)
-  y = twoCol(doc, y, '15. Poder Comprador', visita.f15_poder_comprador, '16. Rubro/Negocio', visita.f16_rubro_negocio)
-  y = twoCol(doc, y, '17. Unidad Operativa', visita.f17_unidad_operativa, '19. Fecha Diagnóstico', visita.f19_fecha_encuesta)
-  y += 4
-  if (y > 230) { doc.addPage(); addHeader(doc, visita, 2, 3); y = 27 }
-  y = sectionHeader(doc, y, 'B', 'Formalización del Negocio')
-  y = twoCol(doc, y, '21. Iniciación Actividades', visita.f21_iniciacion_actividades, '22. Tributación', visita.f22_tipo_tributacion)
-  y = oneCol(doc, y, '23. Habilitado para comercializar al Poder Comprador', visita.f23_habilitado_poder_comprador)
-  y += 4
-  if (y > 210) { doc.addPage(); addHeader(doc, visita, 2, 3); y = 27 }
-  y = sectionHeader(doc, y, 'C', 'Caracterización Sistema Productivo')
-  doc.setFillColor(...AMBER_LIGHT); doc.rect(15, y, 185, 5, 'F')
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...AMBER_DARK)
-  doc.text('ESPECIE PRINCIPAL (E1)', 17, y + 3.5); y += 7
-  y = twoCol(doc, y, '24. Especie/Producto Principal', visita.f24_especie_principal, '25. Variedad/Raza', visita.f25_variedad_raza_e1)
-  y = twoCol(doc, y, '26. Época cosecha/venta', visita.f26_epoca_cosecha_e1, '27. Tipo de manejo', visita.f27_tipo_manejo_e1)
-  y = oneCol(doc, y, '28. Certificación', visita.f28_certificacion_e1)
-  if (y > 220) { doc.addPage(); addHeader(doc, visita, 2, 3); y = 27 }
-  autoTable(doc, { startY: y, margin: { left: M, right: M }, head: [['Temporada','Sup./Colmenas','Cant. Producida','Cant. Vendida PC','Unidad','Monto Vendido PC ($)']], body: [['2023 / 2023-24', n(visita.f29_colmenas_2023_e1), n(visita.f31_cant_producida_2023_e1), n(visita.f33_cant_vendida_2023_e1), v(visita.f35_unidad_2023_e1), fmtMoney(visita.f37_monto_vendido_2023_e1)], ['2024 / 2024-25', n(visita.f30_colmenas_2024_e1), n(visita.f32_cant_producida_2024_e1), n(visita.f34_cant_vendida_2024_e1), v(visita.f36_unidad_2024_e1), fmtMoney(visita.f38_monto_vendido_2024_e1)]], headStyles: { fillColor: AMBER, textColor: WHITE, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7.5, textColor: GRAY_DARK }, alternateRowStyles: { fillColor: AMBER_LIGHT }, theme: 'grid' })
-  y = doc.lastAutoTable.finalY + 5
-  if (y > 220) { doc.addPage(); addHeader(doc, visita, 2, 3); y = 27 }
-  doc.setFillColor(...AMBER_LIGHT); doc.rect(15, y, 185, 5, 'F')
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...AMBER_DARK)
-  doc.text('ESPECIE SECUNDARIA (E2)', 17, y + 3.5); y += 7
-  y = twoCol(doc, y, '39. Especie/Producto Secundario', visita.f39_especie_secundaria, '40. Variedad/Raza', visita.f40_variedad_raza_e2)
-  y = twoCol(doc, y, '41. Época cosecha/venta', visita.f41_epoca_cosecha_e2, '42. Tipo de manejo', visita.f42_tipo_manejo_e2)
-  y = oneCol(doc, y, '43. Certificación', visita.f43_certificacion_e2)
-  autoTable(doc, { startY: y, margin: { left: M, right: M }, head: [['Temporada','Sup./Colmenas','Cant. Producida','Cant. Vendida PC','Unidad','Monto Vendido PC ($)']], body: [['2023 / 2023-24', n(visita.f44_colmenas_2023_e2), n(visita.f46_cant_producida_2023_e2), n(visita.f48_cant_vendida_2023_e2), v(visita.f50_unidad_e2), fmtMoney(visita.f52_monto_vendido_2023_e2)], ['2024 / 2024-25', n(visita.f45_colmenas_2024_e2), n(visita.f47_cant_producida_2024_e2), n(visita.f49_cant_vendida_2024_e2), v(visita.f50_unidad_e2), fmtMoney(visita.f53_monto_vendido_2024_e2)]], headStyles: { fillColor: AMBER, textColor: WHITE, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7.5, textColor: GRAY_DARK }, alternateRowStyles: { fillColor: AMBER_LIGHT }, theme: 'grid' })
-  y = doc.lastAutoTable.finalY + 5
-  autoTable(doc, { startY: y, margin: { left: M, right: M }, head: [['Ingresos Totales ($)','Costo de Producción ($)','Margen Bruto ($)']], body: [[fmtMoney(visita.f64_ingresos_totales), fmtMoney(visita.f65_costo_produccion), fmtMoney(visita.f66_margen_bruto)]], headStyles: { fillColor: [16,185,129], textColor: WHITE, fontSize: 7.5, fontStyle: 'bold' }, bodyStyles: { fontSize: 8.5, fontStyle: 'bold', textColor: GRAY_DARK }, theme: 'grid' })
-  y = doc.lastAutoTable.finalY + 6
-  if (y > 210) { doc.addPage(); addHeader(doc, visita, 3, 3); y = 27 }
-  y = sectionHeader(doc, y, 'D', 'Cumplimiento de Estándares del Poder Comprador')
-  autoTable(doc, { startY: y, margin: { left: M, right: M }, head: [['#','Estándar','Tipo','Cumple']], body: [['67', v(visita.f67_estandar1), v(visita.f70_tipo_estandar1), v(visita.f73_cumple_estandar1)], ['68', v(visita.f68_estandar2), v(visita.f71_tipo_estandar2), v(visita.f74_cumple_estandar2)], ['69', v(visita.f69_estandar3), v(visita.f72_tipo_estandar3), v(visita.f75_cumple_estandar3)]], columnStyles: { 0:{cellWidth:10}, 1:{cellWidth:105}, 2:{cellWidth:40}, 3:{cellWidth:20,halign:'center'} }, headStyles: { fillColor: AMBER, textColor: WHITE, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7.5, textColor: GRAY_DARK }, alternateRowStyles: { fillColor: AMBER_LIGHT }, theme: 'grid' })
-  y = doc.lastAutoTable.finalY + 4
-  autoTable(doc, { startY: y, margin: { left: M, right: M }, head: [['Nivel Comercial','Nivel Productivo','Nivel Calidad e Inocuidad']], body: [[v(visita.f76_nivel_comercial), v(visita.f77_nivel_productivo), v(visita.f78_nivel_calidad)]], headStyles: { fillColor: [59,130,246], textColor: WHITE, fontSize: 7.5, fontStyle: 'bold' }, bodyStyles: { fontSize: 9, fontStyle: 'bold', textColor: GRAY_DARK, halign: 'center' }, theme: 'grid' })
-  y = doc.lastAutoTable.finalY + 6
-  if (y > 200) { doc.addPage(); addHeader(doc, visita, 3, 3); y = 27 }
-  y = sectionHeader(doc, y, 'E', 'Principales Puntos Críticos Detectados')
-  autoTable(doc, { startY: y, margin: { left: M, right: M }, head: [['#','Punto Crítico','Tipo','Propuesta de Solución','Inversión']], body: [['79', v(visita.f79_pc1), v(visita.f84_tipo_pc1), v(visita.f89_solucion_pc1), v(visita.f94_inversion_pc1)], ['80', v(visita.f80_pc2), v(visita.f85_tipo_pc2), v(visita.f90_solucion_pc2), v(visita.f95_inversion_pc2)], ['81', v(visita.f81_pc3), v(visita.f86_tipo_pc3), v(visita.f91_solucion_pc3), v(visita.f96_inversion_pc3)], ['82', v(visita.f82_pc4), v(visita.f87_tipo_pc4), v(visita.f92_solucion_pc4), v(visita.f97_inversion_pc4)], ['83', v(visita.f83_pc5), v(visita.f88_tipo_pc5), v(visita.f93_solucion_pc5), v(visita.f98_inversion_pc5)]].filter(r => r[1]), columnStyles: { 0:{cellWidth:10}, 1:{cellWidth:55}, 2:{cellWidth:30}, 3:{cellWidth:65}, 4:{cellWidth:25} }, headStyles: { fillColor: [239,68,68], textColor: WHITE, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7.5, textColor: GRAY_DARK }, alternateRowStyles: { fillColor: [254,242,242] }, theme: 'grid' })
-  y = doc.lastAutoTable.finalY + 6
-  const hasBrechas = [1,2,3,4,5].some(i => visita[`brechas_pc${i}`])
-  if (hasBrechas) {
-    if (y > 200) { doc.addPage(); addHeader(doc, visita, 3, 3); y = 27 }
-    y = sectionHeader(doc, y, 'B2', 'Brechas del Negocio', PURPLE)
-    autoTable(doc, { startY: y, margin: { left: M, right: M }, head: [['#','Punto Crítico','Tipo','Propuesta de Solución','Inversión']], body: [1,2,3,4,5].map(i => [i, v(visita[`brechas_pc${i}`]), v(visita[`brechas_tipo_pc${i}`]), v(visita[`brechas_solucion_pc${i}`]), v(visita[`brechas_inversion_pc${i}`])]).filter(r => r[1]), columnStyles: { 0:{cellWidth:10}, 1:{cellWidth:55}, 2:{cellWidth:30}, 3:{cellWidth:65}, 4:{cellWidth:25} }, headStyles: { fillColor: PURPLE, textColor: WHITE, fontSize: 7, fontStyle: 'bold' }, bodyStyles: { fontSize: 7.5, textColor: GRAY_DARK }, alternateRowStyles: { fillColor: PURPLE_LIGHT }, theme: 'grid' })
-    y = doc.lastAutoTable.finalY + 4
-    if (visita.brechas_nota) y = oneCol(doc, y, 'Nota', visita.brechas_nota)
-  }
-  if (y > 230) { doc.addPage(); addHeader(doc, visita, 3, 3); y = 27 }
-  y = sectionHeader(doc, y, 'F', 'Observaciones')
-  y = twoCol(doc, y, '99. Encuesta', vEncuesta(visita.f99_no_encuesto), 'Encuestador', visita.nombre_encuestador)
-  if (visita.f100_notas) y = oneCol(doc, y, '100. Notas', visita.f100_notas)
-  const pages = doc.getNumberOfPages()
-  for (let p = 1; p <= pages; p++) {
-    doc.setPage(p)
-    doc.setFontSize(7); doc.setTextColor(180)
-    doc.text('PAP Apícola Santa Bárbara-Indap — Generado: ' + new Date().toLocaleString('es-CL'), M, 274)
-    doc.text(`Página ${p} de ${pages}`, W - M, 274, { align: 'right' })
-  }
+  const { doc } = generateVisitaPDF(visita, 'diagnostico')
   const blob = doc.output('blob')
   const url = URL.createObjectURL(blob)
   const win = window.open(url, '_blank')
   if (win) win.addEventListener('load', () => { win.focus(); win.print() })
 }
 
+export function shareVisitaPDF(visita) {
+  const { doc, filename } = generateVisitaPDF(visita, 'diagnostico')
+  const file = new File([doc.output('blob')], filename, { type: 'application/pdf' })
+  shareFile(file)
+}
+
 // ── PDF HISTORIAL (múltiples visitas, resumen) ───────────────────────────────
-export function exportPDF(visitas) {
+export function generatePDF(visitas) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' })
   const W = 279, M = 10
 
@@ -414,11 +355,38 @@ export function exportPDF(visitas) {
     doc.text(`Página ${p} de ${pages}`, W - M, 208, { align: 'right' })
   }
 
-  doc.save(`historial_diagnosticos_${new Date().toISOString().slice(0,10)}.pdf`)
+  const filename = `historial_diagnosticos_${new Date().toISOString().slice(0,10)}.pdf`
+  return { doc, filename }
+}
+
+export function exportPDF(visitas) {
+  const { doc, filename } = generatePDF(visitas)
+  doc.save(filename)
+}
+
+export function sharePDF(visitas) {
+  const { doc, filename } = generatePDF(visitas)
+  const file = new File([doc.output('blob')], filename, { type: 'application/pdf' })
+  shareFile(file)
+}
+
+async function shareFile(file) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: file.name })
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Error al compartir:', err)
+        alert('No se pudo compartir: ' + err.message)
+      }
+    }
+  } else {
+    alert('Compartir archivos no está soportado en este dispositivo')
+  }
 }
 
 // ── EXCEL INDIVIDUAL POR VISITA ───────────────────────────────────────────────
-export function exportVisitaExcel(visita) {
+export function generateVisitaExcel(visita) {
   const wb = XLSX.utils.book_new()
 
   // ─ Hoja 1: Diagnóstico General ─
@@ -512,12 +480,24 @@ export function exportVisitaExcel(visita) {
 
   const nombreApicultor = `${visita.f1_nombre || ''} ${visita.f2_apellido || ''}`.trim() || 'sin_nombre'
   const numEnc = visita.f20_numero_encuesta || '0'
-  const nombreArchivo = `Diagnostico ${numEnc} ${nombreApicultor}`.replace(/[/\\:*?"<>|]/g, '')
-  XLSX.writeFile(wb, `${nombreArchivo}.xlsx`)
+  const filename = `Diagnostico ${numEnc} ${nombreApicultor}`.replace(/[/\\:*?"<>|]/g, '') + '.xlsx'
+  return { wb, filename }
+}
+
+export function exportVisitaExcel(visita) {
+  const { wb, filename } = generateVisitaExcel(visita)
+  XLSX.writeFile(wb, filename)
+}
+
+export function shareVisitaExcel(visita) {
+  const { wb, filename } = generateVisitaExcel(visita)
+  const array = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  const file = new File([array], filename, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  shareFile(file)
 }
 
 // ── EXCEL BASE DE DATOS (todas las visitas, orientación vertical) ─────────────
-export function exportBaseDatos(visitas) {
+export function generateBaseDatos(visitas) {
   const wb = XLSX.utils.book_new()
 
   const headers = [
@@ -644,7 +624,20 @@ export function exportBaseDatos(visitas) {
   wsDB['!cols'] = headers.map(() => ({ wch: 22 }))
   XLSX.utils.book_append_sheet(wb, wsDB, 'Base de datos')
 
-  XLSX.writeFile(wb, `base_datos_apicola_${new Date().toISOString().slice(0,10)}.xlsx`)
+  const filename = `base_datos_apicola_${new Date().toISOString().slice(0,10)}.xlsx`
+  return { wb, filename }
+}
+
+export function exportBaseDatos(visitas) {
+  const { wb, filename } = generateBaseDatos(visitas)
+  XLSX.writeFile(wb, filename)
+}
+
+export function shareBaseDatos(visitas) {
+  const { wb, filename } = generateBaseDatos(visitas)
+  const array = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  const file = new File([array], filename, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  shareFile(file)
 }
 
 // ── EXCEL HISTORIAL (resumen) ────────────────────────────────────────────────
@@ -652,8 +645,80 @@ export function exportExcel(visitas) {
   exportBaseDatos(visitas)
 }
 
+export function shareExcel(visitas) {
+  shareBaseDatos(visitas)
+}
+
 // ── Helper estilo básico de hoja ──────────────────────────────────────────────
 function styleSheet(ws, data) {
   const maxCols = data.reduce((max, row) => Math.max(max, row.length), 0)
   ws['!cols'] = Array.from({ length: maxCols }, (_, i) => ({ wch: i === 1 || i === 3 ? 35 : 20 }))
+}
+
+// ── COMPARTIR ARCHIVOS DESDE URL (planillas PDF) ───────────────────────────────
+export async function shareURL(url, filename, type = 'application/pdf') {
+  try {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`Error ${response.status} al cargar el archivo`)
+    const blob = await response.blob()
+    const file = new File([blob], filename, { type })
+    shareFile(file)
+  } catch (err) {
+    console.error('Error al compartir URL:', err)
+    alert('No se pudo cargar el archivo para compartir: ' + err.message)
+  }
+}
+
+// ── APICULTORES (CSV) ─────────────────────────────────────────────────────────
+export function generateApicultoresCSV(apicultores) {
+  const headers = ['Nombres', 'Apellidos', 'RUT', 'Teléfono', 'Comuna', 'Dirección', 'Programa INDAP']
+  const escape = val => '"' + String(val || '').replace(/"/g, '""') + '"'
+  const rows = apicultores.map(a => [
+    a.nombres, a.apellidos, a.rut, a.telefono, a.comuna, a.direccion, a.programa_indap
+  ].map(escape))
+  const csv = [headers.join(','), ...rows].join('\n')
+  const filename = `apicultores_${new Date().toISOString().slice(0, 10)}.csv`
+  return { csv, filename }
+}
+
+export function exportApicultores(apicultores) {
+  const { csv, filename } = generateApicultoresCSV(apicultores)
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export function shareApicultores(apicultores) {
+  const { csv, filename } = generateApicultoresCSV(apicultores)
+  const file = new File([csv], filename, { type: 'text/csv' })
+  shareFile(file)
+}
+
+// ── BACKUP (JSON) ───────────────────────────────────────────────────────────
+export function generateBackup(visitas) {
+  const data = { version: 2, exported_at: new Date().toISOString(), visitas }
+  const json = JSON.stringify(data, null, 2)
+  const filename = `backup_apicola_${new Date().toISOString().slice(0, 10)}.json`
+  return { json, filename }
+}
+
+export function exportBackup(visitas) {
+  const { json, filename } = generateBackup(visitas)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export function shareBackup(visitas) {
+  const { json, filename } = generateBackup(visitas)
+  const file = new File([json], filename, { type: 'application/json' })
+  shareFile(file)
 }

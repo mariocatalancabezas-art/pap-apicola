@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { PlusCircle, Pencil, Trash2, Search, Phone, Save, X, User, ChevronUp, ChevronDown, Group, Copy, Printer, Download } from 'lucide-react'
 import { db, generateUUID, SYNC_STATUS } from '../lib/db'
 import { useAuth } from '../lib/AuthContext'
-import { syncAll } from '../lib/sync'
-import { initApicultores, dedupeApicultoresLocal } from '../lib/initApicultores'
+import { syncAll, onSyncChange } from '../lib/sync'
+import { dedupeApicultoresLocal } from '../lib/initApicultores'
+import { exportApicultores, shareApicultores } from '../lib/exports'
+import ShareButton from '../components/ShareButton'
 
 export default function Apicultores() {
   const { user } = useAuth()
@@ -81,7 +83,16 @@ export default function Apicultores() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    // Forzar sincronización al abrir la página para traer apicultores desde Supabase
+    syncAll(true).catch(err => console.error('[Apicultores] Error al sincronizar:', err))
+    // Recargar automáticamente cuando termine una sincronización
+    const unsub = onSyncChange(status => {
+      if (status === 'synced') load()
+    })
+    return unsub
+  }, [])
 
   async function deleteApicultor(id) {
     if (!confirm('¿Eliminar este apicultor?')) return
@@ -96,7 +107,7 @@ export default function Apicultores() {
       })
     }
     load()
-    // Sincronizar automáticamente
+    // Sincronizar automáticamente con full sync
     syncAll(true)
   }
 
@@ -160,8 +171,8 @@ export default function Apicultores() {
       alert('✓ Apicultor creado correctamente')
       closeAddModal()
       load()
-      // Sincronizar automáticamente
-      syncAll(false)
+      // Sincronizar automáticamente con full sync
+      syncAll(true)
     } catch (err) {
       alert('Error al crear apicultor: ' + err.message)
     }
@@ -182,8 +193,8 @@ export default function Apicultores() {
     setEditingId(null)
     setEditForm({})
     load()
-    // Sincronizar automáticamente
-    syncAll(false)
+    // Sincronizar automáticamente con full sync
+    syncAll(true)
   }
 
   function handleEditChange(field, value) {
@@ -226,19 +237,21 @@ export default function Apicultores() {
           <User className="w-5 h-5 text-amber-500" />
           Apicultores del Programa
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <button 
-            onClick={() => alert('Exportar a Excel - Función en desarrollo')}
+            onClick={() => exportApicultores(filtered)}
             className="btn-secondary flex items-center gap-1 py-1.5 px-3 text-sm"
           >
-            <Download className="w-4 h-4" /> Exportar Excel
+            <Download className="w-4 h-4" /> Exportar CSV
           </button>
+          <ShareButton onClick={() => shareApicultores(filtered)} title="Compartir lista de apicultores" size="sm" />
           <button 
             onClick={() => window.print()}
             className="btn-secondary flex items-center gap-1 py-1.5 px-3 text-sm"
           >
             <Printer className="w-4 h-4" /> Imprimir
           </button>
+          <ShareButton onClick={() => shareApicultores(filtered)} title="Compartir lista de apicultores" size="sm" />
           {esAdmin && (
             <button 
               onClick={openAddModal}
@@ -269,15 +282,7 @@ export default function Apicultores() {
             className="w-16 h-16 mx-auto mb-3 object-contain opacity-50"
           />
           <p className="mb-2">No hay apicultores registrados</p>
-          <button
-            onClick={async () => {
-              await initApicultores()
-              load()
-            }}
-            className="btn-primary mt-4"
-          >
-            Cargar apicultores desde Excel
-          </button>
+          <p className="text-xs text-gray-500">Si hay apicultores en Supabase, se sincronizarán automáticamente en unos segundos.</p>
         </div>
       )}
 

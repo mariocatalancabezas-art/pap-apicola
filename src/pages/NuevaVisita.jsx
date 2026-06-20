@@ -7,7 +7,8 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import HelpTooltip from '../components/HelpTooltip'
 import BreachasModal from '../components/BreachasModal'
 import PreguntasASBModal from '../components/PreguntasASBModal'
-import { exportVisitaExcel, exportVisitaPDF, printVisitaPDF } from '../lib/exports'
+import { exportVisitaExcel, exportVisitaPDF, printVisitaPDF, shareVisitaPDF, shareVisitaExcel } from '../lib/exports'
+import ShareButton from '../components/ShareButton'
 import { REGIONES_CHILE, TIPOS_PC, NIVELES, TIPOS_ESTANDAR, PROGRAMAS_INDAP } from '../lib/fieldDescriptions'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
 
@@ -893,22 +894,28 @@ export default function NuevaVisita() {
             <MessageCircleQuestion className="w-4 h-4" />
             Preguntas ASB
           </button>
-          <button
-            type="button"
-            onClick={() => exportVisitaExcel(form)}
-            className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200 font-semibold py-3 rounded-lg transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Exportar Excel
-          </button>
-          <button
-            type="button"
-            onClick={() => printVisitaPDF(form)}
-            className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-3 rounded-lg transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir
-          </button>
+          <div className="flex-1 min-w-[140px] flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => exportVisitaExcel(form)}
+              className="flex-1 flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200 font-semibold py-3 rounded-lg transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Exportar Excel
+            </button>
+            <ShareButton onClick={() => shareVisitaExcel(form)} title="Compartir Excel" size="sm" />
+          </div>
+          <div className="flex-1 min-w-[140px] flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => printVisitaPDF(form)}
+              className="flex-1 flex items-center justify-center gap-2 bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-3 rounded-lg transition-colors"
+            >
+              <Printer className="w-4 h-4" />
+              Imprimir
+            </button>
+            <ShareButton onClick={() => shareVisitaPDF(form)} title="Compartir PDF" size="sm" />
+          </div>
           <button type="button" disabled={saving} onClick={() => saveData(false)} className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold py-3 rounded-lg transition-colors">
             <Save className="w-5 h-5" />
             {saving ? 'Guardando…' : 'Guardar'}

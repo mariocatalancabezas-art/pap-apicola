@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Download, Upload, Trash2, AlertTriangle, Info } from 'lucide-react'
 import { db } from '../lib/db'
+import { exportBackup, shareBackup } from '../lib/exports'
+import ShareButton from '../components/ShareButton'
 
 export default function Backups() {
   const [status, setStatus] = useState('')
@@ -17,18 +19,21 @@ export default function Backups() {
     setStatusType(type)
   }
 
-  async function exportBackup() {
+  async function doExportBackup() {
     try {
       const visitas = await db.visitas.toArray()
-      const data = { version: 2, exported_at: new Date().toISOString(), visitas }
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `backup_apicola_${new Date().toISOString().slice(0, 10)}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      exportBackup(visitas)
       msg(`✓ Copia exportada (${visitas.length} diagnósticos)`, 'ok')
+    } catch (err) {
+      msg('✗ Error: ' + err.message, 'error')
+    }
+  }
+
+  async function doShareBackup() {
+    try {
+      const visitas = await db.visitas.toArray()
+      shareBackup(visitas)
+      msg(`✓ Compartiendo copia (${visitas.length} diagnósticos)`, 'ok')
     } catch (err) {
       msg('✗ Error: ' + err.message, 'error')
     }
@@ -173,9 +178,12 @@ export default function Backups() {
       <div className="card space-y-3">
         <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Exportar copia</h3>
         <p className="text-sm text-gray-500">{totalLocal} diagnóstico{totalLocal !== 1 ? 's' : ''} almacenado{totalLocal !== 1 ? 's' : ''} en este dispositivo.</p>
-        <button onClick={exportBackup} className="btn-primary flex items-center gap-2">
-          <Download className="w-4 h-4" /> Exportar backup (.json)
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={doExportBackup} className="btn-primary flex items-center gap-2">
+            <Download className="w-4 h-4" /> Exportar backup (.json)
+          </button>
+          <ShareButton onClick={doShareBackup} title="Compartir backup" size="sm" />
+        </div>
       </div>
 
       <div className="card space-y-3">

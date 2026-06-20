@@ -2,8 +2,8 @@ import Dexie from 'dexie'
 
 export const db = new Dexie('PAPApicola')
 
-db.version(6).stores({
-  visitas: `++id, uuid,
+db.version(7).stores({
+  visitas: `++id, uuid, tipo_visita,
     f1_nombre, f2_apellido, f3_rut, f4_telefono, f5_email,
     f6_region, f7_comuna, f8_area_indap, f9_dir_propiedad, f10_dir_predio,
     f11_fecha_nacimiento, f12_genero, f13_pueblo_originario, f14_nivel_educacional,
