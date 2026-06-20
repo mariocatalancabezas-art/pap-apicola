@@ -162,6 +162,10 @@ async function pushLocalChanges() {
 
   for (const item of pendingVisitas) {
     const { id: localId, sync_status, ...payload } = item
+    // Preguntas ASB: solo locales, no sincronizar con Supabase
+    delete payload.asb_anios_apicultura
+    delete payload.asb_motivacion
+    delete payload.asb_talleres_interes
     console.log(`[Sync] Enviando visita UUID: ${payload.uuid}, Nombre: ${payload.f1_nombre}`)
     
     // Si está marcado para eliminación

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronUp, Printer, Database, Pencil, GitFork } from 'lucide-react'
+import { Search, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronUp, Printer, Database, Pencil, GitFork, PlusCircle, MessageCircleQuestion } from 'lucide-react'
 import { db, SYNC_STATUS } from '../lib/db'
 import { exportPDF, exportExcel, exportVisitaPDF, exportVisitaExcel, exportBaseDatos, printVisitaPDF } from '../lib/exports'
 import BreachasModal from '../components/BreachasModal'
+import PreguntasASBModal from '../components/PreguntasASBModal'
 
 export default function Historial() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function Historial() {
   const [filtroHasta, setFiltroHasta] = useState('')
   const [filtroRegion, setFiltroRegion] = useState('')
   const [brechasVisita, setBrechasVisita] = useState(null)
+  const [preguntasVisita, setPreguntasVisita] = useState(null)
 
   const load = useCallback(async () => {
     const vs = await db.visitas.orderBy('f19_fecha_encuesta').reverse().toArray()
@@ -67,6 +69,28 @@ export default function Historial() {
     setBrechasVisita(null)
   }
 
+  async function persistPreguntasASB(v) {
+    await db.visitas.update(v.id, {
+      asb_anios_apicultura: v.asb_anios_apicultura,
+      asb_motivacion: v.asb_motivacion,
+      asb_talleres_interes: v.asb_talleres_interes,
+      sync_status: SYNC_STATUS.PENDING,
+      updated_at: new Date().toISOString(),
+    })
+    load()
+  }
+
+  function handlePreguntasChange(e) {
+    const { name, value } = e.target
+    setPreguntasVisita(v => ({ ...v, [name]: value }))
+  }
+
+  async function savePreguntas() {
+    if (!preguntasVisita) return
+    await persistPreguntasASB(preguntasVisita)
+    setPreguntasVisita(null)
+  }
+
   async function saveBrechasOnly() {
     if (!brechasVisita) return
     await persistBrechas(brechasVisita)
@@ -108,6 +132,13 @@ export default function Historial() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Historial de diagnósticos</h2>
         <div className="flex gap-1.5">
+          <button
+            onClick={() => navigate('/nueva-visita')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-honey-500 text-white text-sm font-medium hover:bg-honey-600"
+            title="Crear nuevo diagnóstico"
+          >
+            <PlusCircle className="w-4 h-4" /> Nuevo Diagnóstico
+          </button>
           <button
             onClick={() => exportBaseDatos(visitas)}
             className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"
@@ -223,6 +254,12 @@ export default function Historial() {
                       <GitFork className="w-3.5 h-3.5" /> Brechas
                     </button>
                     <button
+                      onClick={e => { e.stopPropagation(); setPreguntasVisita({ ...v2 }) }}
+                      className="flex items-center gap-1.5 text-xs bg-amber-50 text-amber-700 hover:bg-amber-100 px-3 py-1.5 rounded-lg font-medium"
+                    >
+                      <MessageCircleQuestion className="w-3.5 h-3.5" /> Preguntas ASB
+                    </button>
+                    <button
                       onClick={e => { e.stopPropagation(); exportVisitaPDF(v2) }}
                       className="flex items-center gap-1.5 text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium"
                     >
@@ -261,6 +298,15 @@ export default function Historial() {
         onChange={handleBrechasChange}
         onSave={saveBrechasOnly}
         onClose={saveBrechas}
+      />
+    )}
+
+    {preguntasVisita && (
+      <PreguntasASBModal
+        form={preguntasVisita}
+        onChange={handlePreguntasChange}
+        onSave={savePreguntas}
+        onClose={savePreguntas}
       />
     )}
     </>

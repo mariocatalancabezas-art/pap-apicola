@@ -7,12 +7,13 @@ import Historial from './pages/Historial'
 import Apicultores from './pages/Apicultores'
 import EditarVisita from './pages/EditarVisita'
 import Backups from './pages/Backups'
-import Configuracion from './pages/Configuracion'
 import Login from './pages/Login'
 import Usuarios from './pages/Usuarios'
 import Perfil from './pages/Perfil'
 import VisitaTecnica from './pages/VisitaTecnica'
 import VisitaAdministrativa from './pages/VisitaAdministrativa'
+import HistorialVisitaTecnica from './pages/HistorialVisitaTecnica'
+import HistorialVisitaAdministrativa from './pages/HistorialVisitaAdministrativa'
 import OtrasPlanillas from './pages/OtrasPlanillas'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { initApicultores } from './lib/initApicultores'
@@ -42,11 +43,12 @@ function AppRoutes() {
         <Route path="visita/editar/:id" element={<EditarVisita />} />
         <Route path="apicultores" element={<Apicultores />} />
         <Route path="backups" element={<Backups />} />
-        <Route path="configuracion" element={<Configuracion />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="perfil" element={<Perfil />} />
         <Route path="visita-tecnica" element={<VisitaTecnica />} />
         <Route path="visita-administrativa" element={<VisitaAdministrativa />} />
+        <Route path="historial-visita-tecnica" element={<HistorialVisitaTecnica />} />
+        <Route path="historial-visita-administrativa" element={<HistorialVisitaAdministrativa />} />
         <Route path="otras-planillas" element={<OtrasPlanillas />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

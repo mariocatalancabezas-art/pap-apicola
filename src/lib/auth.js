@@ -62,7 +62,7 @@ export function logout() {
 export async function getUsuarios() {
   const { data, error } = await supabase
     .from('app_users')
-    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, created_at')
+    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, puede_ver_acciones, created_at')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data

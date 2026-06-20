@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Save, ChevronLeft, GitFork, FileSpreadsheet, Printer, Search, User } from 'lucide-react'
+import { Save, ChevronLeft, GitFork, FileSpreadsheet, Printer, Search, User, MessageCircleQuestion } from 'lucide-react'
 import { db, SYNC_STATUS, generateUUID } from '../lib/db'
 import { syncAll } from '../lib/sync'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import HelpTooltip from '../components/HelpTooltip'
 import BreachasModal from '../components/BreachasModal'
+import PreguntasASBModal from '../components/PreguntasASBModal'
 import { exportVisitaExcel, exportVisitaPDF, printVisitaPDF } from '../lib/exports'
 import { REGIONES_CHILE, TIPOS_PC, NIVELES, TIPOS_ESTANDAR, PROGRAMAS_INDAP } from '../lib/fieldDescriptions'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
@@ -85,6 +86,9 @@ const EMPTY_FORM = {
   brechas_pc4: '', brechas_tipo_pc4: '', brechas_solucion_pc4: '', brechas_inversion_pc4: '',
   brechas_pc5: '', brechas_tipo_pc5: '', brechas_solucion_pc5: '', brechas_inversion_pc5: '',
   brechas_nota: '',
+  asb_anios_apicultura: '',
+  asb_motivacion: '',
+  asb_talleres_interes: '',
 }
 
 export default function NuevaVisita() {
@@ -92,7 +96,9 @@ export default function NuevaVisita() {
   const isOnline = useOnlineStatus()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [savedId, setSavedId] = useState(null) // ID del diagnóstico creado para evitar duplicados
   const [showBrechas, setShowBrechas] = useState(false)
+  const [showPreguntasASB, setShowPreguntasASB] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   
   // Estados para búsqueda de apicultores
@@ -212,16 +218,28 @@ export default function NuevaVisita() {
 
   async function saveData(andClose = false) {
     if (!form.f1_nombre.trim()) return alert('El nombre del productor es obligatorio')
+    if (saving) return // Evitar clics múltiples simultáneos
     setSaving(true)
     const now = new Date().toISOString()
     try {
-      await db.visitas.add({
-        uuid: generateUUID(),
-        ...form,
-        sync_status: SYNC_STATUS.PENDING,
-        created_at: now,
-        updated_at: now,
-      })
+      if (savedId) {
+        // Ya existe un diagnóstico creado: actualizarlo, no crear otro
+        await db.visitas.update(savedId, {
+          ...form,
+          sync_status: SYNC_STATUS.PENDING,
+          updated_at: now,
+        })
+      } else {
+        // Primera vez: crear nuevo diagnóstico
+        const id = await db.visitas.add({
+          uuid: generateUUID(),
+          ...form,
+          sync_status: SYNC_STATUS.PENDING,
+          created_at: now,
+          updated_at: now,
+        })
+        setSavedId(id)
+      }
       setSaved(true)
       // Sincronización automática completa después de guardar
       if (isOnline) {
@@ -249,14 +267,24 @@ export default function NuevaVisita() {
           </button>
           <h2 className="text-lg font-bold">Nuevo diagnóstico</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowBrechas(true)}
-          className="flex items-center gap-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 font-semibold text-sm px-3 py-1.5 rounded-lg transition-colors"
-        >
-          <GitFork className="w-4 h-4" />
-          Brechas del negocio
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowPreguntasASB(true)}
+            className="flex items-center gap-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold text-sm px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <MessageCircleQuestion className="w-4 h-4" />
+            Preguntas ASB
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBrechas(true)}
+            className="flex items-center gap-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 font-semibold text-sm px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <GitFork className="w-4 h-4" />
+            Brechas del negocio
+          </button>
+        </div>
       </div>
 
       {saved && (
@@ -859,6 +887,14 @@ export default function NuevaVisita() {
           </button>
           <button
             type="button"
+            onClick={() => setShowPreguntasASB(true)}
+            className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold py-3 rounded-lg transition-colors"
+          >
+            <MessageCircleQuestion className="w-4 h-4" />
+            Preguntas ASB
+          </button>
+          <button
+            type="button"
             onClick={() => exportVisitaExcel(form)}
             className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200 font-semibold py-3 rounded-lg transition-colors"
           >
@@ -890,6 +926,15 @@ export default function NuevaVisita() {
           onChange={handleChange}
           onSave={() => saveData(false)}
           onClose={() => { saveData(false); setShowBrechas(false) }}
+        />
+      )}
+
+      {showPreguntasASB && (
+        <PreguntasASBModal
+          form={form}
+          onChange={handleChange}
+          onSave={() => saveData(false)}
+          onClose={() => { saveData(false); setShowPreguntasASB(false) }}
         />
       )}
     </div>

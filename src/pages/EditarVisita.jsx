@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, ChevronLeft, GitFork, FileSpreadsheet, Printer } from 'lucide-react'
+import { Save, ChevronLeft, GitFork, FileSpreadsheet, Printer, MessageCircleQuestion } from 'lucide-react'
 import { db, SYNC_STATUS } from '../lib/db'
 import { syncAll } from '../lib/sync'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import HelpTooltip from '../components/HelpTooltip'
 import BreachasModal from '../components/BreachasModal'
+import PreguntasASBModal from '../components/PreguntasASBModal'
 import { exportVisitaExcel, exportVisitaPDF, printVisitaPDF } from '../lib/exports'
 import { REGIONES_CHILE, TIPOS_PC, NIVELES, TIPOS_ESTANDAR, PROGRAMAS_INDAP } from '../lib/fieldDescriptions'
 
@@ -54,6 +55,7 @@ export default function EditarVisita() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showBrechas, setShowBrechas] = useState(false)
+  const [showPreguntasASB, setShowPreguntasASB] = useState(false)
   const [form, setForm] = useState(null)
 
   useEffect(() => {
@@ -150,13 +152,33 @@ export default function EditarVisita() {
 
   return (
     <div className="p-4 space-y-4">
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => navigate('/historial')} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h2 className="text-lg font-bold text-gray-800">Editar Diagnóstico</h2>
-          <p className="text-xs text-gray-400">Diagnóstico N° {form.f20_numero_encuesta} · {form.f1_nombre} {form.f2_apellido}</p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => navigate('/historial')} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Editar Diagnóstico</h2>
+            <p className="text-xs text-gray-400">Diagnóstico N° {form.f20_numero_encuesta} · {form.f1_nombre} {form.f2_apellido}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowPreguntasASB(true)}
+            className="flex items-center gap-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold text-sm px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <MessageCircleQuestion className="w-4 h-4" />
+            Preguntas ASB
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBrechas(true)}
+            className="flex items-center gap-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 font-semibold text-sm px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <GitFork className="w-4 h-4" />
+            Brechas
+          </button>
         </div>
       </div>
 
@@ -671,6 +693,14 @@ export default function EditarVisita() {
           </button>
           <button
             type="button"
+            onClick={() => setShowPreguntasASB(true)}
+            className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold py-3 rounded-lg transition-colors"
+          >
+            <MessageCircleQuestion className="w-4 h-4" />
+            Preguntas ASB
+          </button>
+          <button
+            type="button"
             onClick={() => exportVisitaExcel(form)}
             className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200 font-semibold py-3 rounded-lg transition-colors"
           >
@@ -702,6 +732,15 @@ export default function EditarVisita() {
           onChange={handleChange}
           onSave={() => saveData(false)}
           onClose={() => { saveData(false); setShowBrechas(false) }}
+        />
+      )}
+
+      {showPreguntasASB && (
+        <PreguntasASBModal
+          form={form}
+          onChange={handleChange}
+          onSave={() => saveData(false)}
+          onClose={() => { saveData(false); setShowPreguntasASB(false) }}
         />
       )}
     </div>

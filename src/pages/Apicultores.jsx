@@ -3,7 +3,7 @@ import { PlusCircle, Pencil, Trash2, Search, Phone, Save, X, User, ChevronUp, Ch
 import { db, generateUUID, SYNC_STATUS } from '../lib/db'
 import { useAuth } from '../lib/AuthContext'
 import { syncAll } from '../lib/sync'
-import { initApicultores } from '../lib/initApicultores'
+import { initApicultores, dedupeApicultoresLocal } from '../lib/initApicultores'
 
 export default function Apicultores() {
   const { user } = useAuth()
@@ -41,7 +41,10 @@ export default function Apicultores() {
         setApicultores([])
         return
       }
-      
+
+      // Eliminar duplicados locales antes de mostrar la lista
+      await dedupeApicultoresLocal()
+
       // Filtrar eliminados (soft delete) y ordenar
       const all = await db.apicultores
         .filter(a => !a.deleted_at)

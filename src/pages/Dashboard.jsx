@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download } from 'lucide-react'
+import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, Stethoscope } from 'lucide-react'
 import { db } from '../lib/db'
 import { onSyncChange } from '../lib/sync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ visitas: 0, hoy: 0, pendientes: 0 })
+  const [stats, setStats] = useState({ visitas: 0, hoy: 0, pendientes: 0, tecnicas: 0, administrativas: 0 })
 
   // Función para imprimir/abrir PDF: usa un enlace <a> que funciona en móviles
   // (window.open suele ser bloqueado en teléfonos). Abre en nueva pestaña donde
@@ -38,12 +38,16 @@ export default function Dashboard() {
 
   async function load() {
     const hoy = new Date().toISOString().slice(0, 10)
-    const [visitas, visitasHoy, pendientes] = await Promise.all([
-      db.visitas.count(),
-      db.visitas.where('f19_fecha_encuesta').equals(hoy).count(),
-      db.visitas.where('sync_status').equals('pending').count(),
-    ])
-    setStats({ visitas, hoy: visitasHoy, pendientes })
+    // Contar solo los diagnósticos NO eliminados, igual que el Historial
+    const activas = await db.visitas.filter(v => !v.deleted_at).toArray()
+    const visitas = activas.length
+    const visitasHoy = activas.filter(v => v.f19_fecha_encuesta === hoy).length
+    const pendientes = activas.filter(v => v.sync_status === 'pending').length
+    // Visitas técnicas y administrativas: estas funciones aún no guardan datos,
+    // por lo que el conteo es 0. Cuando se implementen, contar aquí por tipo.
+    const tecnicas = activas.filter(v => v.tipo_visita === 'tecnica').length
+    const administrativas = activas.filter(v => v.tipo_visita === 'administrativa').length
+    setStats({ visitas, hoy: visitasHoy, pendientes, tecnicas, administrativas })
   }
 
   useEffect(() => {
@@ -59,6 +63,8 @@ export default function Dashboard() {
 
   const cards = [
     { label: 'Total diagnósticos', value: stats.visitas, icon: ClipboardList, color: 'bg-blue-50 text-blue-600' },
+    { label: 'Total visitas técnicas', value: stats.tecnicas, icon: Stethoscope, color: 'bg-green-50 text-green-600' },
+    { label: 'Total visitas administrativas', value: stats.administrativas, icon: FileText, color: 'bg-purple-50 text-purple-600' },
   ]
 
   return (
@@ -101,7 +107,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {cards.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="card flex items-center gap-3 p-3 sm:p-4">
             <div className={`p-2 sm:p-2.5 rounded-lg ${color} flex-shrink-0`}>
@@ -119,10 +125,6 @@ export default function Dashboard() {
         <Link to="/apicultores" className="btn-primary w-full flex items-center justify-center gap-2 py-3">
           <User className="w-5 h-5" />
           Apicultores del programa
-        </Link>
-        <Link to="/historial" className="btn-secondary w-full flex items-center justify-center gap-2 py-3">
-          <ClipboardList className="w-5 h-5" />
-          Historial de diagnósticos
         </Link>
       </div>
 
@@ -155,19 +157,19 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Registros RAMEX */}
+          {/* Registros SAG */}
           <div className="border border-gray-100 rounded-lg p-3 bg-gray-50">
-            <p className="text-sm font-medium text-gray-700 mb-2">Registros RAMEX SAG</p>
+            <p className="text-sm font-medium text-gray-700 mb-2">Registros SAG</p>
             <div className="grid grid-cols-2 gap-2">
               <button 
-                onClick={() => printPDF('/Planillas/Registros_PC_SAG.pdf')}
+                onClick={() => printPDF('/Planillas/Registros%20SAG.pdf')}
                 className="btn-secondary flex items-center justify-center gap-1.5 py-2 text-xs"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Imprimir
               </button>
               <button 
-                onClick={() => downloadPDF('/Planillas/Registros_PC_SAG.pdf', 'Registros_PC_SAG.pdf')}
+                onClick={() => downloadPDF('/Planillas/Registros%20SAG.pdf', 'Registros_SAG.pdf')}
                 className="btn-secondary flex items-center justify-center gap-1.5 py-2 text-xs"
               >
                 <Download className="w-3.5 h-3.5" />

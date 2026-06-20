@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Home, PlusCircle, ClipboardList,
-  Settings, WifiOff, RefreshCw, CheckCircle2, AlertCircle, Menu, X, Users, LogOut, UserCircle,
-  Stethoscope, FileText, FolderOpen, UsersRound, Download
+  WifiOff, RefreshCw, CheckCircle2, AlertCircle, Menu, X, Users, LogOut, UserCircle,
+  Stethoscope, FileText, FolderOpen, UsersRound, ChevronDown, ChevronRight
 } from 'lucide-react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useSyncStatus } from '../hooks/useSyncStatus'
@@ -11,54 +11,65 @@ import { syncAll } from '../lib/sync'
 import { useAuth } from '../lib/AuthContext'
 
 const NAV_ALL = [
-  { to: '/',                         icon: Home,          label: 'Inicio',                      admin: false },
-  { to: '/nueva-visita',             icon: PlusCircle,    label: 'Nuevo diagnóstico',          admin: false },
-  { to: '/visita-tecnica',           icon: Stethoscope,   label: 'Nueva Visita Técnica',       admin: false },
-  { to: '/visita-administrativa',    icon: FileText,      label: 'Nueva Visita Administrativa', admin: false },
-  { to: '/otras-planillas',          icon: FolderOpen,    label: 'Otras Planillas',             admin: false },
-  { to: '/apicultores',              icon: UsersRound,    label: 'Apicultores del programa',    admin: false },
-  { to: '/historial',                icon: ClipboardList, label: 'Historial',                   admin: false },
-  { to: '/configuracion',            icon: Settings,      label: 'Configuración',              admin: true  },
-  { to: '/usuarios',                 icon: Users,         label: 'Usuarios',                    admin: true  },
+  { type: 'item', to: '/', icon: Home, label: 'Inicio', admin: false },
+  {
+    type: 'group',
+    key: 'diagnostico',
+    icon: ClipboardList,
+    label: 'Diagnóstico',
+    admin: false,
+    items: [
+      { to: '/nueva-visita', icon: PlusCircle, label: 'Nuevo Diagnóstico' },
+      { to: '/historial', icon: ClipboardList, label: 'Historial Diagnósticos' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'visita-tecnica',
+    icon: Stethoscope,
+    label: 'Visita Técnica',
+    admin: false,
+    items: [
+      { to: '/visita-tecnica', icon: Stethoscope, label: 'Nueva Visita Técnica' },
+      { to: '/historial-visita-tecnica', icon: ClipboardList, label: 'Historial Visita Técnica' },
+    ],
+  },
+  {
+    type: 'group',
+    key: 'visita-administrativa',
+    icon: FileText,
+    label: 'Visita Administrativa',
+    admin: false,
+    items: [
+      { to: '/visita-administrativa', icon: FileText, label: 'Nueva Visita Administrativa' },
+      { to: '/historial-visita-administrativa', icon: ClipboardList, label: 'Historial Visita Administrativa' },
+    ],
+  },
+  { type: 'item', to: '/apicultores', icon: UsersRound, label: 'Apicultores del programa', admin: false },
+  { type: 'item', to: '/otras-planillas', icon: FolderOpen, label: 'Otras Planillas', admin: false },
+  { type: 'item', to: '/usuarios', icon: Users, label: 'Usuarios', admin: true },
 ]
 
 export default function Layout() {
   const isOnline = useOnlineStatus()
   const { syncStatus, pendingCount } = useSyncStatus()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
-  const [showInstall, setShowInstall] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    // Por defecto expandir Diagnóstico
+    return new Set(['diagnostico'])
+  })
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const isAdmin = user?.rol === 'admin'
   const NAV = NAV_ALL.filter(n => !n.admin || isAdmin)
 
-  // Capturar evento de instalación PWA
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-      setShowInstall(true)
-    }
-    
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    
-    // Verificar si ya está instalada
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setShowInstall(false)
-    }
-    
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-  }, [])
-
-  async function handleInstall() {
-    if (!deferredPrompt) return
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') {
-      setShowInstall(false)
-    }
-    setDeferredPrompt(null)
+  function toggleGroup(key) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
 
   function handleLogout() {
@@ -100,34 +111,70 @@ export default function Layout() {
           </div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-honey-500 text-white shadow-sm'
-                    : 'text-gray-600 hover:bg-honey-50 hover:text-honey-700'
-                }`
-              }
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {label}
-            </NavLink>
-          ))}
+          {NAV.map(item => {
+            if (item.type === 'item') {
+              const { to, icon: Icon, label } = item
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-honey-500 text-white shadow-sm'
+                        : 'text-gray-600 hover:bg-honey-50 hover:text-honey-700'
+                    }`
+                  }
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {label}
+                </NavLink>
+              )
+            }
+            // Grupo expandible
+            const { key, icon: Icon, label, items } = item
+            const isExpanded = expandedGroups.has(key)
+            return (
+              <div key={key} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(key)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-honey-50 hover:text-honey-700 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {label}
+                  </div>
+                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </button>
+                {isExpanded && (
+                  <div className="pl-4 space-y-1 border-l-2 border-honey-100 ml-4">
+                    {items.map(({ to, icon: SubIcon, label: subLabel }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={to === '/'}
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            isActive
+                              ? 'bg-honey-500 text-white shadow-sm'
+                              : 'text-gray-600 hover:bg-honey-50 hover:text-honey-700'
+                          }`
+                        }
+                      >
+                        <SubIcon className="w-4 h-4 flex-shrink-0" />
+                        {subLabel}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </nav>
         <div className="px-4 py-3 border-t border-honey-100 space-y-2">
-          {showInstall && (
-            <button 
-              onClick={handleInstall}
-              className="w-full btn-primary flex items-center justify-center gap-2 py-2 text-sm mb-2"
-            >
-              <Download className="w-4 h-4" />
-              Instalar aplicación
-            </button>
-          )}
           <StatusBadge />
           <div className="flex items-center justify-between gap-1">
             <button onClick={() => navigate('/perfil')} className="flex items-center gap-2 min-w-0 flex-1 p-1.5 rounded-lg hover:bg-amber-50 transition-colors text-left">
@@ -173,24 +220,68 @@ export default function Layout() {
         {/* Mobile dropdown nav */}
         {mobileOpen && (
           <div className="md:hidden bg-white border-b border-honey-100 shadow-md px-3 py-3 space-y-1 z-20">
-            {NAV.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-honey-500 text-white'
-                      : 'text-gray-600 hover:bg-honey-50 hover:text-honey-700'
-                  }`
-                }
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                {label}
-              </NavLink>
-            ))}
+            {NAV.map(item => {
+              if (item.type === 'item') {
+                const { to, icon: Icon, label } = item
+                return (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === '/'}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-honey-500 text-white'
+                          : 'text-gray-600 hover:bg-honey-50 hover:text-honey-700'
+                      }`
+                    }
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {label}
+                  </NavLink>
+                )
+              }
+              const { key, icon: Icon, label, items } = item
+              const isExpanded = expandedGroups.has(key)
+              return (
+                <div key={key} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(key)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-honey-50 hover:text-honey-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      {label}
+                    </div>
+                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+                  {isExpanded && (
+                    <div className="pl-4 space-y-1 border-l-2 border-honey-100 ml-4">
+                      {items.map(({ to, icon: SubIcon, label: subLabel }) => (
+                        <NavLink
+                          key={to}
+                          to={to}
+                          end={to === '/'}
+                          onClick={() => setMobileOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isActive
+                                ? 'bg-honey-500 text-white shadow-sm'
+                                : 'text-gray-600 hover:bg-honey-50 hover:text-honey-700'
+                            }`
+                          }
+                        >
+                          <SubIcon className="w-4 h-4 flex-shrink-0" />
+                          {subLabel}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
             <NavLink to="/perfil" onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -199,14 +290,6 @@ export default function Layout() {
             >
               <UserCircle className="w-5 h-5 flex-shrink-0" />Mi perfil
             </NavLink>
-            {showInstall && (
-              <button 
-                onClick={() => { handleInstall(); setMobileOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-honey-500 text-white hover:bg-honey-600 transition-colors"
-              >
-                <Download className="w-5 h-5 flex-shrink-0" />Instalar aplicación
-              </button>
-            )}
             <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
               <LogOut className="w-5 h-5 flex-shrink-0" />Cerrar sesión
             </button>
@@ -229,22 +312,27 @@ export default function Layout() {
         {/* Bottom nav — mobile only */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg z-30">
           <ul className="flex justify-around">
-            {NAV.slice(0, 4).map(({ to, icon: Icon, label }) => (
-              <li key={to} className="flex-1">
-                <NavLink
-                  to={to}
-                  end={to === '/'}
-                  className={({ isActive }) =>
-                    `flex flex-col items-center py-2 text-xs gap-0.5 transition-colors ${
-                      isActive ? 'text-honey-600 font-semibold' : 'text-gray-400 hover:text-gray-600'
-                    }`
-                  }
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{label.split(' ')[0]}</span>
-                </NavLink>
-              </li>
-            ))}
+            {NAV.slice(0, 4).map(item => {
+              const to = item.type === 'item' ? item.to : item.items[0].to
+              const Icon = item.icon
+              const label = item.label
+              return (
+                <li key={item.key || item.to} className="flex-1">
+                  <NavLink
+                    to={to}
+                    end={to === '/'}
+                    className={({ isActive }) =>
+                      `flex flex-col items-center py-2 text-xs gap-0.5 transition-colors ${
+                        isActive ? 'text-honey-600 font-semibold' : 'text-gray-400 hover:text-gray-600'
+                      }`
+                    }
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{label.split(' ')[0]}</span>
+                  </NavLink>
+                </li>
+              )
+            })}
           </ul>
         </nav>
       </div>

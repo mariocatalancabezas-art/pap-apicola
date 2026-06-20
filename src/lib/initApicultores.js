@@ -1,23 +1,76 @@
 import * as XLSX from 'xlsx'
 import { db, generateUUID, SYNC_STATUS } from './db'
 import { formatRUT, separarNombreApellido } from './importApicultores'
+import { supabase } from './supabase'
 
 // URL del archivo Excel de apicultores (en public folder)
 const EXCEL_URL = '/Planillas/Lista%20Usuarios%20PAP%20ASB%20y%20ABB.xlsx'
 
-// Función para verificar si ya hay apicultores cargados
+// Función para verificar si ya hay apicultores cargados localmente
 async function hayApicultoresCargados() {
   const count = await db.apicultores.count()
   return count > 0
 }
 
+// Verifica si Supabase ya tiene apicultores (para no re-importar el Excel
+// en cada dispositivo y así evitar duplicados).
+async function supabaseTieneApicultores() {
+  if (!supabase) return false
+  try {
+    const { count, error } = await supabase
+      .from('apicultores')
+      .select('*', { count: 'exact', head: true })
+      .is('deleted_at', null)
+    if (error) return false
+    return (count || 0) > 0
+  } catch {
+    return false
+  }
+}
+
+// Elimina apicultores duplicados en la base de datos local, conservando
+// una sola fila por nombre_completo (prefiere las no eliminadas y el id más bajo).
+export async function dedupeApicultoresLocal() {
+  const all = await db.apicultores.toArray()
+  all.sort((a, b) => {
+    const da = a.deleted_at ? 1 : 0
+    const dbb = b.deleted_at ? 1 : 0
+    if (da !== dbb) return da - dbb
+    return (a.id || 0) - (b.id || 0)
+  })
+  const seen = new Set()
+  const toDelete = []
+  for (const a of all) {
+    const key = (a.nombre_completo || '').trim().toUpperCase()
+    if (!key) continue
+    if (seen.has(key)) {
+      toDelete.push(a.id)
+    } else {
+      seen.add(key)
+    }
+  }
+  if (toDelete.length > 0) {
+    await db.apicultores.bulkDelete(toDelete)
+    console.log(`[Dedupe] Eliminados ${toDelete.length} apicultores duplicados localmente`)
+  }
+  return toDelete.length
+}
+
 // Función para importar apicultores desde el Excel en public
 export async function initApicultores() {
   try {
-    // Si ya hay apicultores, no hacer nada
+    // Si ya hay apicultores locales, no hacer nada
     if (await hayApicultoresCargados()) {
       console.log('Apicultores ya cargados previamente')
       return { count: await db.apicultores.count(), imported: false }
+    }
+
+    // Si Supabase ya tiene apicultores, NO importar el Excel: la sincronización
+    // los traerá. Esto evita crear duplicados al instalar la app en un nuevo
+    // dispositivo o navegador.
+    if (await supabaseTieneApicultores()) {
+      console.log('Supabase ya tiene apicultores; se omite la importación del Excel')
+      return { count: 0, imported: false }
     }
 
     // Cargar el archivo Excel
