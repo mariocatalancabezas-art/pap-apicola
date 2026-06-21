@@ -35,6 +35,9 @@ export async function dedupeApicultoresLocal() {
   const seen = new Set()
   const toDelete = []
   for (const a of all) {
+    // Nunca eliminar registros marcados como borrados; se usan como tumba
+    // para evitar que vuelvan desde el servidor.
+    if (a.deleted_at) continue
     const key = (a.nombre_completo || '').trim().toUpperCase()
     if (!key) continue
     if (seen.has(key)) {
@@ -58,6 +61,8 @@ export async function seedApicultoresFromVisitas() {
   const apicultores = await db.apicultores.toArray()
   const existingNames = new Set(apicultores.map(a => (a.nombre_completo || '').trim().toUpperCase()))
   const existingRuts = new Set(apicultores.map(a => (a.rut || '').trim().toUpperCase()))
+  const deletedNames = new Set(apicultores.filter(a => a.deleted_at).map(a => (a.nombre_completo || '').trim().toUpperCase()))
+  const deletedRuts = new Set(apicultores.filter(a => a.deleted_at).map(a => (a.rut || '').trim().toUpperCase()))
   const now = new Date().toISOString()
   let added = 0
 
@@ -70,6 +75,10 @@ export async function seedApicultoresFromVisitas() {
 
     const alreadyExists = existingNames.has(nombre_completo) || (rut && existingRuts.has(rut))
     if (alreadyExists) continue
+
+    // No recrear apicultores que fueron eliminados manualmente
+    const wasDeleted = deletedNames.has(nombre_completo) || (rut && deletedRuts.has(rut))
+    if (wasDeleted) continue
 
     const nuevo = {
       uuid: generateUUID(),

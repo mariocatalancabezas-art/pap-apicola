@@ -103,7 +103,9 @@ async function syncApicultores(forceFull = false) {
         console.error('[Sync] Error al eliminar apicultor en servidor:', error)
         pushErrors.push(error)
       } else {
-        await db.apicultores.delete(item.id)
+        // Conservar el registro local marcado como eliminado y sincronizado,
+        // para que no sea reinsertado desde el servidor en el próximo pull.
+        await db.apicultores.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
       }
       continue
     }
@@ -135,6 +137,9 @@ async function syncApicultores(forceFull = false) {
     if (remoteUUIDs) {
       const remoteUUIDSet = new Set(remoteUUIDs.map(a => a.uuid))
       for (const local of localApicultores) {
+        // No borrar registros locales marcados como eliminados; actúan como tumba
+        // para evitar que reaparezcan si otro dispositivo los vuelve a subir.
+        if (local.deleted_at) continue
         if (!remoteUUIDSet.has(local.uuid) && local.sync_status === SYNC_STATUS.SYNCED) {
           console.log(`[Sync] Eliminando apicultor local que ya no existe en servidor: ${local.uuid}`)
           await db.apicultores.delete(local.id)
@@ -170,6 +175,9 @@ async function syncApicultores(forceFull = false) {
           id: undefined, // Dejar que Dexie asigne nuevo id local
           sync_status: SYNC_STATUS.SYNCED 
         })
+      } else if (existing.deleted_at) {
+        // No reinsertar un apicultor que ya fue eliminado localmente
+        console.log(`[Sync] Ignorando apicultor remoto ${remote.uuid} porque fue eliminado localmente`)
       } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
         // No sobrescribir registros locales pendientes (evita que una eliminación en curso se revierta)
         await db.apicultores.update(existing.id, { 
@@ -338,7 +346,9 @@ async function syncDeletions() {
       console.error('[Sync] Error al sincronizar eliminación de apicultor:', error)
       errors.push(error)
     } else {
-      await db.apicultores.delete(item.id)
+      // Conservar el registro local marcado como eliminado para evitar
+      // que el mismo registro remoto vuelva a aparecer en el próximo pull.
+      await db.apicultores.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
     }
   }
 
