@@ -15,6 +15,13 @@ import VisitaAdministrativa from './pages/VisitaAdministrativa'
 import HistorialVisitaTecnica from './pages/HistorialVisitaTecnica'
 import HistorialVisitaAdministrativa from './pages/HistorialVisitaAdministrativa'
 import OtrasPlanillas from './pages/OtrasPlanillas'
+import PasswordApicultores from './pages/PasswordApicultores'
+import ObservacionesApicultores from './pages/ObservacionesApicultores'
+import ObservacionesApicultorDetail from './pages/ObservacionesApicultorDetail'
+import PlanillaAsistenciaActividades from './pages/PlanillaAsistenciaActividades'
+import PlanillaAsistenciaGeneralVisitas from './pages/PlanillaAsistenciaGeneralVisitas'
+import PlanillaAsistenciaReunionesEquipo from './pages/PlanillaAsistenciaReunionesEquipo'
+import EquipoTecnico from './pages/EquipoTecnico'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { initApicultores } from './lib/initApicultores'
 import { setupAutoSync } from './lib/sync'
@@ -42,6 +49,7 @@ function AppRoutes() {
         <Route path="historial" element={<Historial />} />
         <Route path="visita/editar/:id" element={<EditarVisita />} />
         <Route path="apicultores" element={<Apicultores />} />
+        <Route path="equipo-tecnico" element={<EquipoTecnico />} />
         <Route path="backups" element={<Backups />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="perfil" element={<Perfil />} />
@@ -50,6 +58,12 @@ function AppRoutes() {
         <Route path="historial-visita-tecnica" element={<HistorialVisitaTecnica />} />
         <Route path="historial-visita-administrativa" element={<HistorialVisitaAdministrativa />} />
         <Route path="otras-planillas" element={<OtrasPlanillas />} />
+        <Route path="password-apicultores" element={<PasswordApicultores />} />
+        <Route path="observaciones-apicultores" element={<ObservacionesApicultores />} />
+        <Route path="observaciones-apicultores/:id/:tipo" element={<ObservacionesApicultorDetail />} />
+        <Route path="planilla-asistencia-actividades" element={<PlanillaAsistenciaActividades />} />
+        <Route path="planilla-asistencia-general-visitas" element={<PlanillaAsistenciaGeneralVisitas />} />
+        <Route path="planilla-asistencia-reuniones-equipo" element={<PlanillaAsistenciaReunionesEquipo />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

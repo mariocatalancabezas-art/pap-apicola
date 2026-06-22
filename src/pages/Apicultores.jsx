@@ -23,6 +23,7 @@ export default function Apicultores() {
     apellidos: '',
     rut: '',
     telefono: '',
+    email: '',
     comuna: '',
     direccion: '',
     programa_indap: ''
@@ -51,7 +52,34 @@ export default function Apicultores() {
       const all = await db.apicultores
         .filter(a => !a.deleted_at)
         .toArray()
-      
+
+      // Rellenar emails desde visitas por RUT
+      const visitas = await db.visitas.filter(v => !v.deleted_at).toArray()
+      const emailPorRut = {}
+      for (const v of visitas) {
+        const rut = String(v.f3_rut || '').replace(/[^0-9kK]/g, '').toUpperCase()
+        const email = v.f5_email?.trim()
+        if (rut && email && !emailPorRut[rut]) {
+          emailPorRut[rut] = email
+        }
+      }
+      const actualizados = []
+      for (const a of all) {
+        const rut = String(a.rut || '').replace(/[^0-9kK]/g, '').toUpperCase()
+        if (rut && emailPorRut[rut] && !a.email) {
+          a.email = emailPorRut[rut]
+          actualizados.push(a)
+        }
+      }
+      if (actualizados.length > 0) {
+        await db.transaction('rw', db.apicultores, async () => {
+          for (const a of actualizados) {
+            await db.apicultores.update(a.id, { email: a.email, updated_at: new Date().toISOString(), sync_status: SYNC_STATUS.PENDING })
+          }
+        })
+        syncAll(true).catch(err => console.error('[Apicultores] Error al sincronizar emails:', err))
+      }
+
       console.log('[Apicultores] Cargados:', all.length)
       setApicultores(all)
     } catch (err) {
@@ -136,6 +164,7 @@ export default function Apicultores() {
       apellidos: '',
       rut: '',
       telefono: '',
+      email: '',
       comuna: '',
       direccion: '',
       programa_indap: ''
@@ -158,6 +187,7 @@ export default function Apicultores() {
         nombre_completo: `${newApicultor.nombres} ${newApicultor.apellidos}`.toUpperCase().trim(),
         rut: newApicultor.rut || '',
         telefono: newApicultor.telefono || '',
+        email: (newApicultor.email || '').toLowerCase(),
         comuna: (newApicultor.comuna || '').toUpperCase(),
         direccion: (newApicultor.direccion || '').toUpperCase(),
         programa_indap: (newApicultor.programa_indap || '').toUpperCase(),
@@ -206,7 +236,8 @@ export default function Apicultores() {
     a.nombre_completo?.toLowerCase().includes(search.toLowerCase()) ||
     a.comuna?.toLowerCase().includes(search.toLowerCase()) ||
     a.rut?.toLowerCase().includes(search.toLowerCase()) ||
-    a.telefono?.includes(search)
+    a.telefono?.includes(search) ||
+    a.email?.toLowerCase().includes(search.toLowerCase())
   )
 
   // Aplicar ordenamiento a los datos filtrados
@@ -323,6 +354,7 @@ export default function Apicultores() {
                   </th>
                   <th className="text-left px-2 py-2 font-semibold text-gray-700 whitespace-nowrap min-w-[110px]">RUT</th>
                   <th className="text-left px-2 py-2 font-semibold text-gray-700">Teléfono</th>
+                  <th className="text-left px-2 py-2 font-semibold text-gray-700">Correo</th>
                   <th 
                     className="text-left px-3 py-2 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleGroup('comuna')}
@@ -350,7 +382,7 @@ export default function Apicultores() {
                   <React.Fragment key={groupName}>
                     {groupBy && (
                       <tr className="bg-amber-50">
-                        <td colSpan={puedeVerAcciones ? 8 : 7} className="px-3 py-2 font-bold text-amber-800">
+                        <td colSpan={puedeVerAcciones ? 9 : 8} className="px-3 py-2 font-bold text-amber-800">
                           {groupBy === 'comuna' ? '📍 ' : '📋 '}
                           {groupName} ({items.length} apicultores)
                         </td>
@@ -386,6 +418,13 @@ export default function Apicultores() {
                           <input
                             value={editForm.telefono || ''}
                             onChange={e => handleEditChange('telefono', e.target.value)}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            value={editForm.email || ''}
+                            onChange={e => handleEditChange('email', e.target.value)}
                             className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                           />
                         </td>
@@ -441,6 +480,7 @@ export default function Apicultores() {
                             </div>
                           )}
                         </td>
+                        <td className="px-2 py-2 text-gray-600 text-sm">{a.email}</td>
                         <td className="px-3 py-2 text-gray-600">{a.comuna}</td>
                         <td className="px-3 py-2 text-gray-600">{a.direccion}</td>
                         <td className="px-3 py-2">
@@ -556,6 +596,17 @@ export default function Apicultores() {
                     placeholder="9 1234 5678"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Correo</label>
+                <input
+                  type="email"
+                  value={newApicultor.email}
+                  onChange={e => setNewApicultor({...newApicultor, email: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  placeholder="correo@ejemplo.com"
+                />
               </div>
               
               <div>

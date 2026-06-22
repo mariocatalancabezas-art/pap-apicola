@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Home, PlusCircle, ClipboardList,
   WifiOff, RefreshCw, CheckCircle2, AlertCircle, Menu, X, Users, LogOut, UserCircle,
-  Stethoscope, FileText, FolderOpen, UsersRound, ChevronDown, ChevronRight
+  Stethoscope, FileText, FolderOpen, UsersRound, ChevronDown, ChevronRight, Lock, Building2, MessageSquare, HardHat
 } from 'lucide-react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useSyncStatus } from '../hooks/useSyncStatus'
@@ -34,18 +34,35 @@ const NAV_ALL = [
       { to: '/historial-visita-tecnica', icon: ClipboardList, label: 'Historial Visita Técnica' },
     ],
   },
+  { type: 'item', to: '/apicultores', icon: UsersRound, label: 'Apicultores del programa', admin: false },
+  { type: 'item', to: '/equipo-tecnico', icon: HardHat, label: 'Equipo Técnico', admin: false },
   {
     type: 'group',
-    key: 'visita-administrativa',
-    icon: FileText,
-    label: 'Visita Administrativa',
+    key: 'administrativo',
+    icon: Building2,
+    label: 'Administrativo',
     admin: false,
     items: [
-      { to: '/visita-administrativa', icon: FileText, label: 'Nueva Visita Administrativa' },
-      { to: '/historial-visita-administrativa', icon: ClipboardList, label: 'Historial Visita Administrativa' },
+      {
+        to: '/visita-administrativa',
+        icon: FileText,
+        label: 'Visita Administrativa',
+      },
+      {
+        to: '/password-apicultores',
+        icon: Lock,
+        label: 'Password Apicultores',
+        permission: 'puede_ver_password_apicultores',
+      },
+      {
+        to: '/observaciones-apicultores',
+        icon: MessageSquare,
+        label: 'Observaciones Apicultores',
+        permission: 'puede_ver_observaciones_apicultores',
+        orPermissions: ['puede_ver_observaciones_secretaria', 'puede_ver_observaciones_tecnico_administrativa'],
+      },
     ],
   },
-  { type: 'item', to: '/apicultores', icon: UsersRound, label: 'Apicultores del programa', admin: false },
   { type: 'item', to: '/otras-planillas', icon: FolderOpen, label: 'Otras Planillas', admin: false },
   { type: 'item', to: '/usuarios', icon: Users, label: 'Usuarios', admin: true },
 ]
@@ -55,13 +72,34 @@ export default function Layout() {
   const { syncStatus, pendingCount } = useSyncStatus()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState(() => {
-    // Por defecto expandir Diagnóstico
-    return new Set(['diagnostico'])
+    return new Set()
   })
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const isAdmin = user?.rol === 'admin'
-  const NAV = NAV_ALL.filter(n => !n.admin || isAdmin)
+  function hasPermission(item) {
+    if (isAdmin) return true
+    if (item.permission && user?.[item.permission]) return true
+    if (item.orPermissions && item.orPermissions.some(p => user?.[p])) return true
+    return false
+  }
+
+  const NAV = NAV_ALL.filter(n => {
+    if (n.admin && !isAdmin) return false
+    if (n.type === 'group') {
+      const itemsVisibles = n.items.filter(i => hasPermission(i))
+      return itemsVisibles.length > 0
+    }
+    return hasPermission(n)
+  }).map(n => {
+    if (n.type === 'group') {
+      return {
+        ...n,
+        items: n.items.filter(i => hasPermission(i))
+      }
+    }
+    return n
+  })
 
   function toggleGroup(key) {
     setExpandedGroups(prev => {
@@ -303,7 +341,20 @@ export default function Layout() {
 
         {/* Desktop top bar */}
         <header className="hidden md:flex items-center justify-between px-6 py-3 bg-white border-b border-honey-100 shadow-sm sticky top-0 z-20">
-          <p className="text-sm font-medium text-gray-400">PAP Apícola Santa Bárbara-Indap — Sistema de Diagnóstico</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/')}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              title="Volver al inicio"
+            >
+              <img
+                src="/Logo/LOGO%20ASB.png.png"
+                alt="Inicio"
+                className="w-7 h-7 object-contain"
+              />
+            </button>
+            <p className="text-sm font-medium text-gray-400">PAP Apícola Santa Bárbara-Indap — Sistema de Diagnóstico</p>
+          </div>
           <StatusBadge />
         </header>
 

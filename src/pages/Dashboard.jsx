@@ -64,9 +64,9 @@ export default function Dashboard() {
   }, [])
 
   const cards = [
-    { label: 'Total diagnósticos', value: stats.visitas, icon: ClipboardList, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Total visitas técnicas', value: stats.tecnicas, icon: Stethoscope, color: 'bg-green-50 text-green-600' },
-    { label: 'Total visitas administrativas', value: stats.administrativas, icon: FileText, color: 'bg-purple-50 text-purple-600' },
+    { label: 'Total diagnósticos', value: stats.visitas, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', to: '/historial' },
+    { label: 'Total visitas técnicas', value: stats.tecnicas, icon: Stethoscope, color: 'bg-green-50 text-green-600', to: '/historial-visita-tecnica' },
+    { label: 'Total visitas administrativas', value: stats.administrativas, icon: FileText, color: 'bg-purple-50 text-purple-600', to: '/historial-visita-administrativa' },
   ]
 
   return (
@@ -110,8 +110,12 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {cards.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card flex items-center gap-3 p-3 sm:p-4">
+        {cards.map(({ label, value, icon: Icon, color, to }) => (
+          <Link
+            key={label}
+            to={to}
+            className="card flex items-center gap-3 p-3 sm:p-4 hover:bg-honey-50 transition-colors cursor-pointer"
+          >
             <div className={`p-2 sm:p-2.5 rounded-lg ${color} flex-shrink-0`}>
               <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
@@ -119,7 +123,7 @@ export default function Dashboard() {
               <p className="text-xl sm:text-2xl font-bold text-gray-800">{value}</p>
               <p className="text-xs sm:text-sm text-gray-500 truncate">{label}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 

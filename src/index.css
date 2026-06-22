@@ -59,3 +59,76 @@
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+@media print {
+  @page { size: letter landscape; margin: 5mm; }
+  aside, header, .no-print { display: none !important; }
+  body { background: white !important; }
+  #root > div {
+    display: block !important;
+  }
+  #root > div > aside,
+  #root > div > header,
+  #root > div > nav,
+  #root > div > div:first-child {
+    display: none !important;
+  }
+  #root > div > div:last-child {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .md\\:ml-60,
+  .xl\\:ml-64,
+  .md\\:ml-60 > div,
+  .xl\\:ml-64 > div,
+  .flex-1.flex.flex-col {
+    margin-left: 0 !important;
+  }
+  .planilla-sheet {
+    width: 100%;
+    padding: 4mm;
+    font-family: Arial, sans-serif;
+    color: #000 !important;
+  }
+  .planilla-sheet h1,
+  .planilla-sheet span,
+  .planilla-sheet p,
+  .planilla-sheet div {
+    color: #000 !important;
+  }
+  .planilla-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+    page-break-inside: auto;
+  }
+  .planilla-table thead {
+    display: table-header-group;
+  }
+  .planilla-table tbody {
+    display: table-row-group;
+  }
+  .planilla-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  .planilla-table th,
+  .planilla-table td {
+    border: 1px solid #000 !important;
+    padding: 3px 5px;
+    text-align: left;
+    vertical-align: middle;
+    color: #000 !important;
+    font-weight: 500;
+  }
+  .planilla-table th {
+    background: #e0e0e0 !important;
+    font-weight: 700;
+    text-align: center;
+    page-break-inside: avoid;
+  }
+  .planilla-table td {
+    height: 18px;
+  }
+}

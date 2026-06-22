@@ -48,6 +48,21 @@ USING (true)
 WITH CHECK (true);
 
 -- ==========================================
+-- EQUIPO TÉCNICO
+-- ==========================================
+
+ALTER TABLE IF EXISTS public.equipo_tecnico ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow anonymous all operations on equipo_tecnico" ON public.equipo_tecnico;
+
+CREATE POLICY "Allow anonymous all operations on equipo_tecnico"
+ON public.equipo_tecnico
+FOR ALL
+TO anon
+USING (true)
+WITH CHECK (true);
+
+-- ==========================================
 -- PLANTILLA PARA NUEVAS TABLAS
 -- ==========================================
 -- Cuando crees una nueva tabla en el futuro, ejecuta este bloque reemplazando

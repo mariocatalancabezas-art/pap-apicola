@@ -54,9 +54,13 @@ export async function syncAll(forceFull = false) {
       // 2. Sincronizar apicultores
       console.log('[Sync] Paso 2: syncApicultores')
       await syncApicultores(fullSyncInProgress)
+
+      // 3. Sincronizar equipo técnico
+      console.log('[Sync] Paso 3: syncEquipoTecnico')
+      await syncEquipoTecnico(fullSyncInProgress)
       
-      // 3. Traer cambios remotos
-      console.log('[Sync] Paso 3: pullRemoteChanges')
+      // 4. Traer cambios remotos
+      console.log('[Sync] Paso 4: pullRemoteChanges')
       await pullRemoteChanges(fullSyncInProgress)
       
       // 4. Procesar eliminaciones
@@ -191,6 +195,113 @@ async function syncApicultores(forceFull = false) {
   
   localStorage.setItem('last_sync_apicultores', new Date().toISOString())
   console.log('[Sync] Apicultores sincronizados')
+}
+
+async function syncEquipoTecnico(forceFull = false) {
+  console.log('[Sync] Sincronizando equipo técnico...')
+
+  // 1. Enviar equipo técnico local pendiente
+  const pending = await db.equipo_tecnico
+    .where('sync_status').equals(SYNC_STATUS.PENDING)
+    .toArray()
+
+  console.log(`[Sync] ${pending.length} miembros de equipo técnicos pendientes`)
+
+  let pushErrors = []
+  for (const item of pending) {
+    const { id: localId, sync_status, ...payload } = item
+
+    if (payload.deleted_at) {
+      const { error } = await supabase
+        .from('equipo_tecnico')
+        .update({ deleted_at: payload.deleted_at, updated_at: new Date().toISOString() })
+        .eq('uuid', payload.uuid)
+      if (error) {
+        console.error('[Sync] Error al eliminar miembro en servidor:', error)
+        pushErrors.push(error)
+      } else {
+        await db.equipo_tecnico.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
+      }
+      continue
+    }
+
+    const { error } = await supabase
+      .from('equipo_tecnico')
+      .upsert({ ...payload }, { onConflict: 'uuid' })
+
+    if (error) {
+      console.error('[Sync] Error al sincronizar miembro de equipo:', error)
+      pushErrors.push(error)
+    } else {
+      await db.equipo_tecnico.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
+    }
+  }
+
+  if (pushErrors.length > 0) {
+    throw new Error(`${pushErrors.length} miembros de equipo no pudieron sincronizarse`)
+  }
+
+  // 2. En modo full sync, eliminar locales que no existen en servidor
+  if (forceFull) {
+    const localItems = await db.equipo_tecnico.toArray()
+    const { data: remoteUUIDs } = await supabase
+      .from('equipo_tecnico')
+      .select('uuid')
+      .is('deleted_at', null)
+
+    if (remoteUUIDs) {
+      const remoteUUIDSet = new Set(remoteUUIDs.map(a => a.uuid))
+      for (const local of localItems) {
+        if (local.deleted_at) continue
+        if (!remoteUUIDSet.has(local.uuid) && local.sync_status === SYNC_STATUS.SYNCED) {
+          console.log(`[Sync] Eliminando miembro local que ya no existe en servidor: ${local.uuid}`)
+          await db.equipo_tecnico.delete(local.id)
+        }
+      }
+    }
+  }
+
+  // 3. Traer equipo técnico del servidor
+  let query = supabase.from('equipo_tecnico').select('*').is('deleted_at', null)
+
+  if (!forceFull) {
+    const lastSync = localStorage.getItem('last_sync_equipo_tecnico') || '1970-01-01T00:00:00Z'
+    query = query.gt('updated_at', lastSync)
+  }
+
+  const { data: remoteItems, error } = await query
+
+  if (error) {
+    console.error('[Sync] Error al traer equipo técnico:', error)
+    throw error
+  }
+
+  if (remoteItems && remoteItems.length > 0) {
+    console.log(`[Sync] Recibidos ${remoteItems.length} miembros de equipo técnico`)
+
+    for (const remote of remoteItems) {
+      const existing = await db.equipo_tecnico.where('uuid').equals(remote.uuid).first()
+
+      if (!existing) {
+        await db.equipo_tecnico.add({
+          ...remote,
+          id: undefined,
+          sync_status: SYNC_STATUS.SYNCED
+        })
+      } else if (existing.deleted_at) {
+        console.log(`[Sync] Ignorando miembro remoto ${remote.uuid} porque fue eliminado localmente`)
+      } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
+        await db.equipo_tecnico.update(existing.id, {
+          ...remote,
+          id: existing.id,
+          sync_status: SYNC_STATUS.SYNCED
+        })
+      }
+    }
+  }
+
+  localStorage.setItem('last_sync_equipo_tecnico', new Date().toISOString())
+  console.log('[Sync] Equipo técnico sincronizado')
 }
 
 async function pushLocalChanges() {
@@ -352,6 +463,23 @@ async function syncDeletions() {
     }
   }
 
+  // Procesar eliminaciones de equipo técnico
+  const localDeletedEquipo = await db.equipo_tecnico.where('deleted_at').above('').toArray()
+  console.log(`[Sync] ${localDeletedEquipo.length} miembros de equipo marcados para eliminación`)
+
+  for (const item of localDeletedEquipo) {
+    const { error } = await supabase
+      .from('equipo_tecnico')
+      .update({ deleted_at: item.deleted_at, updated_at: new Date().toISOString() })
+      .eq('uuid', item.uuid)
+    if (error) {
+      console.error('[Sync] Error al sincronizar eliminación de miembro:', error)
+      errors.push(error)
+    } else {
+      await db.equipo_tecnico.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(`${errors.length} eliminaciones no pudieron sincronizarse`)
   }
@@ -430,6 +558,7 @@ export async function hardResetAndSync() {
     // 1. Limpiar completamente las tablas locales
     await db.visitas.clear()
     await db.apicultores.clear()
+    await db.equipo_tecnico.clear()
     console.log('[Sync] Base de datos local limpiada')
     
     // 2. Traer TODOS los datos desde Supabase
@@ -471,9 +600,28 @@ export async function hardResetAndSync() {
       }
     }
     
+    // Traer todos los miembros del equipo técnico no eliminados
+    const { data: remoteEquipo, error: errEquipo } = await supabase
+      .from('equipo_tecnico')
+      .select('*')
+      .is('deleted_at', null)
+    
+    if (errEquipo) {
+      console.error('[Sync] Error trayendo equipo técnico:', errEquipo)
+    } else if (remoteEquipo) {
+      console.log(`[Sync] Recibidos ${remoteEquipo.length} miembros de equipo técnico`)
+      for (const remote of remoteEquipo) {
+        await db.equipo_tecnico.add({
+          ...remote,
+          sync_status: SYNC_STATUS.SYNCED
+        })
+      }
+    }
+    
     // 3. Resetear timestamps
     localStorage.setItem('last_sync_at', new Date().toISOString())
     localStorage.setItem('last_sync_apicultores', new Date().toISOString())
+    localStorage.setItem('last_sync_equipo_tecnico', new Date().toISOString())
     localStorage.setItem('hard_reset_done', new Date().toISOString())
     
     console.log('[Sync] Hard reset completado exitosamente')
@@ -493,7 +641,8 @@ export async function hardResetAndSync() {
 export async function getPendingCount() {
   const pendingVisitas = await db.visitas.where('sync_status').equals(SYNC_STATUS.PENDING).count()
   const pendingApicultores = await db.apicultores.where('sync_status').equals(SYNC_STATUS.PENDING).count()
-  return pendingVisitas + pendingApicultores
+  const pendingEquipo = await db.equipo_tecnico.where('sync_status').equals(SYNC_STATUS.PENDING).count()
+  return pendingVisitas + pendingApicultores + pendingEquipo
 }
 
 // Función helper para verificar estado de sync
@@ -505,10 +654,15 @@ export async function getSyncStatus() {
   const apicultoresTotal = await db.apicultores.count()
   const apicultoresSynced = await db.apicultores.where('sync_status').equals(SYNC_STATUS.SYNCED).count()
   const apicultoresPending = await db.apicultores.where('sync_status').equals(SYNC_STATUS.PENDING).count()
+
+  const equipoTotal = await db.equipo_tecnico.count()
+  const equipoSynced = await db.equipo_tecnico.where('sync_status').equals(SYNC_STATUS.SYNCED).count()
+  const equipoPending = await db.equipo_tecnico.where('sync_status').equals(SYNC_STATUS.PENDING).count()
   
   return {
     visitas: { total: visitasTotal, synced: visitasSynced, pending: visitasPending },
     apicultores: { total: apicultoresTotal, synced: apicultoresSynced, pending: apicultoresPending },
+    equipo_tecnico: { total: equipoTotal, synced: equipoSynced, pending: equipoPending },
     lastSync: localStorage.getItem('last_sync_at'),
     isOnline: navigator.onLine,
     isSyncing: isSyncing

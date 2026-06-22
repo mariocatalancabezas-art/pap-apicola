@@ -114,6 +114,14 @@ export async function login(email, password, remember) {
     puede_crear: data.puede_crear, puede_editar: data.puede_editar,
     puede_eliminar: data.puede_eliminar, puede_exportar: data.puede_exportar,
     puede_editar_apicultores: data.puede_editar_apicultores,
+    puede_ver_password_apicultores: data.puede_ver_password_apicultores,
+    puede_editar_password_apicultores: data.puede_editar_password_apicultores,
+    puede_ver_observaciones_apicultores: data.puede_ver_observaciones_apicultores,
+    puede_editar_observaciones_apicultores: data.puede_editar_observaciones_apicultores,
+    puede_ver_observaciones_secretaria: data.puede_ver_observaciones_secretaria,
+    puede_editar_observaciones_secretaria: data.puede_editar_observaciones_secretaria,
+    puede_ver_observaciones_tecnico_administrativa: data.puede_ver_observaciones_tecnico_administrativa,
+    puede_editar_observaciones_tecnico_administrativa: data.puede_editar_observaciones_tecnico_administrativa,
   }
   if (remember) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
@@ -147,15 +155,17 @@ export function logout() {
 }
 
 export async function getUsuarios() {
+  if (!supabase) throw new Error('Supabase no está configurado')
   const { data, error } = await supabase
     .from('app_users')
-    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, puede_ver_acciones, created_at')
+    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, puede_ver_acciones, puede_ver_password_apicultores, puede_editar_password_apicultores, puede_ver_observaciones_apicultores, puede_editar_observaciones_apicultores, puede_ver_observaciones_secretaria, puede_editar_observaciones_secretaria, puede_ver_observaciones_tecnico_administrativa, puede_editar_observaciones_tecnico_administrativa, created_at')
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data
+  return data || []
 }
 
 export async function updateUsuario(id, changes) {
+  if (!supabase) throw new Error('Supabase no está configurado')
   const { error } = await supabase
     .from('app_users')
     .update(changes)

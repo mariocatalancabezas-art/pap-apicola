@@ -17,6 +17,14 @@ const PERMISOS = [
   { key: 'puede_exportar', label: 'Exportar / Imprimir' },
   { key: 'puede_editar_apicultores', label: 'Editar planilla apicultores' },
   { key: 'puede_ver_acciones', label: 'Ver columna acciones (apicultores)' },
+  { key: 'puede_ver_password_apicultores', label: 'Ver Password Apicultores' },
+  { key: 'puede_editar_password_apicultores', label: 'Editar Password Apicultores' },
+  { key: 'puede_ver_observaciones_apicultores', label: 'Ver Observaciones Apicultores' },
+  { key: 'puede_editar_observaciones_apicultores', label: 'Editar Observaciones Apicultores' },
+  { key: 'puede_ver_observaciones_secretaria', label: 'Ver Observaciones Secretaría' },
+  { key: 'puede_editar_observaciones_secretaria', label: 'Editar Observaciones Secretaría' },
+  { key: 'puede_ver_observaciones_tecnico_administrativa', label: 'Ver Observaciones Técnico Administrativa' },
+  { key: 'puede_editar_observaciones_tecnico_administrativa', label: 'Editar Observaciones Técnico Administrativa' },
 ]
 
 export default function Usuarios() {
