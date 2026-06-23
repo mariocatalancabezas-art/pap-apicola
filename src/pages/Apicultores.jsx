@@ -176,9 +176,9 @@ export default function Apicultores() {
       alert('Nombres y apellidos son obligatorios')
       return
     }
-    
+
     const now = new Date().toISOString()
-    
+
     try {
       const apicultorData = {
         uuid: generateUUID(),
@@ -196,7 +196,7 @@ export default function Apicultores() {
         updated_at: now,
         deleted_at: null,
       }
-      
+
       await db.apicultores.add(apicultorData)
       alert('✓ Apicultor creado correctamente')
       closeAddModal()
@@ -215,8 +215,15 @@ export default function Apicultores() {
 
   async function saveEdit() {
     const now = new Date().toISOString()
+    const nombreCompleto = `${editForm.nombres} ${editForm.apellidos}`.toUpperCase().trim()
     await db.apicultores.update(editingId, {
       ...editForm,
+      nombre_completo: nombreCompleto,
+      nombres: editForm.nombres.toUpperCase(),
+      apellidos: editForm.apellidos.toUpperCase(),
+      comuna: editForm.comuna ? editForm.comuna.toUpperCase() : '',
+      direccion: editForm.direccion ? editForm.direccion.toUpperCase() : '',
+      programa_indap: editForm.programa_indap ? editForm.programa_indap.toUpperCase() : '',
       updated_at: now,
       sync_status: SYNC_STATUS.PENDING
     })

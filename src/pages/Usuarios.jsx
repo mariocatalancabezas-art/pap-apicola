@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { UserCheck, UserX, Shield, User, RefreshCw } from 'lucide-react'
-import { getUsuarios, updateUsuario } from '../lib/auth'
+import { UserCheck, UserX, Shield, User, RefreshCw, Key, Lock } from 'lucide-react'
+import { getUsuarios, updateUsuario, generarCodigoParaUsuario, cambiarPasswordComoAdmin } from '../lib/auth'
 import { useAuth } from '../lib/AuthContext'
 
 const ROL_LABEL = { admin: 'Administrador', user: 'Usuario', pendiente: 'Pendiente' }
@@ -33,6 +33,9 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(null)
   const [msg, setMsg] = useState('')
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
 
   async function cargar() {
     setLoading(true)
@@ -64,6 +67,28 @@ export default function Usuarios() {
       setMsg(`✓ Permiso actualizado para ${u.nombre}`)
     } catch (err) {
       setUsuarios(prev => prev.map(x => x.id === u.id ? { ...x, [key]: !nuevoValor } : x))
+      setMsg('✗ Error: ' + err.message)
+    }
+  }
+
+  async function generarCodigo(u) {
+    try {
+      const resultado = await generarCodigoParaUsuario(u.id)
+      setMsg(`✓ ${resultado.mensaje}`)
+    } catch (err) {
+      setMsg('✗ Error: ' + err.message)
+    }
+  }
+
+  async function cambiarPassword() {
+    if (!newPassword.trim()) return
+    try {
+      await cambiarPasswordComoAdmin(selectedUser.id, newPassword)
+      setMsg(`✓ Contraseña cambiada para ${selectedUser.nombre}`)
+      setShowPasswordModal(false)
+      setNewPassword('')
+      setSelectedUser(null)
+    } catch (err) {
       setMsg('✗ Error: ' + err.message)
     }
   }
@@ -146,6 +171,20 @@ export default function Usuarios() {
                         className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium flex items-center gap-1">
                         <User className="w-3.5 h-3.5" /> Quitar admin
                       </button>
+                    )}
+                    {u.activo && (
+                      <>
+                        <button
+                          onClick={() => generarCodigo(u)}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 font-medium flex items-center gap-1">
+                          <Key className="w-3.5 h-3.5" /> Generar código
+                        </button>
+                        <button
+                          onClick={() => { setSelectedUser(u); setShowPasswordModal(true); setNewPassword(''); }}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 font-medium flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5" /> Cambiar contraseña
+                        </button>
+                      </>
                     )}
                   </div>
                 )}

@@ -172,3 +172,140 @@ export async function updateUsuario(id, changes) {
     .eq('id', id)
   if (error) throw error
 }
+
+export async function solicitarRecuperacionPassword(email) {
+  if (!supabase) throw new Error('Supabase no está configurado')
+  
+  // Generar código temporal de 6 dígitos
+  const codigo = Math.floor(100000 + Math.random() * 900000).toString()
+  const expiracion = new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutos
+  
+  // Buscar usuario por email
+  const { data: usuario, error: searchError } = await supabase
+    .from('app_users')
+    .select('id, nombre')
+    .eq('email', email.toLowerCase().trim())
+    .single()
+  
+  if (searchError || !usuario) {
+    throw new Error('No se encontró un usuario con ese correo')
+  }
+  
+  // Guardar solicitud de recuperación
+  const { error: insertError } = await supabase
+    .from('password_reset_requests')
+    .insert({
+      user_id: usuario.id,
+      email: email.toLowerCase().trim(),
+      codigo: codigo,
+      expiracion: expiracion,
+      utilizado: false,
+      created_at: new Date().toISOString()
+    })
+  
+  if (insertError) {
+    throw new Error('Error al solicitar recuperación: ' + insertError.message)
+  }
+  
+  return {
+    mensaje: `Solicitud enviada. Código temporal: ${codigo}. Este código expira en 30 minutos.`,
+    codigo: codigo,
+    usuario: usuario.nombre
+  }
+}
+
+export async function resetearPasswordConCodigo(email, codigo, nuevoPassword) {
+  if (!supabase) throw new Error('Supabase no está configurado')
+
+  // Buscar solicitud válida
+  const { data: solicitud, error: searchError } = await supabase
+    .from('password_reset_requests')
+    .select('*')
+    .eq('email', email.toLowerCase().trim())
+    .eq('codigo', codigo)
+    .eq('utilizado', false)
+    .gt('expiracion', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (searchError || !solicitud) {
+    throw new Error('Código inválido o expirado')
+  }
+
+  // Actualizar contraseña
+  const hash = await hashPassword(nuevoPassword)
+  const { error: updateError } = await supabase
+    .from('app_users')
+    .update({ password_hash: hash })
+    .eq('id', solicitud.user_id)
+
+  if (updateError) {
+    throw new Error('Error al actualizar contraseña: ' + updateError.message)
+  }
+
+  // Marcar solicitud como utilizada
+  await supabase
+    .from('password_reset_requests')
+    .update({ utilizado: true })
+    .eq('id', solicitud.id)
+
+  return { mensaje: 'Contraseña actualizada correctamente' }
+}
+
+export async function generarCodigoParaUsuario(userId) {
+  if (!supabase) throw new Error('Supabase no está configurado')
+
+  // Generar código temporal de 6 dígitos
+  const codigo = Math.floor(100000 + Math.random() * 900000).toString()
+  const expiracion = new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutos
+
+  // Buscar usuario
+  const { data: usuario, error: searchError } = await supabase
+    .from('app_users')
+    .select('id, nombre, email')
+    .eq('id', userId)
+    .single()
+
+  if (searchError || !usuario) {
+    throw new Error('Usuario no encontrado')
+  }
+
+  // Guardar solicitud de recuperación
+  const { error: insertError } = await supabase
+    .from('password_reset_requests')
+    .insert({
+      user_id: usuario.id,
+      email: usuario.email,
+      codigo: codigo,
+      expiracion: expiracion,
+      utilizado: false,
+      created_at: new Date().toISOString()
+    })
+
+  if (insertError) {
+    throw new Error('Error al generar código: ' + insertError.message)
+  }
+
+  return {
+    mensaje: `Código generado para ${usuario.nombre}: ${codigo}. Expira en 30 minutos.`,
+    codigo: codigo,
+    email: usuario.email
+  }
+}
+
+export async function cambiarPasswordComoAdmin(userId, nuevaPassword) {
+  if (!supabase) throw new Error('Supabase no está configurado')
+
+  const hash = await hashPassword(nuevaPassword)
+  const { error } = await supabase
+    .from('app_users')
+    .update({ password_hash: hash })
+    .eq('id', userId)
+
+  if (error) {
+    throw new Error('Error al cambiar contraseña: ' + error.message)
+  }
+
+  return { mensaje: 'Contraseña cambiada correctamente' }
+}

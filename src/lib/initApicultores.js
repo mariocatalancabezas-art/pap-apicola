@@ -24,6 +24,8 @@ async function migrarApicultoresSincronizados() {
 
 // Elimina apicultores duplicados en la base de datos local, conservando
 // una sola fila por nombre_completo (prefiere las no eliminadas y el id más bajo).
+// NO elimina apicultores recién creados (sync_status = PENDING) para que
+// aparezcan inmediatamente en las búsquedas.
 export async function dedupeApicultoresLocal() {
   const all = await db.apicultores.toArray()
   all.sort((a, b) => {
@@ -38,6 +40,9 @@ export async function dedupeApicultoresLocal() {
     // Nunca eliminar registros marcados como borrados; se usan como tumba
     // para evitar que vuelvan desde el servidor.
     if (a.deleted_at) continue
+    // No eliminar apicultores recién creados (PENDING) para que aparezcan
+    // inmediatamente en las búsquedas después de ser creados
+    if (a.sync_status === SYNC_STATUS.PENDING) continue
     const key = (a.nombre_completo || '').trim().toUpperCase()
     if (!key) continue
     if (seen.has(key)) {
@@ -107,11 +112,43 @@ export async function seedApicultoresFromVisitas() {
   return added
 }
 
+// Corrige apicultores cuyo nombre_completo no coincide con nombres + apellidos
+// Esto ocurre cuando se editó un apicultor pero no se actualizó nombre_completo
+async function fixNombreCompletoMismatch() {
+  const FIX_KEY = 'fix_nombre_completo_mismatch'
+  if (localStorage.getItem(FIX_KEY)) return
+
+  const apicultores = await db.apicultores.toArray()
+  let fixed = 0
+
+  for (const a of apicultores) {
+    if (a.deleted_at) continue
+
+    const expectedNombreCompleto = `${a.nombres} ${a.apellidos}`.toUpperCase().trim()
+    if (a.nombre_completo !== expectedNombreCompleto) {
+      await db.apicultores.update(a.id, {
+        nombre_completo: expectedNombreCompleto,
+        sync_status: SYNC_STATUS.PENDING,
+        updated_at: new Date().toISOString()
+      })
+      fixed++
+      console.log(`[Fix] Corregido nombre_completo para ${a.nombre_completo} -> ${expectedNombreCompleto}`)
+    }
+  }
+
+  if (fixed > 0) {
+    console.log(`[Fix] Corregidos ${fixed} apicultores con nombre_completo desactualizado`)
+  }
+
+  localStorage.setItem(FIX_KEY, new Date().toISOString())
+}
+
 // Ya no importa desde Excel. Solo retorna la cantidad actual mientras la
 // sincronización normal trae los datos desde Supabase.
 export async function initApicultores() {
   await migrarApicultoresSincronizados()
   await seedApicultoresFromVisitas()
+  await fixNombreCompletoMismatch()
   const count = await db.apicultores.count()
   console.log(`[Apicultores] initApicultores: ${count} apicultores locales. Sincronización desde Supabase.`)
   return { count, imported: false }

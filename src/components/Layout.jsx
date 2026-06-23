@@ -79,6 +79,8 @@ export default function Layout() {
   const isAdmin = user?.rol === 'admin'
   function hasPermission(item) {
     if (isAdmin) return true
+    // Si no tiene permisos específicos, es visible para todos
+    if (!item.permission && !item.orPermissions) return true
     if (item.permission && user?.[item.permission]) return true
     if (item.orPermissions && item.orPermissions.some(p => user?.[p])) return true
     return false

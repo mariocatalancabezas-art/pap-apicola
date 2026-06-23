@@ -102,15 +102,32 @@ export async function importarApicultoresExcel(file) {
 // Función para buscar apicultores por nombre (mínimo 4 caracteres)
 export async function buscarApicultoresPorNombre(query) {
   if (!query || query.length < 4) return []
-  
+
   const searchTerm = query.toUpperCase().trim()
-  
+
   // Buscar en nombre_completo, nombres o apellidos
   const all = await db.apicultores.toArray()
-  
-  return all.filter(a => 
-    a.nombre_completo.includes(searchTerm) ||
-    a.nombres.includes(searchTerm) ||
-    a.apellidos.includes(searchTerm)
-  ).slice(0, 10) // Máximo 10 resultados
+
+  const filtered = all.filter(a => {
+    const nombreCompleto = (a.nombre_completo || '').toUpperCase()
+    const nombres = (a.nombres || '').toUpperCase()
+    const apellidos = (a.apellidos || '').toUpperCase()
+
+    return nombreCompleto.includes(searchTerm) ||
+           nombres.includes(searchTerm) ||
+           apellidos.includes(searchTerm)
+  })
+
+  // Deduplicar por nombre_completo para evitar mostrar el mismo apicultor múltiples veces
+  const seenNames = new Set()
+  const finalResults = []
+  for (const a of filtered) {
+    const nombreKey = (a.nombre_completo || '').toUpperCase().trim()
+    if (!seenNames.has(nombreKey)) {
+      seenNames.add(nombreKey)
+      finalResults.push(a)
+    }
+  }
+
+  return finalResults.slice(0, 10) // Máximo 10 resultados
 }

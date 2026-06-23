@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, LogIn, UserPlus, HelpCircle, X, Mail } from 'lucide-react'
-import { login, register } from '../lib/auth'
+import { Eye, EyeOff, LogIn, UserPlus, HelpCircle, X, Mail, ArrowLeft } from 'lucide-react'
+import { login, register, solicitarRecuperacionPassword, resetearPasswordConCodigo } from '../lib/auth'
 import { useAuth } from '../lib/AuthContext'
 
 export default function Login() {
@@ -17,8 +17,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState({ text: '', type: '' })
   const [showResetModal, setShowResetModal] = useState(false)
+  const [resetStep, setResetStep] = useState('solicitar') // 'solicitar' | 'codigo' | 'nuevo'
   const [resetEmail, setResetEmail] = useState('')
-  const [resetMsg, setResetMsg] = useState('')
+  const [resetCodigo, setResetCodigo] = useState('')
+  const [resetNuevoPassword, setResetNuevoPassword] = useState('')
+  const [resetMsg, setResetMsg] = useState({ text: '', type: '' })
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -51,6 +54,65 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleSolicitarCodigo() {
+    if (!resetEmail.trim()) return
+    setLoading(true)
+    setResetMsg({ text: '', type: '' })
+    try {
+      const resultado = await solicitarRecuperacionPassword(resetEmail)
+      setResetMsg({ text: resultado.mensaje, type: 'ok' })
+      setResetStep('codigo')
+    } catch (err) {
+      setResetMsg({ text: err.message, type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleVerificarCodigo() {
+    if (!resetCodigo.trim()) return
+    setLoading(true)
+    setResetMsg({ text: '', type: '' })
+    try {
+      setResetStep('nuevo')
+    } catch (err) {
+      setResetMsg({ text: err.message, type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!resetNuevoPassword.trim()) return
+    setLoading(true)
+    setResetMsg({ text: '', type: '' })
+    try {
+      await resetearPasswordConCodigo(resetEmail, resetCodigo, resetNuevoPassword)
+      setResetMsg({ text: '✓ Contraseña actualizada correctamente. Ya puedes iniciar sesión.', type: 'ok' })
+      setTimeout(() => {
+        setShowResetModal(false)
+        setResetStep('solicitar')
+        setResetEmail('')
+        setResetCodigo('')
+        setResetNuevoPassword('')
+        setResetMsg({ text: '', type: '' })
+      }, 2000)
+    } catch (err) {
+      setResetMsg({ text: err.message, type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function closeResetModal() {
+    setShowResetModal(false)
+    setResetStep('solicitar')
+    setResetEmail('')
+    setResetCodigo('')
+    setResetNuevoPassword('')
+    setResetMsg({ text: '', type: '' })
   }
 
   return (
@@ -191,21 +253,23 @@ export default function Login() {
                 <h3 className="font-semibold text-gray-800">Recuperar contraseña</h3>
               </div>
               <button
-                onClick={() => { setShowResetModal(false); setResetMsg(''); setResetEmail(''); }}
+                onClick={closeResetModal}
                 className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {resetMsg ? (
-              <div className={`text-sm rounded-lg px-3 py-3 ${resetMsg.includes('✓') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
-                {resetMsg}
+            {resetMsg.text && (
+              <div className={`text-sm rounded-lg px-3 py-3 ${resetMsg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {resetMsg.text}
               </div>
-            ) : (
+            )}
+
+            {resetStep === 'solicitar' && (
               <>
                 <p className="text-sm text-gray-600">
-                  Ingresa tu correo y te enviaremos instrucciones al administrador para restablecer tu acceso.
+                  Ingresa tu correo para recibir un código temporal de 6 dígitos.
                 </p>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -218,15 +282,82 @@ export default function Login() {
                   />
                 </div>
                 <button
-                  onClick={() => {
-                    if (!resetEmail.trim()) return
-                    setResetMsg('✓ Solicitud enviada. El administrador (mariocatalancabezas@gmail.com) te contactará para restablecer tu acceso.')
-                  }}
-                  disabled={!resetEmail.trim()}
+                  onClick={handleSolicitarCodigo}
+                  disabled={!resetEmail.trim() || loading}
                   className="w-full btn-primary py-2.5 text-sm"
                 >
-                  Enviar solicitud
+                  {loading ? 'Enviando...' : 'Enviar código'}
                 </button>
+              </>
+            )}
+
+            {resetStep === 'codigo' && (
+              <>
+                <p className="text-sm text-gray-600">
+                  Ingresa el código de 6 dígitos que recibiste.
+                </p>
+                <input
+                  type="text"
+                  value={resetCodigo}
+                  onChange={e => setResetCodigo(e.target.value)}
+                  placeholder="123456"
+                  maxLength={6}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-amber-300"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setResetStep('solicitar')}
+                    className="flex-1 py-2.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600"
+                  >
+                    <ArrowLeft className="w-4 h-4 mx-auto" />
+                  </button>
+                  <button
+                    onClick={handleVerificarCodigo}
+                    disabled={!resetCodigo.trim() || loading}
+                    className="flex-1 btn-primary py-2.5 text-sm"
+                  >
+                    {loading ? 'Verificando...' : 'Verificar'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {resetStep === 'nuevo' && (
+              <>
+                <p className="text-sm text-gray-600">
+                  Ingresa tu nueva contraseña.
+                </p>
+                <div className="relative">
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    value={resetNuevoPassword}
+                    onChange={e => setResetNuevoPassword(e.target.value)}
+                    placeholder="Nueva contraseña"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setResetStep('codigo')}
+                    className="flex-1 py-2.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600"
+                  >
+                    <ArrowLeft className="w-4 h-4 mx-auto" />
+                  </button>
+                  <button
+                    onClick={handleResetPassword}
+                    disabled={!resetNuevoPassword.trim() || loading}
+                    className="flex-1 btn-primary py-2.5 text-sm"
+                  >
+                    {loading ? 'Actualizando...' : 'Actualizar'}
+                  </button>
+                </div>
               </>
             )}
 
