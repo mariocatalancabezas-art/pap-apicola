@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, Stethoscope } from 'lucide-react'
+import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, Stethoscope, MapPin } from 'lucide-react'
 import { db } from '../lib/db'
+import { listActividadesProximas, formatActividadFecha } from '../lib/actividades'
 import { onSyncChange } from '../lib/sync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
@@ -35,6 +36,8 @@ export default function Dashboard() {
     document.body.removeChild(link)
   }
   const [syncStatus, setSyncStatus] = useState('')
+  const [actividades, setActividades] = useState([])
+  const [verTodas, setVerTodas] = useState(false)
   const isOnline = useOnlineStatus()
   const supabaseOk = isSupabaseConfigured()
 
@@ -52,8 +55,18 @@ export default function Dashboard() {
     setStats({ visitas, hoy: visitasHoy, pendientes, tecnicas, administrativas })
   }
 
+  async function loadActividades() {
+    if (!supabaseOk) return
+    try {
+      setActividades(await listActividadesProximas())
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   useEffect(() => {
     load()
+    loadActividades()
     if (supabaseOk) {
       const unsub = onSyncChange(status => {
         setSyncStatus(status)
@@ -132,6 +145,53 @@ export default function Dashboard() {
           <User className="w-5 h-5" />
           Apicultores del programa
         </Link>
+      </div>
+
+      {/* ── PRÓXIMAS ACTIVIDADES ───────────────────────────────────── */}
+      <div className="card bg-white border border-gray-200">
+        <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-honey-500" />
+          Próximas actividades
+        </h3>
+        {actividades.length === 0 ? (
+          <p className="text-sm text-gray-500">No hay actividades programadas.</p>
+        ) : (
+          <div className="space-y-2">
+            {(verTodas ? actividades : actividades.slice(0, 4)).map(a => (
+              <div key={a.id} className="flex items-start gap-3 border border-gray-100 rounded-lg p-2.5 bg-gray-50">
+                <div className="p-1.5 rounded-lg bg-honey-50 text-honey-600 flex-shrink-0">
+                  <CalendarDays className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-800">{a.actividad}</p>
+                  <p className="text-xs text-gray-500 capitalize">{formatActividadFecha(a.fecha, a.hora)}</p>
+                  {a.lugar && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3" /> {a.lugar}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+            {actividades.length > 4 && (
+              !verTodas ? (
+                <button
+                  onClick={() => setVerTodas(true)}
+                  className="w-full text-sm text-honey-600 hover:text-honey-700 font-medium py-1"
+                >
+                  Ver más… ({actividades.length - 4})
+                </button>
+              ) : (
+                <Link
+                  to="/calendario-actividades"
+                  className="block w-full text-center text-sm text-honey-600 hover:text-honey-700 font-medium py-1"
+                >
+                  Ir al calendario
+                </Link>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── DOCUMENTOS SAG ─────────────────────────────────────────── */}
