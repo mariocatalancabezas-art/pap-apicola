@@ -26,11 +26,17 @@ function contarObservaciones(a, tipo) {
   return getObservaciones(a, tipo).filter(o => (o.texto || '').trim()).length
 }
 
-function textoPreview(a, tipo) {
-  const obs = getObservaciones(a, tipo)
-  const conTexto = obs.filter(o => (o.texto || '').trim())
+function textoPreview(a, tipo, search) {
+  const conTexto = getObservaciones(a, tipo).filter(o => (o.texto || '').trim())
   if (conTexto.length === 0) return ''
-  return conTexto[0].texto.slice(0, 60) + (conTexto[0].texto.length > 60 ? '…' : '')
+  const q = (search || '').trim().toLowerCase()
+  let elegido = conTexto[0]
+  if (q) {
+    const match = conTexto.find(o =>
+      (o.texto || '').toLowerCase().includes(q) || (o.nombre || '').toLowerCase().includes(q))
+    if (match) elegido = match
+  }
+  return elegido.texto.slice(0, 60) + (elegido.texto.length > 60 ? '…' : '')
 }
 
 function nombreCorto(a) {
@@ -62,7 +68,8 @@ export default function ObservacionesApicultores() {
     try {
       const all = await db.apicultores
         .filter(a => !a.deleted_at)
-        .sortBy('nombre_completo')
+        .toArray()
+      all.sort((x, y) => String(x.created_at || '').localeCompare(String(y.created_at || '')))
       const seen = new Set()
       const unicos = []
       for (const a of all) {
@@ -84,9 +91,16 @@ export default function ObservacionesApicultores() {
   }, [puedeVerGlobal])
 
   const filtered = apicultores.filter(a => {
-    const texto = search.toLowerCase()
-    return (nombreCorto(a) || '').toLowerCase().includes(texto) ||
-           (a.rut || '').toLowerCase().includes(texto)
+    const texto = search.trim().toLowerCase()
+    if (!texto) return true
+    const enNombre = (nombreCorto(a) || '').toLowerCase().includes(texto)
+    const enRut = (a.rut || '').toLowerCase().includes(texto)
+    const enObs = TIPOS.some(t =>
+      puedeVerCategoria(t.key) &&
+      getObservaciones(a, t.key).some(o =>
+        (o.texto || '').toLowerCase().includes(texto) ||
+        (o.nombre || '').toLowerCase().includes(texto)))
+    return enNombre || enRut || enObs
   })
 
   if (!puedeVerGlobal) {
@@ -112,7 +126,7 @@ export default function ObservacionesApicultores() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por nombre o RUT…"
+            placeholder="Buscar por nombre, RUT u observación…"
             className="input-field pl-9 w-full sm:w-64"
           />
         </div>
@@ -142,7 +156,7 @@ export default function ObservacionesApicultores() {
                   const visible = puedeVerCategoria(tipo.key)
                   const editable = puedeEditarCategoria(tipo.key)
                   const cantidad = contarObservaciones(a, tipo.key)
-                  const preview = textoPreview(a, tipo.key)
+                  const preview = textoPreview(a, tipo.key, search)
                   if (!visible && !editable) return null
                   return (
                     <button
