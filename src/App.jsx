@@ -22,6 +22,7 @@ import PlanillaAsistenciaActividades from './pages/PlanillaAsistenciaActividades
 import PlanillaAsistenciaGeneralVisitas from './pages/PlanillaAsistenciaGeneralVisitas'
 import PlanillaAsistenciaReunionesEquipo from './pages/PlanillaAsistenciaReunionesEquipo'
 import EquipoTecnico from './pages/EquipoTecnico'
+import CalendarioActividades from './pages/CalendarioActividades'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { initApicultores } from './lib/initApicultores'
 import { setupAutoSync } from './lib/sync'
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="historial-visita-tecnica" element={<HistorialVisitaTecnica />} />
         <Route path="historial-visita-administrativa" element={<HistorialVisitaAdministrativa />} />
         <Route path="otras-planillas" element={<OtrasPlanillas />} />
+        <Route path="calendario-actividades" element={<CalendarioActividades />} />
         <Route path="password-apicultores" element={<PasswordApicultores />} />
         <Route path="observaciones-apicultores" element={<ObservacionesApicultores />} />
         <Route path="observaciones-apicultores/:id/:tipo" element={<ObservacionesApicultorDetail />} />

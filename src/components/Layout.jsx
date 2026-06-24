@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Home, PlusCircle, ClipboardList,
   WifiOff, RefreshCw, CheckCircle2, AlertCircle, Menu, X, Users, LogOut, UserCircle,
-  Stethoscope, FileText, FolderOpen, UsersRound, ChevronDown, ChevronRight, Lock, Building2, MessageSquare, HardHat
+  Stethoscope, FileText, FolderOpen, UsersRound, ChevronDown, ChevronRight, Lock, Building2, MessageSquare, HardHat, CalendarDays
 } from 'lucide-react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useSyncStatus } from '../hooks/useSyncStatus'
@@ -32,6 +32,11 @@ const NAV_ALL = [
         to: '/visita-administrativa',
         icon: FileText,
         label: 'Visita Administrativa',
+      },
+      {
+        to: '/calendario-actividades',
+        icon: CalendarDays,
+        label: 'Calendario Actividades',
       },
       {
         to: '/password-apicultores',
