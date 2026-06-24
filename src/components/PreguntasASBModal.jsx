@@ -24,7 +24,7 @@ export default function PreguntasASBModal({ form, onChange, onClose, onSave }) {
 
         <div className="overflow-y-auto flex-1 p-4 space-y-4">
           <p className="text-xs text-gray-500 bg-amber-50 rounded-lg p-3">
-            Estas preguntas quedan guardadas en la aplicación y no se incluyen en las exportaciones ni impresiones.
+            Estas preguntas se guardan junto al diagnóstico y se sincronizan; no se incluyen en las exportaciones ni impresiones.
           </p>
 
           {PREGUNTAS.map(({ key, label }) => (

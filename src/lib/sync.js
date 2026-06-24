@@ -306,7 +306,24 @@ async function syncEquipoTecnico(forceFull = false) {
 
 async function pushLocalChanges() {
   console.log('[Sync] Enviando cambios locales de visitas...')
-  
+
+  // Recuperación única: las respuestas ASB antes solo se guardaban localmente.
+  // Marcamos como pendientes las visitas que aún tengan ASB en local para subirlas.
+  if (!localStorage.getItem('asb_backfill_done')) {
+    const conAsb = await db.visitas
+      .filter(v =>
+        v.sync_status === SYNC_STATUS.SYNCED && !v.deleted_at &&
+        ((v.asb_anios_apicultura || '').trim() ||
+         (v.asb_motivacion || '').trim() ||
+         (v.asb_talleres_interes || '').trim()))
+      .toArray()
+    for (const v of conAsb) {
+      await db.visitas.update(v.id, { sync_status: SYNC_STATUS.PENDING })
+    }
+    console.log(`[Sync] Backfill ASB: ${conAsb.length} visitas marcadas para subir`)
+    localStorage.setItem('asb_backfill_done', '1')
+  }
+
   const pendingVisitas = await db.visitas
     .where('sync_status').equals(SYNC_STATUS.PENDING)
     .toArray()
@@ -316,10 +333,6 @@ async function pushLocalChanges() {
   let errors = []
   for (const item of pendingVisitas) {
     const { id: localId, sync_status, ...payload } = item
-    // Preguntas ASB: solo locales, no sincronizar con Supabase
-    delete payload.asb_anios_apicultura
-    delete payload.asb_motivacion
-    delete payload.asb_talleres_interes
     console.log(`[Sync] Enviando visita UUID: ${payload.uuid}, Nombre: ${payload.f1_nombre}`)
     
     // Si está marcado para eliminación
