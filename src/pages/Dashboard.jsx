@@ -122,52 +122,27 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {cards.map(({ label, value, icon: Icon, color, to }) => (
-          <Link
-            key={label}
-            to={to}
-            className="card flex items-center gap-3 p-3 sm:p-4 hover:bg-honey-50 transition-colors cursor-pointer"
-          >
-            <div className={`p-2 sm:p-2.5 rounded-lg ${color} flex-shrink-0`}>
-              <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xl sm:text-2xl font-bold text-gray-800">{value}</p>
-              <p className="text-xs sm:text-sm text-gray-500 truncate">{label}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        <Link to="/apicultores" className="btn-primary w-full flex items-center justify-center gap-2 py-3">
-          <User className="w-5 h-5" />
-          Apicultores del programa
-        </Link>
-      </div>
-
       {/* ── PRÓXIMAS ACTIVIDADES ───────────────────────────────────── */}
       <div className="card bg-white border border-gray-200">
-        <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
-          <CalendarDays className="w-4 h-4 text-honey-500" />
+        <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+          <CalendarDays className="w-6 h-6 text-honey-500" />
           Próximas actividades
         </h3>
         {actividades.length === 0 ? (
           <p className="text-sm text-gray-500">No hay actividades programadas.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {(verTodas ? actividades : actividades.slice(0, 4)).map(a => (
-              <div key={a.id} className="flex items-start gap-3 border border-gray-100 rounded-lg p-2.5 bg-gray-50">
-                <div className="p-1.5 rounded-lg bg-honey-50 text-honey-600 flex-shrink-0">
-                  <CalendarDays className="w-4 h-4" />
+              <div key={a.id} className="flex items-start gap-3 border border-gray-100 rounded-lg p-3.5 bg-gray-50">
+                <div className="p-2 rounded-lg bg-honey-50 text-honey-600 flex-shrink-0">
+                  <CalendarDays className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-800">{a.actividad}</p>
-                  <p className="text-xs text-gray-500 capitalize">{formatActividadFecha(a.fecha, a.hora)}</p>
+                  <p className="text-base font-semibold text-gray-800">{a.actividad}</p>
+                  <p className="text-sm text-gray-500 capitalize">{formatActividadFecha(a.fecha, a.hora)}</p>
                   {a.lugar && (
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3" /> {a.lugar}
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3.5 h-3.5" /> {a.lugar}
                     </p>
                   )}
                 </div>
@@ -192,6 +167,31 @@ export default function Dashboard() {
             )}
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {cards.map(({ label, value, icon: Icon, color, to }) => (
+          <Link
+            key={label}
+            to={to}
+            className="card flex items-center gap-3 p-3 sm:p-4 hover:bg-honey-50 transition-colors cursor-pointer"
+          >
+            <div className={`p-2 sm:p-2.5 rounded-lg ${color} flex-shrink-0`}>
+              <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xl sm:text-2xl font-bold text-gray-800">{value}</p>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">{label}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Link to="/apicultores" className="btn-primary w-full flex items-center justify-center gap-2 py-3">
+          <User className="w-5 h-5" />
+          Apicultores del programa
+        </Link>
       </div>
 
       {/* ── DOCUMENTOS SAG ─────────────────────────────────────────── */}
