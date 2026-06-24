@@ -29,6 +29,20 @@ function nombreCorto(a) {
   return `${n} ${ap}`.trim() || a.nombre_completo
 }
 
+function ordenarPorCreacion(obs) {
+  return obs
+    .map((o, i) => ({ o, i }))
+    .sort((a, b) => {
+      const ca = String(a.o.created_at || '')
+      const cb = String(b.o.created_at || '')
+      if (ca && cb && ca !== cb) return ca.localeCompare(cb)
+      if (ca && !cb) return 1
+      if (!ca && cb) return -1
+      return a.i - b.i
+    })
+    .map(x => x.o)
+}
+
 function getObservaciones(a, tipo) {
   if (!a.observaciones) return []
   if (Array.isArray(a.observaciones)) {
@@ -69,12 +83,13 @@ export default function ObservacionesApicultorDetail() {
       setApicultor(a)
       const obs = getObservaciones(a, tipo)
       if (obs.length === 0) {
+        const now = new Date().toISOString()
         setObservaciones([
-          { id: generateUUID(), nombre: 'Observación 1', texto: '' },
-          { id: generateUUID(), nombre: 'Observación 2', texto: '' },
+          { id: generateUUID(), nombre: 'Observación 1', texto: '', created_at: now },
+          { id: generateUUID(), nombre: 'Observación 2', texto: '', created_at: now },
         ])
       } else {
-        setObservaciones(obs)
+        setObservaciones(ordenarPorCreacion(obs))
       }
     } catch (err) {
       setMsg('✗ Error al cargar: ' + err.message)
@@ -99,7 +114,7 @@ export default function ObservacionesApicultorDetail() {
   function agregarObs() {
     setObservaciones(prev => [
       ...prev,
-      { id: generateUUID(), nombre: `Observación ${prev.length + 1}`, texto: '' }
+      { id: generateUUID(), nombre: `Observación ${prev.length + 1}`, texto: '', created_at: new Date().toISOString() }
     ])
   }
 
