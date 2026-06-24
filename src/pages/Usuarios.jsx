@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { UserCheck, UserX, Shield, User, RefreshCw, Key, Lock } from 'lucide-react'
+import { UserCheck, UserX, Shield, User, RefreshCw, Key, Lock, X } from 'lucide-react'
 import { getUsuarios, updateUsuario, generarCodigoParaUsuario, cambiarPasswordComoAdmin } from '../lib/auth'
 import { useAuth } from '../lib/AuthContext'
 
@@ -215,6 +215,53 @@ export default function Usuarios() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Modal para cambiar contraseña */}
+      {showPasswordModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-blue-500" />
+                Cambiar contraseña
+              </h3>
+              <button
+                onClick={() => { setShowPasswordModal(false); setNewPassword(''); setSelectedUser(null); }}
+                className="p-1 rounded hover:bg-gray-100">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <p className="text-sm text-gray-600">
+                Nueva contraseña para <span className="font-semibold text-gray-800">{selectedUser.nombre}</span>
+              </p>
+              <input
+                type="text"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') cambiarPassword() }}
+                autoFocus
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Nueva contraseña"
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => { setShowPasswordModal(false); setNewPassword(''); setSelectedUser(null); }}
+                  className="flex-1 text-sm px-3 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium">
+                  Cancelar
+                </button>
+                <button
+                  onClick={cambiarPassword}
+                  disabled={!newPassword.trim()}
+                  className="flex-1 text-sm px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                  Cambiar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
