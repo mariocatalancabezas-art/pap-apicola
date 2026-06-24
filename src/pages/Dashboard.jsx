@@ -45,11 +45,10 @@ export default function Dashboard() {
     const hoy = new Date().toISOString().slice(0, 10)
     // Contar solo los diagnósticos NO eliminados, igual que el Historial
     const activas = await db.visitas.filter(v => !v.deleted_at).toArray()
-    const visitas = activas.length
-    const visitasHoy = activas.filter(v => v.f19_fecha_encuesta === hoy).length
+    const diagnosticos = activas.filter(v => v.tipo_visita !== 'administrativa' && v.tipo_visita !== 'tecnica')
+    const visitas = diagnosticos.length
+    const visitasHoy = diagnosticos.filter(v => v.f19_fecha_encuesta === hoy).length
     const pendientes = activas.filter(v => v.sync_status === 'pending').length
-    // Visitas técnicas y administrativas: estas funciones aún no guardan datos,
-    // por lo que el conteo es 0. Cuando se implementen, contar aquí por tipo.
     const tecnicas = activas.filter(v => v.tipo_visita === 'tecnica').length
     const administrativas = activas.filter(v => v.tipo_visita === 'administrativa').length
     setStats({ visitas, hoy: visitasHoy, pendientes, tecnicas, administrativas })

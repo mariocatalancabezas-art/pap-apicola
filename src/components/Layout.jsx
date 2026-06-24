@@ -30,9 +30,14 @@ const NAV_ALL = [
         ],
       },
       {
-        to: '/visita-administrativa',
+        type: 'group',
+        key: 'visita-administrativa',
         icon: FileText,
         label: 'Visita Administrativa',
+        items: [
+          { to: '/visita-administrativa', icon: FileText, label: 'Nueva Visita Administrativa' },
+          { to: '/historial-visita-administrativa', icon: ClipboardList, label: 'Historial Visitas Administrativas' },
+        ],
       },
       {
         to: '/calendario-actividades',

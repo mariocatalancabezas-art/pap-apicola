@@ -21,8 +21,8 @@ export default function Historial() {
 
   const load = useCallback(async () => {
     const vs = await db.visitas.orderBy('created_at').reverse().toArray()
-    // Filtrar los marcados como eliminados (soft delete)
-    const activas = vs.filter(v => !v.deleted_at)
+    // Filtrar los marcados como eliminados (soft delete) y otros tipos de visita
+    const activas = vs.filter(v => !v.deleted_at && v.tipo_visita !== 'administrativa' && v.tipo_visita !== 'tecnica')
     setVisitas(activas)
   }, [])
 
