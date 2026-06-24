@@ -11,6 +11,7 @@ import { syncAll } from '../lib/sync'
 import { useAuth } from '../lib/AuthContext'
 
 const NAV_ALL = [
+  { type: 'item', to: '/', icon: Home, label: 'Inicio', admin: false },
   {
     type: 'group',
     key: 'administrativo',
@@ -53,7 +54,6 @@ const NAV_ALL = [
       },
     ],
   },
-  { type: 'item', to: '/', icon: Home, label: 'Inicio', admin: false },
   {
     type: 'group',
     key: 'visita-tecnica',
