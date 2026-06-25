@@ -15,6 +15,32 @@ function completitud(m) {
     .reduce((n, k) => n + ((m[k] || '').toString().trim() ? 1 : 0), 0)
 }
 
+// Un "seed suelto" es un registro con un solo nombre (sin apellidos) y sin
+// ningún otro dato. Esos los crean dispositivos con la app antigua en caché y
+// duplican a un integrante real cuyo nombre completo empieza con ese nombre.
+function esSeedSuelto(m) {
+  const nombre = (m.nombre_completo || '').trim()
+  return nombre !== '' && !nombre.includes(' ') && completitud(m) === 0
+}
+
+// Soft-delete robusto: usa uuid (siempre presente) para no depender de la clave
+// primaria local, que puede variar según cómo se sincronizó el registro.
+async function softDelete(m, now) {
+  if (m.uuid) {
+    await db.equipo_tecnico.where('uuid').equals(m.uuid).modify({
+      deleted_at: now,
+      updated_at: now,
+      sync_status: SYNC_STATUS.PENDING,
+    })
+  } else if (m.id != null) {
+    await db.equipo_tecnico.update(m.id, {
+      deleted_at: now,
+      updated_at: now,
+      sync_status: SYNC_STATUS.PENDING,
+    })
+  }
+}
+
 function formatearRut(rut) {
   if (!rut) return ''
   const limpio = String(rut).replace(/[^0-9kK]/g, '').toUpperCase()
@@ -56,23 +82,40 @@ export default function EquipoTecnico() {
         } else {
           const ganador = mejor(existente, m)
           const perdedor = ganador === existente ? m : existente
-          duplicados.push(perdedor.id)
+          duplicados.push(perdedor)
           unicosMap.set(key, ganador)
         }
       }
+
+      // Limpieza de "seeds sueltos": un registro con solo el primer nombre y sin
+      // datos que duplica a un integrante real (p. ej. "FERNANDA" vs
+      // "FERNANDA CHAVEZ BASCUNAN"). Se elimina si existe otro miembro cuyo
+      // nombre completo empieza con ese nombre.
+      const restantes = Array.from(unicosMap.values())
+      const sobrevivientes = []
+      for (const m of restantes) {
+        if (esSeedSuelto(m)) {
+          const nombre = (m.nombre_completo || '').trim().toUpperCase()
+          const tieneVersionCompleta = restantes.some(
+            o => o !== m && (o.nombre_completo || '').trim().toUpperCase().startsWith(nombre + ' ')
+          )
+          if (tieneVersionCompleta) {
+            duplicados.push(m)
+            continue
+          }
+        }
+        sobrevivientes.push(m)
+      }
+
       if (duplicados.length > 0) {
         const now = new Date().toISOString()
-        for (const id of duplicados) {
-          await db.equipo_tecnico.update(id, {
-            deleted_at: now,
-            updated_at: now,
-            sync_status: SYNC_STATUS.PENDING,
-          })
+        for (const m of duplicados) {
+          await softDelete(m, now)
         }
         syncAll(true).catch(err => console.error('Sync cleanup error:', err))
       }
 
-      const unicos = Array.from(unicosMap.values()).sort((a, b) =>
+      const unicos = sobrevivientes.sort((a, b) =>
         (a.nombre_completo || '').localeCompare(b.nombre_completo || '')
       )
 
@@ -86,9 +129,9 @@ export default function EquipoTecnico() {
 
   useEffect(() => { cargar() }, [])
 
-  function actualizarMiembro(id, campo, valor) {
+  function actualizarMiembro(uuid, campo, valor) {
     setMiembros(prev => prev.map(m => {
-      if (m.id !== id) return m
+      if (m.uuid !== uuid) return m
       const actualizado = { ...m, [campo]: valor }
       if (campo === 'nombres' || campo === 'apellidos') {
         actualizado.nombre_completo = nombreCompleto(actualizado)
@@ -153,20 +196,26 @@ export default function EquipoTecnico() {
   async function guardarCambios(m) {
     const nombreNuevo = nombreCompleto(m)
     const existe = await db.equipo_tecnico
-      .filter(mm => !mm.deleted_at && mm.id !== m.id && (mm.nombre_completo || '').trim().toUpperCase() === nombreNuevo)
+      .filter(mm => !mm.deleted_at && mm.uuid !== m.uuid && (mm.nombre_completo || '').trim().toUpperCase() === nombreNuevo)
       .first()
     if (existe) {
       setMsg('✗ Ya existe otro miembro con ese nombre')
       return
     }
     const now = new Date().toISOString()
+    const { id: _omitId, ...rest } = m
+    const cambios = {
+      ...rest,
+      nombre_completo: nombreNuevo,
+      updated_at: now,
+      sync_status: SYNC_STATUS.PENDING,
+    }
     try {
-      await db.equipo_tecnico.update(m.id, {
-        ...m,
-        nombre_completo: nombreNuevo,
-        updated_at: now,
-        sync_status: SYNC_STATUS.PENDING,
-      })
+      if (m.uuid) {
+        await db.equipo_tecnico.where('uuid').equals(m.uuid).modify(cambios)
+      } else if (m.id != null) {
+        await db.equipo_tecnico.update(m.id, cambios)
+      }
       setMsg('✓ Cambios guardados')
       syncAll(true).catch(err => console.error('Sync error:', err))
     } catch (err) {
@@ -174,18 +223,10 @@ export default function EquipoTecnico() {
     }
   }
 
-  async function eliminarMiembro(id) {
+  async function eliminarMiembro(m) {
     if (!confirm('¿Eliminar este miembro del equipo?')) return
     try {
-      const m = await db.equipo_tecnico.get(id)
-      if (m) {
-        await db.equipo_tecnico.update(id, {
-          ...m,
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          sync_status: SYNC_STATUS.PENDING,
-        })
-      }
+      await softDelete(m, new Date().toISOString())
       setMsg('✓ Miembro eliminado')
       cargar()
       syncAll(true).catch(err => console.error('Sync error:', err))
@@ -289,7 +330,7 @@ export default function EquipoTecnico() {
           )}
 
           {miembros.map(m => (
-            <div key={m.id} className="card p-3 space-y-2">
+            <div key={m.uuid || m.id} className="card p-3 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <User className="w-4 h-4 text-honey-600" />
                 <span className="font-semibold text-sm">{m.nombre_completo || 'Sin nombre'}</span>
@@ -302,7 +343,7 @@ export default function EquipoTecnico() {
                     <Save className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => eliminarMiembro(m.id)}
+                    onClick={() => eliminarMiembro(m)}
                     className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"
                     title="Eliminar"
                   >
@@ -315,7 +356,7 @@ export default function EquipoTecnico() {
                   <User className="w-3.5 h-3.5 text-gray-400" />
                   <input
                     value={m.nombres || ''}
-                    onChange={e => actualizarMiembro(m.id, 'nombres', e.target.value)}
+                    onChange={e => actualizarMiembro(m.uuid, 'nombres', e.target.value)}
                     placeholder="Nombres"
                     className="input-field text-sm"
                   />
@@ -324,7 +365,7 @@ export default function EquipoTecnico() {
                   <User className="w-3.5 h-3.5 text-gray-400" />
                   <input
                     value={m.apellidos || ''}
-                    onChange={e => actualizarMiembro(m.id, 'apellidos', e.target.value)}
+                    onChange={e => actualizarMiembro(m.uuid, 'apellidos', e.target.value)}
                     placeholder="Apellidos"
                     className="input-field text-sm"
                   />
@@ -333,7 +374,7 @@ export default function EquipoTecnico() {
                   <span className="text-xs text-gray-400 font-mono">RUT</span>
                   <input
                     value={m.rut || ''}
-                    onChange={e => actualizarMiembro(m.id, 'rut', e.target.value)}
+                    onChange={e => actualizarMiembro(m.uuid, 'rut', e.target.value)}
                     placeholder="RUT"
                     className="input-field text-sm"
                   />
@@ -342,7 +383,7 @@ export default function EquipoTecnico() {
                   <Phone className="w-3.5 h-3.5 text-gray-400" />
                   <input
                     value={m.telefono || ''}
-                    onChange={e => actualizarMiembro(m.id, 'telefono', e.target.value)}
+                    onChange={e => actualizarMiembro(m.uuid, 'telefono', e.target.value)}
                     placeholder="Teléfono"
                     className="input-field text-sm"
                   />
@@ -351,7 +392,7 @@ export default function EquipoTecnico() {
                   <Mail className="w-3.5 h-3.5 text-gray-400" />
                   <input
                     value={m.email || ''}
-                    onChange={e => actualizarMiembro(m.id, 'email', e.target.value)}
+                    onChange={e => actualizarMiembro(m.uuid, 'email', e.target.value)}
                     placeholder="Correo"
                     className="input-field text-sm"
                   />
@@ -360,7 +401,7 @@ export default function EquipoTecnico() {
                   <Briefcase className="w-3.5 h-3.5 text-gray-400" />
                   <input
                     value={m.cargo || ''}
-                    onChange={e => actualizarMiembro(m.id, 'cargo', e.target.value)}
+                    onChange={e => actualizarMiembro(m.uuid, 'cargo', e.target.value)}
                     placeholder="Cargo"
                     className="input-field text-sm"
                   />
@@ -369,7 +410,7 @@ export default function EquipoTecnico() {
                   <Building2 className="w-3.5 h-3.5 text-gray-400" />
                   <input
                     value={m.institucion || ''}
-                    onChange={e => actualizarMiembro(m.id, 'institucion', e.target.value)}
+                    onChange={e => actualizarMiembro(m.uuid, 'institucion', e.target.value)}
                     placeholder="Institución o empresa"
                     className="input-field text-sm"
                   />
