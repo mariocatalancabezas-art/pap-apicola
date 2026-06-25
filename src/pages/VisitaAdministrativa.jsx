@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Save, ChevronLeft, FileText, User } from 'lucide-react'
 import { db, SYNC_STATUS, generateUUID } from '../lib/db'
 import { syncAll } from '../lib/sync'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { useAuth } from '../lib/AuthContext'
 import { buscarApicultoresPorNombre, buscarEquipoTecnicoPorNombre } from '../lib/importApicultores'
 
 const TEMAS = [
@@ -42,7 +43,10 @@ function formatRut(raw) {
 
 export default function VisitaAdministrativa() {
   const navigate = useNavigate()
+  const { id } = useParams()
   const isOnline = useOnlineStatus()
+  const { user } = useAuth()
+  const puedeEditar = user?.rol === 'admin' || user?.puede_editar
 
   const [form, setForm] = useState({ ...EMPTY })
   const [savedId, setSavedId] = useState(null)
@@ -60,6 +64,23 @@ export default function VisitaAdministrativa() {
   const [showTec, setShowTec] = useState(false)
   const [tecLoading, setTecLoading] = useState(false)
   const skipTecSearch = useRef(false)
+
+  // Modo edición: cargar la visita existente y guardar en el mismo documento
+  useEffect(() => {
+    if (!id) return
+    if (!puedeEditar) { navigate('/historial-visita-administrativa'); return }
+    let active = true
+    ;(async () => {
+      const v = await db.visitas.get(Number(id))
+      if (!active) return
+      if (!v) { alert('Visita no encontrada'); navigate('/historial-visita-administrativa'); return }
+      skipApiSearch.current = true
+      skipTecSearch.current = true
+      setForm({ ...EMPTY, ...v })
+      setSavedId(v.id)
+    })()
+    return () => { active = false }
+  }, [id, puedeEditar])
 
   useEffect(() => {
     if (skipApiSearch.current) { skipApiSearch.current = false; return }
@@ -193,7 +214,7 @@ export default function VisitaAdministrativa() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h2 className="text-lg font-bold flex items-center gap-2">
-            <FileText className="w-5 h-5 text-amber-500" /> Nueva Visita Administrativa
+            <FileText className="w-5 h-5 text-amber-500" /> {id ? 'Editar' : 'Nueva'} Visita Administrativa
           </h2>
         </div>
       </div>
