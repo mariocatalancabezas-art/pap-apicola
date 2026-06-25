@@ -55,7 +55,9 @@ function AppRoutes() {
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="perfil" element={<Perfil />} />
         <Route path="visita-tecnica" element={<VisitaTecnica />} />
+        <Route path="visita-tecnica/editar/:id" element={<VisitaTecnica />} />
         <Route path="visita-administrativa" element={<VisitaAdministrativa />} />
+        <Route path="visita-administrativa/editar/:id" element={<VisitaAdministrativa />} />
         <Route path="historial-visita-tecnica" element={<HistorialVisitaTecnica />} />
         <Route path="historial-visita-administrativa" element={<HistorialVisitaAdministrativa />} />
         <Route path="otras-planillas" element={<OtrasPlanillas />} />

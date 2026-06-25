@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { FileText, ArrowDownUp, ChevronDown, ChevronUp, Search, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { FileText, ArrowDownUp, ChevronDown, ChevronUp, Search, Trash2, Pencil } from 'lucide-react'
 import { db, SYNC_STATUS } from '../lib/db'
 import { syncAll } from '../lib/sync'
 import { useAuth } from '../lib/AuthContext'
 
 export default function HistorialVisitaAdministrativa() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const esAdmin = user?.rol === 'admin'
+  const puedeEditar = esAdmin || user?.puede_editar
   const [visitas, setVisitas] = useState([])
   const [search, setSearch] = useState('')
   const [sortOrder, setSortOrder] = useState('desc')
@@ -124,14 +127,24 @@ export default function HistorialVisitaAdministrativa() {
                   {(v.va_firma_asesor || v.va_firma_usuario) && (
                     <p><strong>Firmas:</strong> {v.va_firma_asesor || '—'} / {v.va_firma_usuario || '—'}</p>
                   )}
-                  {esAdmin && (
-                    <div className="pt-2">
-                      <button
-                        onClick={() => eliminar(v.id)}
-                        className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
-                      </button>
+                  {(puedeEditar || esAdmin) && (
+                    <div className="pt-2 flex gap-2">
+                      {puedeEditar && (
+                        <button
+                          onClick={() => navigate(`/visita-administrativa/editar/${v.id}`)}
+                          className="flex items-center gap-1.5 text-xs font-medium text-amber-700 hover:text-amber-800 hover:bg-amber-50 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> Editar
+                        </button>
+                      )}
+                      {esAdmin && (
+                        <button
+                          onClick={() => eliminar(v.id)}
+                          className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
