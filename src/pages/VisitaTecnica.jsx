@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, ChevronLeft, Stethoscope, User } from 'lucide-react'
+import { Save, ChevronLeft, Stethoscope, FileText, Printer, User } from 'lucide-react'
 import { db, SYNC_STATUS, generateUUID } from '../lib/db'
 import { syncAll } from '../lib/sync'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useAuth } from '../lib/AuthContext'
+import { exportVisitaPlanillaPDF, printVisitaPlanillaPDF } from '../lib/visitaExports'
 import { buscarApicultoresPorNombre, buscarEquipoTecnicoPorNombre } from '../lib/importApicultores'
 
 const EMPTY = {
@@ -477,14 +478,22 @@ export default function VisitaTecnica() {
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => saveData(false)} disabled={saving}
-          className="flex-1 flex items-center justify-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold py-3 rounded-lg transition-colors disabled:opacity-50">
+          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold py-3 rounded-lg transition-colors disabled:opacity-50">
           <Save className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}
         </button>
         <button type="submit" disabled={saving}
-          className="flex-1 btn-primary flex items-center justify-center gap-2 py-3 disabled:opacity-50">
+          className="flex-1 min-w-[120px] btn-primary flex items-center justify-center gap-2 py-3 disabled:opacity-50">
           <Save className="w-4 h-4" /> Guardar y cerrar
+        </button>
+        <button type="button" onClick={() => exportVisitaPlanillaPDF('tecnica', form)}
+          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 font-semibold py-3 rounded-lg transition-colors">
+          <FileText className="w-4 h-4" /> Exportar PDF
+        </button>
+        <button type="button" onClick={() => printVisitaPlanillaPDF('tecnica', form)}
+          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-3 rounded-lg transition-colors">
+          <Printer className="w-4 h-4" /> Imprimir
         </button>
       </div>
     </form>
