@@ -131,3 +131,35 @@ export async function buscarApicultoresPorNombre(query) {
 
   return finalResults.slice(0, 10) // Máximo 10 resultados
 }
+
+// Función para buscar miembros del equipo técnico por nombre (mínimo 3 caracteres)
+export async function buscarEquipoTecnicoPorNombre(query) {
+  if (!query || query.length < 3) return []
+
+  const searchTerm = query.toUpperCase().trim()
+
+  const all = await db.equipo_tecnico.toArray()
+
+  const filtered = all.filter(m => {
+    if (m.deleted_at) return false
+    const nombreCompleto = (m.nombre_completo || '').toUpperCase()
+    const nombres = (m.nombres || '').toUpperCase()
+    const apellidos = (m.apellidos || '').toUpperCase()
+
+    return nombreCompleto.includes(searchTerm) ||
+           nombres.includes(searchTerm) ||
+           apellidos.includes(searchTerm)
+  })
+
+  const seenNames = new Set()
+  const finalResults = []
+  for (const m of filtered) {
+    const nombreKey = (m.nombre_completo || `${m.nombres || ''} ${m.apellidos || ''}`).toUpperCase().trim()
+    if (!seenNames.has(nombreKey)) {
+      seenNames.add(nombreKey)
+      finalResults.push(m)
+    }
+  }
+
+  return finalResults.slice(0, 10)
+}
