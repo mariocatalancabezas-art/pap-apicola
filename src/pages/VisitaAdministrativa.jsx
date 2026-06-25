@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Save, ChevronLeft, FileText, Search, User } from 'lucide-react'
+import { Save, ChevronLeft, FileText, User } from 'lucide-react'
 import { db, SYNC_STATUS, generateUUID } from '../lib/db'
 import { syncAll } from '../lib/sync'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
-import { buscarApicultoresPorNombre } from '../lib/importApicultores'
+import { buscarApicultoresPorNombre, buscarEquipoTecnicoPorNombre } from '../lib/importApicultores'
 
 const TEMAS = [
   'Documentación SAG',
@@ -49,31 +49,63 @@ export default function VisitaAdministrativa() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const [showSearchResults, setShowSearchResults] = useState(false)
-  const [searchLoading, setSearchLoading] = useState(false)
+  // Autocomplete apicultor (campo Nombre completo)
+  const [apiResults, setApiResults] = useState([])
+  const [showApi, setShowApi] = useState(false)
+  const [apiLoading, setApiLoading] = useState(false)
+  const skipApiSearch = useRef(false)
+
+  // Autocomplete equipo técnico (campo Nombre Técnico)
+  const [tecResults, setTecResults] = useState([])
+  const [showTec, setShowTec] = useState(false)
+  const [tecLoading, setTecLoading] = useState(false)
+  const skipTecSearch = useRef(false)
 
   useEffect(() => {
-    if (searchQuery.length < 4) {
-      setSearchResults([])
-      setShowSearchResults(false)
+    if (skipApiSearch.current) { skipApiSearch.current = false; return }
+    const q = form.f1_nombre || ''
+    if (q.length < 4) {
+      setApiResults([])
+      setShowApi(false)
       return
     }
     const timer = setTimeout(async () => {
-      setSearchLoading(true)
+      setApiLoading(true)
       try {
-        const results = await buscarApicultoresPorNombre(searchQuery)
-        setSearchResults(results)
-        setShowSearchResults(results.length > 0)
+        const results = await buscarApicultoresPorNombre(q)
+        setApiResults(results)
+        setShowApi(results.length > 0)
       } catch (err) {
         console.error('Error buscando apicultores:', err)
       } finally {
-        setSearchLoading(false)
+        setApiLoading(false)
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [form.f1_nombre])
+
+  useEffect(() => {
+    if (skipTecSearch.current) { skipTecSearch.current = false; return }
+    const q = form.va_nombre_tecnico || ''
+    if (q.length < 3) {
+      setTecResults([])
+      setShowTec(false)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setTecLoading(true)
+      try {
+        const results = await buscarEquipoTecnicoPorNombre(q)
+        setTecResults(results)
+        setShowTec(results.length > 0)
+      } catch (err) {
+        console.error('Error buscando equipo técnico:', err)
+      } finally {
+        setTecLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [form.va_nombre_tecnico])
 
   function set(name, value) {
     setForm(f => ({ ...f, [name]: value }))
@@ -88,6 +120,7 @@ export default function VisitaAdministrativa() {
 
   function seleccionarApicultor(a) {
     const nombre = (a.nombre_completo || `${a.nombres || ''} ${a.apellidos || ''}`).trim()
+    skipApiSearch.current = true
     setForm(prev => ({
       ...prev,
       f1_nombre: nombre,
@@ -97,9 +130,17 @@ export default function VisitaAdministrativa() {
       f9_dir_propiedad: a.direccion || '',
       f5_email: a.email || '',
     }))
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearchResults(false)
+    setApiResults([])
+    setShowApi(false)
+    setSaved(false)
+  }
+
+  function seleccionarTecnico(m) {
+    const nombre = (m.nombre_completo || `${m.nombres || ''} ${m.apellidos || ''}`).trim()
+    skipTecSearch.current = true
+    setForm(prev => ({ ...prev, va_nombre_tecnico: nombre }))
+    setTecResults([])
+    setShowTec(false)
     setSaved(false)
   }
 
@@ -160,10 +201,30 @@ export default function VisitaAdministrativa() {
       {/* Encabezado */}
       <div className="card space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
+          <div className="relative">
             <label className="label text-xs font-medium text-gray-700">Nombre Técnico</label>
             <input name="va_nombre_tecnico" value={form.va_nombre_tecnico} onChange={handleChange}
+              autoComplete="off"
               className="input-field w-full" placeholder="Nombre del técnico" />
+            {tecLoading && <p className="text-xs text-gray-400 mt-1">Buscando…</p>}
+            {showTec && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                {tecResults.map(m => (
+                  <button
+                    type="button"
+                    key={m.id}
+                    onClick={() => seleccionarTecnico(m)}
+                    className="w-full text-left px-3 py-2 hover:bg-honey-50 flex items-center gap-2 border-b border-gray-50 last:border-0"
+                  >
+                    <User className="w-4 h-4 text-honey-600 flex-shrink-0" />
+                    <span className="text-sm text-gray-800">
+                      {(m.nombre_completo || `${m.nombres || ''} ${m.apellidos || ''}`).trim()}
+                      {m.cargo ? <span className="text-xs text-gray-500"> · {m.cargo}</span> : null}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="label text-xs font-medium text-gray-700">Fecha visita</label>
@@ -177,41 +238,31 @@ export default function VisitaAdministrativa() {
       <div className="card space-y-3">
         <h3 className="font-bold text-sm text-gray-700">Antecedentes del Apicultor</h3>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Buscar apicultor para autocompletar…"
-            className="input-field pl-9 w-full"
-          />
-          {searchLoading && <p className="text-xs text-gray-400 mt-1">Buscando…</p>}
-          {showSearchResults && (
-            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
-              {searchResults.map(a => (
-                <button
-                  type="button"
-                  key={a.id}
-                  onClick={() => seleccionarApicultor(a)}
-                  className="w-full text-left px-3 py-2 hover:bg-honey-50 flex items-center gap-2 border-b border-gray-50 last:border-0"
-                >
-                  <User className="w-4 h-4 text-honey-600 flex-shrink-0" />
-                  <span className="text-sm text-gray-800">
-                    {(a.nombre_completo || `${a.nombres || ''} ${a.apellidos || ''}`).trim()}
-                    {a.rut ? <span className="text-xs text-gray-500"> · {a.rut}</span> : null}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-2 relative">
             <label className="label text-xs font-medium text-gray-700">Nombre completo</label>
             <input name="f1_nombre" value={form.f1_nombre} onChange={handleChange}
+              autoComplete="off"
               className="input-field w-full" placeholder="Nombre completo" />
+            {apiLoading && <p className="text-xs text-gray-400 mt-1">Buscando…</p>}
+            {showApi && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                {apiResults.map(a => (
+                  <button
+                    type="button"
+                    key={a.id}
+                    onClick={() => seleccionarApicultor(a)}
+                    className="w-full text-left px-3 py-2 hover:bg-honey-50 flex items-center gap-2 border-b border-gray-50 last:border-0"
+                  >
+                    <User className="w-4 h-4 text-honey-600 flex-shrink-0" />
+                    <span className="text-sm text-gray-800">
+                      {(a.nombre_completo || `${a.nombres || ''} ${a.apellidos || ''}`).trim()}
+                      {a.rut ? <span className="text-xs text-gray-500"> · {a.rut}</span> : null}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="label text-xs font-medium text-gray-700">RUT</label>
