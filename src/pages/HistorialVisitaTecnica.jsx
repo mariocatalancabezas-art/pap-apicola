@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Stethoscope, ArrowDownUp, ChevronDown, ChevronUp, Search } from 'lucide-react'
-import { db } from '../lib/db'
+import { Stethoscope, ArrowDownUp, ChevronDown, ChevronUp, Search, Trash2 } from 'lucide-react'
+import { db, SYNC_STATUS } from '../lib/db'
+import { syncAll } from '../lib/sync'
+import { useAuth } from '../lib/AuthContext'
 
 export default function HistorialVisitaTecnica() {
+  const { user } = useAuth()
+  const esAdmin = user?.rol === 'admin'
   const [visitas, setVisitas] = useState([])
   const [search, setSearch] = useState('')
   const [sortOrder, setSortOrder] = useState('desc')
@@ -19,20 +23,34 @@ export default function HistorialVisitaTecnica() {
 
   useEffect(() => { load() }, [load])
 
+  async function eliminar(id) {
+    if (!confirm('¿Eliminar esta visita técnica?\n\nSe sincronizará la eliminación en todos los dispositivos.')) return
+    await db.visitas.update(id, {
+      deleted_at: new Date().toISOString(),
+      sync_status: SYNC_STATUS.PENDING,
+      updated_at: new Date().toISOString(),
+    })
+    syncAll(true).catch(err => console.error('Sync error:', err))
+    load()
+  }
+
   const filtered = visitas.filter(v => {
-    const nombre = `${v.f1_nombre || ''} ${v.f2_apellido || ''}`.toLowerCase()
-    const matchSearch = !search ||
-      nombre.includes(search.toLowerCase()) ||
-      (v.f3_rut || '').toLowerCase().includes(search.toLowerCase()) ||
-      (v.f15_poder_comprador || '').toLowerCase().includes(search.toLowerCase()) ||
-      (v.f24_especie_principal || '').toLowerCase().includes(search.toLowerCase())
-    return matchSearch
+    const q = search.toLowerCase()
+    return !q ||
+      (v.f1_nombre || '').toLowerCase().includes(q) ||
+      (v.f3_rut || '').toLowerCase().includes(q) ||
+      (v.vt_nombre_tecnico || '').toLowerCase().includes(q) ||
+      (v.vt_nombre_apiario || '').toLowerCase().includes(q) ||
+      (v.vt_problemas || '').toLowerCase().includes(q) ||
+      (v.vt_recomendaciones || '').toLowerCase().includes(q) ||
+      (v.vt_compromisos || '').toLowerCase().includes(q) ||
+      (v.vt_informe || '').toLowerCase().includes(q)
   })
 
   const sorted = [...filtered].sort((a, b) => {
     const da = new Date(a.created_at || 0)
-    const db = new Date(b.created_at || 0)
-    return sortOrder === 'desc' ? db - da : da - db
+    const dbb = new Date(b.created_at || 0)
+    return sortOrder === 'desc' ? dbb - da : da - dbb
   })
 
   return (
@@ -48,7 +66,7 @@ export default function HistorialVisitaTecnica() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar nombre, RUT, empresa, especie…"
+            placeholder="Buscar nombre, RUT, técnico, apiario u observación…"
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="input-field pl-9"
@@ -77,7 +95,7 @@ export default function HistorialVisitaTecnica() {
       <div className="space-y-2">
         {sorted.map(v => {
           const isExpanded = expandedId === v.id
-          const nombre = `${v.f1_nombre || ''} ${v.f2_apellido || ''}`.trim() || 'Sin nombre'
+          const nombre = (v.f1_nombre || '').trim() || 'Sin nombre'
           return (
             <div key={v.id} className="card">
               <div
@@ -86,15 +104,64 @@ export default function HistorialVisitaTecnica() {
               >
                 <div>
                   <span className="font-semibold text-sm text-gray-800">{nombre}</span>
-                  <p className="text-xs text-gray-500">{v.f19_fecha_encuesta || 'Sin fecha'} · {v.f6_region}{v.f7_comuna ? ` · ${v.f7_comuna}` : ''}</p>
+                  <p className="text-xs text-gray-500">
+                    {v.vt_fecha_visita || 'Sin fecha'}{v.vt_nombre_apiario ? ` · ${v.vt_nombre_apiario}` : ''}
+                  </p>
                 </div>
                 {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
               </div>
               {isExpanded && (
-                <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600 space-y-1">
+                <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600 space-y-1.5">
+                  {v.vt_nombre_tecnico && <p><strong>Técnico:</strong> {v.vt_nombre_tecnico}</p>}
                   <p><strong>RUT:</strong> {v.f3_rut || 'N/A'}</p>
                   <p><strong>Teléfono:</strong> {v.f4_telefono || 'N/A'}</p>
-                  <p><strong>Email:</strong> {v.f5_email || 'N/A'}</p>
+                  <p><strong>Correo:</strong> {v.f5_email || 'N/A'}</p>
+                  <p><strong>Dirección/sector:</strong> {v.f9_dir_propiedad || 'N/A'}</p>
+                  <p><strong>Comuna:</strong> {v.f7_comuna || 'N/A'}</p>
+
+                  <p className="pt-1 font-semibold text-gray-700">Datos del apiario</p>
+                  {v.vt_nombre_apiario && <p><strong>Apiario:</strong> {v.vt_nombre_apiario}</p>}
+                  {v.vt_num_colmenas && <p><strong>N° colmenas:</strong> {v.vt_num_colmenas}</p>}
+                  {v.vt_actividad_principal && <p><strong>Actividad principal:</strong> {v.vt_actividad_principal}</p>}
+
+                  <p className="pt-1 font-semibold text-gray-700">Condición sanitaria</p>
+                  {v.vt_varroa_pct && <p><strong>Varroa (%):</strong> {v.vt_varroa_pct}</p>}
+                  {v.vt_enfermedades && <p className="whitespace-pre-wrap"><strong>Enfermedades:</strong> {v.vt_enfermedades}</p>}
+                  {v.vt_tratamientos && <p className="whitespace-pre-wrap"><strong>Tratamientos:</strong> {v.vt_tratamientos}</p>}
+                  {v.vt_fecha_ultimo_tratamiento && <p><strong>Último tratamiento:</strong> {v.vt_fecha_ultimo_tratamiento}</p>}
+
+                  <p className="pt-1 font-semibold text-gray-700">Producción</p>
+                  {v.vt_prod_anterior && <p><strong>Temporada anterior (kg):</strong> {v.vt_prod_anterior}</p>}
+                  {v.vt_prod_estimada && <p><strong>Estimada actual (kg):</strong> {v.vt_prod_estimada}</p>}
+                  {v.vt_tipo_miel && <p><strong>Tipo de miel:</strong> {v.vt_tipo_miel}</p>}
+
+                  <p className="pt-1 font-semibold text-gray-700">Manejo técnico</p>
+                  {v.vt_alimentacion && <p><strong>Alimentación:</strong> {v.vt_alimentacion}</p>}
+                  {v.vt_renovacion_reinas && <p><strong>Renovación reinas (%):</strong> {v.vt_renovacion_reinas}</p>}
+                  {v.vt_recambio_marcos && <p><strong>Recambio marcos (%):</strong> {v.vt_recambio_marcos}</p>}
+                  {v.vt_calendario_manejo && <p><strong>Calendario de manejo:</strong> {v.vt_calendario_manejo}</p>}
+
+                  <p className="pt-1 font-semibold text-gray-700">Observaciones</p>
+                  {v.vt_problemas && <p className="whitespace-pre-wrap"><strong>Problemas detectados:</strong> {v.vt_problemas}</p>}
+                  {v.vt_recomendaciones && <p className="whitespace-pre-wrap"><strong>Recomendaciones:</strong> {v.vt_recomendaciones}</p>}
+                  {v.vt_compromisos && <p className="whitespace-pre-wrap"><strong>Compromisos:</strong> {v.vt_compromisos}</p>}
+                  {v.vt_fecha_proxima_visita && <p><strong>Próxima visita:</strong> {v.vt_fecha_proxima_visita}</p>}
+
+                  {v.vt_informe && <p className="whitespace-pre-wrap"><strong>Informe:</strong> {v.vt_informe}</p>}
+
+                  {(v.vt_firma_tecnico || v.vt_firma_apicultor) && (
+                    <p><strong>Firmas:</strong> {v.vt_firma_tecnico || '—'} / {v.vt_firma_apicultor || '—'}</p>
+                  )}
+                  {esAdmin && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => eliminar(v.id)}
+                        className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
