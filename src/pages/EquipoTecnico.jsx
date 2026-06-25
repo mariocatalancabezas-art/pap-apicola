@@ -4,18 +4,15 @@ import { db, generateUUID, SYNC_STATUS } from '../lib/db'
 import { useAuth } from '../lib/AuthContext'
 import { syncAll } from '../lib/sync'
 
-const MIEMBROS_INICIALES = [
-  { nombres: 'MARIO', apellidos: '' },
-  { nombres: 'FERNANDA', apellidos: '' },
-  { nombres: 'YESSICA', apellidos: '' },
-  { nombres: 'JACINTO', apellidos: '' },
-  { nombres: 'EDGARDO', apellidos: '' },
-]
-
-const SEED_FLAG = 'equipo_tecnico_seed_done'
-
 function nombreCompleto(p) {
   return `${p.nombres || ''} ${p.apellidos || ''}`.trim().toUpperCase()
+}
+
+// Cuenta cuántos campos relevantes tiene completos un miembro, para conservar
+// el registro "más completo" al deduplicar (y no el seed/duplicado vacío)
+function completitud(m) {
+  return ['apellidos', 'rut', 'telefono', 'email', 'cargo', 'institucion']
+    .reduce((n, k) => n + ((m[k] || '').toString().trim() ? 1 : 0), 0)
 }
 
 function formatearRut(rut) {
@@ -41,18 +38,26 @@ export default function EquipoTecnico() {
     try {
       const all = await db.equipo_tecnico.filter(m => !m.deleted_at).sortBy('nombre_completo')
 
-      // Deduplicar por nombre_completo, mantener el más reciente y eliminar duplicados locales
+      // Deduplicar por nombre_completo: conservar el registro más completo
+      // (y, a igualdad, el más reciente) y eliminar el resto.
       const unicosMap = new Map()
       const duplicados = []
+      function mejor(a, b) {
+        const ca = completitud(a), cb = completitud(b)
+        if (ca !== cb) return ca > cb ? a : b
+        return new Date(a.updated_at || 0) >= new Date(b.updated_at || 0) ? a : b
+      }
       for (const m of all) {
         const key = (m.nombre_completo || '').trim().toUpperCase()
         if (!key) continue
         const existente = unicosMap.get(key)
-        if (!existente || new Date(m.updated_at || 0) > new Date(existente.updated_at || 0)) {
-          if (existente) duplicados.push(existente.id)
+        if (!existente) {
           unicosMap.set(key, m)
         } else {
-          duplicados.push(m.id)
+          const ganador = mejor(existente, m)
+          const perdedor = ganador === existente ? m : existente
+          duplicados.push(perdedor.id)
+          unicosMap.set(key, ganador)
         }
       }
       if (duplicados.length > 0) {
@@ -70,36 +75,6 @@ export default function EquipoTecnico() {
       const unicos = Array.from(unicosMap.values()).sort((a, b) =>
         (a.nombre_completo || '').localeCompare(b.nombre_completo || '')
       )
-
-      // Verificar si falta algún miembro inicial (solo la primera vez por dispositivo)
-      const seedDone = localStorage.getItem(SEED_FLAG) === '1'
-      const nombresActuales = new Set(unicos.map(m => (m.nombre_completo || '').trim().toUpperCase()))
-      const faltantes = !seedDone
-        ? MIEMBROS_INICIALES.filter(m => !nombresActuales.has(m.nombres.trim().toUpperCase()))
-        : []
-
-      if (faltantes.length > 0) {
-        const iniciales = faltantes.map(m => ({
-          uuid: generateUUID(),
-          nombres: m.nombres.toUpperCase(),
-          apellidos: m.apellidos.toUpperCase(),
-          nombre_completo: m.nombres.toUpperCase(),
-          rut: '',
-          telefono: '',
-          email: '',
-          cargo: '',
-          institucion: '',
-          sync_status: SYNC_STATUS.PENDING,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          deleted_at: null,
-        }))
-        await db.equipo_tecnico.bulkAdd(iniciales)
-        unicos.push(...iniciales)
-        unicos.sort((a, b) => (a.nombre_completo || '').localeCompare(b.nombre_completo || ''))
-        localStorage.setItem(SEED_FLAG, '1')
-        syncAll(true).catch(err => console.error('Sync error:', err))
-      }
 
       setMiembros(unicos)
     } catch (err) {
