@@ -65,12 +65,12 @@
 }
 
 @media print {
-  /* Carta vertical por defecto. margin:0 en @page evita que el navegador
-     imprima su propio encabezado/pie (fecha, URL, título). Los márgenes
-     visibles se dan con padding en el contenido. */
-  @page { size: letter portrait; margin: 0; }
+  /* Márgenes normales e iguales en TODAS las hojas y direcciones. Al estar en
+     @page se repiten en cada página (no solo en la primera, como ocurría con
+     padding del contenido). */
+  @page { size: letter portrait; margin: 14mm; }
   /* Página nombrada horizontal para planillas anchas (asistencia). */
-  @page landscape-page { size: letter landscape; margin: 0; }
+  @page landscape-page { size: letter landscape; margin: 12mm; }
 
   aside, header, nav, .no-print { display: none !important; }
   /* No imprimir iconos de la app (lucide-react son <svg>). */
@@ -100,7 +100,7 @@
   .print-landscape { page: landscape-page; }
   .planilla-sheet {
     width: 100%;
-    padding: 12mm 10mm;
+    padding: 0;
     font-family: Arial, sans-serif;
     color: #000 !important;
   }
@@ -110,7 +110,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8mm;
-    padding: 12mm 12mm 4mm;
+    padding: 0 0 4mm;
   }
   .apicultores-print-header img {
     display: inline-block !important;
@@ -139,7 +139,7 @@
 
   /* Listado de Apicultores: carta vertical, solo la tabla, con márgenes. */
   .apicultores-print {
-    padding: 0 12mm 12mm;
+    padding: 0;
     color: #000 !important;
   }
   .apicultores-print table {
@@ -167,6 +167,7 @@
     text-transform: uppercase;
     font-size: 8px;
     letter-spacing: 0.02em;
+    text-align: center;
   }
   .apicultores-print tbody tr:nth-child(even) td {
     background: #fcf8ee !important;
