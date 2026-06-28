@@ -7,6 +7,7 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useAuth } from '../lib/AuthContext'
 import { exportVisitaPlanillaPDF, printVisitaPlanillaPDF } from '../lib/visitaExports'
 import { buscarApicultoresPorNombre, buscarEquipoTecnicoPorNombre } from '../lib/importApicultores'
+import VoiceInput from '../components/VoiceInput'
 
 const TEMAS = [
   'Documentación SAG',
@@ -334,13 +335,13 @@ export default function VisitaAdministrativa() {
         </div>
         <div>
           <label className="label text-xs font-medium text-gray-700">Observaciones</label>
-          <textarea name="va_observaciones" value={form.va_observaciones} onChange={handleChange}
-            rows={5} className="input-field w-full resize-none" placeholder="Observaciones de la visita…" />
+          <VoiceInput value={form.va_observaciones} onChange={val => set('va_observaciones', val)}
+            disabled={!puedeEditar} rows={5} placeholder="Observaciones de la visita…" />
         </div>
         <div>
           <label className="label text-xs font-medium text-gray-700">Acuerdos o Compromisos</label>
-          <textarea name="va_acuerdos" value={form.va_acuerdos} onChange={handleChange}
-            rows={5} className="input-field w-full resize-none" placeholder="Acuerdos o compromisos…" />
+          <VoiceInput value={form.va_acuerdos} onChange={val => set('va_acuerdos', val)}
+            disabled={!puedeEditar} rows={5} placeholder="Acuerdos o compromisos…" />
         </div>
       </div>
 

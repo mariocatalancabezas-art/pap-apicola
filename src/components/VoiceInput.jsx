@@ -5,7 +5,7 @@ function isSpeechSupported() {
   return typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 }
 
-export default function VoiceInput({ value, onChange, disabled = false, placeholder = 'Escribe o dicta…' }) {
+export default function VoiceInput({ value, onChange, disabled = false, placeholder = 'Escribe o dicta…', rows = 3 }) {
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState('')
   const recognitionRef = useRef(null)
@@ -72,7 +72,7 @@ export default function VoiceInput({ value, onChange, disabled = false, placehol
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
         placeholder={placeholder}
-        rows={3}
+        rows={rows}
         className="input-field w-full pr-10 text-sm resize-y"
       />
       <button
