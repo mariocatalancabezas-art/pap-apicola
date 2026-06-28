@@ -68,6 +68,15 @@ const NAV_ALL = [
     items: [
       { to: '/visita-tecnica', icon: Stethoscope, label: 'Nueva Visita Técnica' },
       { to: '/historial-visita-tecnica', icon: ClipboardList, label: 'Historial Visita Técnica' },
+      {
+        to: '/observaciones-visita-tecnica',
+        icon: MessageSquare,
+        label: 'Observaciones Apicultores',
+        orPermissions: [
+          'puede_ver_observaciones_tecnico_jriquelme',
+          'puede_ver_observaciones_tecnico_eburgos',
+        ],
+      },
     ],
   },
   { type: 'item', to: '/apicultores', icon: UsersRound, label: 'Apicultores del programa', admin: false },

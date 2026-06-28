@@ -25,6 +25,10 @@ const PERMISOS = [
   { key: 'puede_editar_observaciones_secretaria', label: 'Editar Observaciones Secretaría' },
   { key: 'puede_ver_observaciones_tecnico_administrativa', label: 'Ver Observaciones Técnico Administrativa' },
   { key: 'puede_editar_observaciones_tecnico_administrativa', label: 'Editar Observaciones Técnico Administrativa' },
+  { key: 'puede_ver_observaciones_tecnico_jriquelme', label: 'Ver Observaciones Técnico J.Riquelme (V. Técnica)' },
+  { key: 'puede_editar_observaciones_tecnico_jriquelme', label: 'Editar Observaciones Técnico J.Riquelme (V. Técnica)' },
+  { key: 'puede_ver_observaciones_tecnico_eburgos', label: 'Ver Observaciones Técnico E.Burgos (V. Técnica)' },
+  { key: 'puede_editar_observaciones_tecnico_eburgos', label: 'Editar Observaciones Técnico E.Burgos (V. Técnica)' },
 ]
 
 export default function Usuarios() {
