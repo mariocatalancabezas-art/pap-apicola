@@ -120,7 +120,7 @@ export default function PlanillaAsistenciaActividades() {
           <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
         </div>
       ) : (
-        <div className="planilla-sheet">
+        <div className="planilla-sheet print-landscape">
           <div className="text-center mb-4">
             <h1 className="text-xl font-bold uppercase tracking-wide">Asistencia Actividades Apicultores</h1>
             <div className="flex justify-center gap-8 mt-3 text-sm">
