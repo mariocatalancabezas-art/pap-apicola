@@ -129,6 +129,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
 
           <table className="planilla-table">
             <thead>
+              <tr className="print-pad-row"><th colSpan={7} /></tr>
               <tr>
                 <th className="w-12">N° Item</th>
                 <th>Nombre</th>
@@ -139,6 +140,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
                 <th className="w-36">Firma</th>
               </tr>
             </thead>
+            <tfoot className="print-pad-foot"><tr><td colSpan={7} /></tr></tfoot>
             <tbody>
               {usuarios.map((u, idx) => (
                 <tr key={u.id}>

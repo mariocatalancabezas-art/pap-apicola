@@ -66,6 +66,7 @@ export default function PlanillaAsistenciaActividades() {
       ],
       columnas,
       filas,
+      columnStyles: { 1: { cellWidth: 45 }, 5: { cellWidth: 70 } },
     })
   }
 
@@ -78,6 +79,7 @@ export default function PlanillaAsistenciaActividades() {
       ],
       columnas,
       filas,
+      columnStyles: { 1: { cellWidth: 45 }, 5: { cellWidth: 70 } },
     })
     const ok = await compartirPDF(blob, 'Asistencia Actividades Apicultores', nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
@@ -137,15 +139,17 @@ export default function PlanillaAsistenciaActividades() {
 
           <table className="planilla-table">
             <thead>
+              <tr className="print-pad-row"><th colSpan={6} /></tr>
               <tr>
                 <th className="w-12">N°</th>
-                <th>NOMBRE</th>
+                <th className="w-44">NOMBRE</th>
                 <th className="w-28">RUT</th>
                 <th className="w-32">TELÉFONO</th>
                 <th className="w-40">CORREO</th>
-                <th className="w-36">FIRMA</th>
+                <th className="w-56">FIRMA</th>
               </tr>
             </thead>
+            <tfoot className="print-pad-foot"><tr><td colSpan={6} /></tr></tfoot>
             <tbody>
               {apicultores.map((a, idx) => (
                 <tr key={a.id}>
