@@ -7,6 +7,7 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useAuth } from '../lib/AuthContext'
 import { exportVisitaPlanillaPDF, printVisitaPlanillaPDF } from '../lib/visitaExports'
 import { buscarApicultoresPorNombre, buscarEquipoTecnicoPorNombre } from '../lib/importApicultores'
+import VoiceInput from '../components/VoiceInput'
 
 const EMPTY = {
   vt_nombre_tecnico: '',
@@ -425,18 +426,18 @@ export default function VisitaTecnica() {
         <h3 className="font-bold text-sm text-gray-700">Observaciones de la Visita</h3>
         <div>
           <label className="label text-xs font-medium text-gray-700">Principales problemas detectados</label>
-          <textarea name="vt_problemas" value={form.vt_problemas} onChange={handleChange}
-            rows={3} className="input-field w-full resize-none" placeholder="Principales problemas detectados…" />
+          <VoiceInput value={form.vt_problemas} onChange={val => set('vt_problemas', val)}
+            disabled={!puedeEditar} rows={3} placeholder="Principales problemas detectados…" />
         </div>
         <div>
           <label className="label text-xs font-medium text-gray-700">Recomendaciones técnicas</label>
-          <textarea name="vt_recomendaciones" value={form.vt_recomendaciones} onChange={handleChange}
-            rows={3} className="input-field w-full resize-none" placeholder="Recomendaciones técnicas…" />
+          <VoiceInput value={form.vt_recomendaciones} onChange={val => set('vt_recomendaciones', val)}
+            disabled={!puedeEditar} rows={3} placeholder="Recomendaciones técnicas…" />
         </div>
         <div>
           <label className="label text-xs font-medium text-gray-700">Compromisos del apicultor</label>
-          <textarea name="vt_compromisos" value={form.vt_compromisos} onChange={handleChange}
-            rows={3} className="input-field w-full resize-none" placeholder="Compromisos del apicultor…" />
+          <VoiceInput value={form.vt_compromisos} onChange={val => set('vt_compromisos', val)}
+            disabled={!puedeEditar} rows={3} placeholder="Compromisos del apicultor…" />
         </div>
         <div>
           <label className="label text-xs font-medium text-gray-700">Fecha próxima visita</label>
