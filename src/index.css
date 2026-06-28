@@ -58,6 +58,38 @@
   display: none;
 }
 
+/* Encabezado ejecutivo de las planillas (logos + título centrado), visible en
+   pantalla e impresión. */
+.planilla-exec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.planilla-exec-header img {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+.planilla-exec-header .peh-title {
+  flex: 1;
+  text-align: center;
+}
+.planilla-exec-header .peh-title h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+  color: #1f2937;
+}
+.planilla-exec-header .peh-title p {
+  font-size: 11px;
+  color: #6b7280;
+  margin: 2px 0 0;
+}
+
 .fade-in {
   animation: fadeIn 0.2s ease-in-out;
 }
@@ -67,10 +99,10 @@
 }
 
 @media print {
-  /* Márgenes normales e iguales en TODAS las hojas y direcciones. Al estar en
-     @page se repiten en cada página (no solo en la primera, como ocurría con
-     padding del contenido). */
-  @page { size: letter portrait; margin: 14mm; }
+  /* margin:0 evita que el navegador imprima su propio pie/encabezado con la URL
+     de la app en CUALQUIER planilla. Los márgenes de cada hoja se recrean con
+     padding del contenido + filas espaciadoras que se repiten en thead/tfoot. */
+  @page { size: letter portrait; margin: 0; }
   /* Página nombrada horizontal para planillas anchas (asistencia). margin:0 evita
      que el navegador imprima su propio pie/encabezado con la URL de la app. Los
      márgenes de cada hoja se logran con padding del contenedor (lados y arriba en
@@ -115,7 +147,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8mm;
-    padding: 0 0 4mm;
+    padding: 12mm 12mm 0;
   }
   .apicultores-print-header img {
     display: inline-block !important;
@@ -144,8 +176,19 @@
 
   /* Listado de Apicultores: carta vertical, solo la tabla, con márgenes. */
   .apicultores-print {
-    padding: 0;
+    padding: 0 12mm;
     color: #000 !important;
+  }
+  /* Filas espaciadoras: margen superior (thead, se repite por hoja) e inferior
+     (tfoot, se repite por hoja) sin que el navegador dibuje su pie con la URL. */
+  .print-pad-row { display: table-row !important; }
+  .print-pad-foot { display: table-footer-group !important; }
+  .print-pad-row > *,
+  .print-pad-foot td {
+    height: 12mm;
+    border: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
   }
   .apicultores-print table {
     width: 100%;
@@ -224,7 +267,7 @@
   }
   .planilla-table th,
   .planilla-table td {
-    border: 1px solid #000 !important;
+    border: 1px solid #c9a227 !important;
     padding: 3px 5px;
     text-align: left;
     vertical-align: middle;
@@ -232,23 +275,20 @@
     font-weight: 500;
   }
   .planilla-table th {
-    background: #e0e0e0 !important;
+    background: #f6e7be !important;
+    color: #5b4412 !important;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
     text-align: center;
     page-break-inside: avoid;
+  }
+  .planilla-table tbody tr:nth-child(even) td {
+    background: #fcf8ee !important;
   }
   .planilla-table td {
     height: 18px;
   }
   /* Filas espaciadoras: dan margen superior (thead, se repite por hoja) e inferior
      (tfoot, se repite por hoja) sin que el navegador dibuje su pie con la URL. */
-  .planilla-table .print-pad-row { display: table-row !important; }
-  .planilla-table .print-pad-foot { display: table-footer-group !important; }
-  .planilla-table .print-pad-row > *,
-  .planilla-table .print-pad-foot td {
-    height: 12mm;
-    border: 0 !important;
-    background: #fff !important;
-    padding: 0 !important;
-  }
 }

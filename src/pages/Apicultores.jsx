@@ -344,6 +344,7 @@ export default function Apicultores() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
+                <tr className="print-pad-row">{Array.from({ length: 8 }).map((_, i) => <th key={i} />)}</tr>
                 <tr>
                   <th 
                     className="text-left px-2 py-2 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 select-none"
@@ -392,6 +393,7 @@ export default function Apicultores() {
                   {puedeVerAcciones && <th className="text-center px-3 py-2 font-semibold text-gray-700 no-print">Acciones</th>}
                 </tr>
               </thead>
+              <tfoot className="print-pad-foot"><tr><td colSpan={puedeVerAcciones ? 9 : 8} /></tr></tfoot>
               <tbody className="divide-y divide-gray-100">
                 {Object.entries(groupedData).map(([groupName, items]) => (
                   <React.Fragment key={groupName}>

@@ -113,9 +113,16 @@ export default function PlanillaAsistenciaReunionesEquipo() {
         </div>
       ) : (
         <div className="planilla-sheet print-landscape">
-          <div className="text-center mb-4">
-            <h1 className="text-xl font-bold uppercase tracking-wide">Asistencia a Reuniones de Equipo</h1>
-            <div className="flex justify-center gap-8 mt-3 text-sm">
+          <div className="planilla-exec-header">
+            <img src="/Logo/LOGO%20ASB.png.png" alt="ASB" />
+            <div className="peh-title">
+              <h1>Asistencia a Reuniones de Equipo</h1>
+              <p>PAP Apícola</p>
+            </div>
+            <img src="/Logo/LOGO%20INDAP.png" alt="INDAP" />
+          </div>
+          <div className="mb-4">
+            <div className="flex justify-center gap-8 text-sm">
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Nombre de la actividad:</span>
                 <span className="inline-block border-b border-black w-56" />
