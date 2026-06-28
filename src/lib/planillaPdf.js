@@ -62,7 +62,7 @@ export async function compartirPDF(blob, titulo, nombreArchivo = 'planilla.pdf')
   const file = new File([blob], nombreArchivo, { type: 'application/pdf' })
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ title, files: [file] })
+      await navigator.share({ title: titulo || file.name, files: [file] })
       return true
     } catch (err) {
       if (err.name === 'AbortError') return true
