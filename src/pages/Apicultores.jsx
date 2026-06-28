@@ -275,7 +275,7 @@ export default function Apicultores() {
           <User className="w-5 h-5 text-amber-500" />
           Apicultores del Programa
         </h2>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center no-print">
           <button 
             onClick={() => exportApicultores(filtered)}
             className="btn-secondary flex items-center gap-1 py-1.5 px-3 text-sm"
@@ -301,7 +301,7 @@ export default function Apicultores() {
         </div>
       </div>
 
-      <div className="relative">
+      <div className="relative no-print">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
@@ -332,7 +332,7 @@ export default function Apicultores() {
       )}
 
       {filtered.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden apicultores-print">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -381,7 +381,7 @@ export default function Apicultores() {
                       {groupBy === 'programa_indap' && <Group className="w-4 h-4 text-amber-500" />}
                     </div>
                   </th>
-                  {puedeVerAcciones && <th className="text-center px-3 py-2 font-semibold text-gray-700">Acciones</th>}
+                  {puedeVerAcciones && <th className="text-center px-3 py-2 font-semibold text-gray-700 no-print">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -496,7 +496,7 @@ export default function Apicultores() {
                           </span>
                         </td>
                         {puedeVerAcciones && (
-                          <td className="px-3 py-2 text-center">
+                          <td className="px-3 py-2 text-center no-print">
                             <div className="flex justify-center gap-1">
                               <button 
                                 onClick={() => startEdit(a)}
