@@ -52,6 +52,10 @@
   @apply bg-honey-300 rounded-full;
 }
 
+.print-only {
+  display: none;
+}
+
 .fade-in {
   animation: fadeIn 0.2s ease-in-out;
 }
@@ -100,33 +104,96 @@
     font-family: Arial, sans-serif;
     color: #000 !important;
   }
+  /* Encabezado ejecutivo solo para impresión del listado de apicultores. */
+  .apicultores-print-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8mm;
+    padding: 12mm 12mm 4mm;
+  }
+  .apicultores-print-header img {
+    display: inline-block !important;
+    height: 20mm;
+    width: auto;
+    object-fit: contain;
+  }
+  .apicultores-print-header .aph-title {
+    flex: 1;
+    text-align: center;
+  }
+  .apicultores-print-header .aph-title h1 {
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #1f2937 !important;
+    margin: 0;
+  }
+  .apicultores-print-header .aph-title p {
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    color: #6b7280 !important;
+    margin: 2px 0 0;
+  }
+
   /* Listado de Apicultores: carta vertical, solo la tabla, con márgenes. */
   .apicultores-print {
-    padding: 14mm 10mm;
+    padding: 0 12mm 12mm;
     color: #000 !important;
   }
   .apicultores-print table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 9px;
+    table-layout: fixed;
+    font-family: Arial, sans-serif;
+    font-size: 8.5px;
   }
   .apicultores-print th,
   .apicultores-print td {
-    border: 1px solid #000 !important;
-    padding: 3px 5px !important;
+    border: 1px solid #c9a227 !important;
+    padding: 4px 5px !important;
     text-align: left;
-    color: #000 !important;
+    color: #1f2937 !important;
     background: #fff !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    vertical-align: top;
   }
   .apicultores-print thead th {
-    background: #e0e0e0 !important;
+    background: #f6e7be !important;
+    color: #5b4412 !important;
     font-weight: 700;
+    text-transform: uppercase;
+    font-size: 8px;
+    letter-spacing: 0.02em;
+  }
+  .apicultores-print tbody tr:nth-child(even) td {
+    background: #fcf8ee !important;
   }
   .apicultores-print span {
     background: transparent !important;
-    color: #000 !important;
+    color: #1f2937 !important;
     padding: 0 !important;
+    font-size: 8.5px;
   }
+  /* Anchos de columna para que ninguna (incl. la última) quede cortada. */
+  .apicultores-print thead th:nth-child(1),
+  .apicultores-print tbody td:nth-child(1) { width: 14%; }
+  .apicultores-print thead th:nth-child(2),
+  .apicultores-print tbody td:nth-child(2) { width: 14%; }
+  .apicultores-print thead th:nth-child(3),
+  .apicultores-print tbody td:nth-child(3) { width: 11%; }
+  .apicultores-print thead th:nth-child(4),
+  .apicultores-print tbody td:nth-child(4) { width: 10%; }
+  .apicultores-print thead th:nth-child(5),
+  .apicultores-print tbody td:nth-child(5) { width: 16%; }
+  .apicultores-print thead th:nth-child(6),
+  .apicultores-print tbody td:nth-child(6) { width: 11%; }
+  .apicultores-print thead th:nth-child(7),
+  .apicultores-print tbody td:nth-child(7) { width: 14%; }
+  .apicultores-print thead th:nth-child(8),
+  .apicultores-print tbody td:nth-child(8) { width: 10%; }
   .planilla-sheet h1,
   .planilla-sheet span,
   .planilla-sheet p,
