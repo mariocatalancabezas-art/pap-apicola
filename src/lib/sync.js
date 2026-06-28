@@ -8,6 +8,21 @@ let fullSyncInProgress = false
 let hasDoneInitialSync = false
 let autoSyncSetup = false
 
+// Margen de solape para la sincronización incremental. El cursor (last_sync_*) se
+// guarda con la hora local del dispositivo; si el reloj de otro dispositivo va
+// ligeramente atrasado, su registro nuevo podría tener un updated_at menor que el
+// cursor y perderse. Restamos este margen al consultar para no perder cambios
+// (volver a traer filas ya conocidas es inofensivo: el merge es idempotente).
+const SYNC_OVERLAP_MS = 5 * 60 * 1000
+
+function cursorConBuffer(clave) {
+  const last = localStorage.getItem(clave)
+  if (!last) return '1970-01-01T00:00:00Z'
+  const t = new Date(last).getTime()
+  if (Number.isNaN(t)) return '1970-01-01T00:00:00Z'
+  return new Date(t - SYNC_OVERLAP_MS).toISOString()
+}
+
 export function onSyncChange(fn) {
   syncListeners.push(fn)
   return () => { syncListeners = syncListeners.filter(l => l !== fn) }
@@ -156,7 +171,7 @@ async function syncApicultores(forceFull = false) {
   let query = supabase.from('apicultores').select('*').is('deleted_at', null)
   
   if (!forceFull) {
-    const lastSync = localStorage.getItem('last_sync_apicultores') || '1970-01-01T00:00:00Z'
+    const lastSync = cursorConBuffer('last_sync_apicultores')
     query = query.gt('updated_at', lastSync)
   }
   
@@ -265,7 +280,7 @@ async function syncEquipoTecnico(forceFull = false) {
   let query = supabase.from('equipo_tecnico').select('*').is('deleted_at', null)
 
   if (!forceFull) {
-    const lastSync = localStorage.getItem('last_sync_equipo_tecnico') || '1970-01-01T00:00:00Z'
+    const lastSync = cursorConBuffer('last_sync_equipo_tecnico')
     query = query.gt('updated_at', lastSync)
   }
 
@@ -400,7 +415,7 @@ async function pullRemoteChanges(forceFull = false) {
   let query = supabase.from('visitas').select('*').is('deleted_at', null)
   
   if (!forceFull) {
-    const lastSync = localStorage.getItem('last_sync_at') || '1970-01-01T00:00:00Z'
+    const lastSync = cursorConBuffer('last_sync_at')
     query = query.gt('updated_at', lastSync)
   }
   
@@ -520,6 +535,17 @@ export function setupAutoSync() {
     }
   })
 
+  // Evento: la ventana recupera el foco (volver a la pestaña/app de escritorio)
+  window.addEventListener('focus', () => {
+    if (navigator.onLine) syncAll(false)
+  })
+
+  // Tiempo real: cuando CUALQUIER dispositivo conectado guarda algo, los demás
+  // dispositivos conectados lo reciben en segundos (sin esperar el ciclo de 60s).
+  // Si la tabla no está en la publicación supabase_realtime, simplemente no llegan
+  // eventos y el sync periódico/al abrir sigue siendo la garantía de respaldo.
+  setupRealtime()
+
   // Sync INMEDIATO al iniciar la app
   if (navigator.onLine) {
     const lastSync = localStorage.getItem('last_sync_at')
@@ -540,6 +566,37 @@ export function setupAutoSync() {
   setInterval(() => {
     if (navigator.onLine) syncAll(true)
   }, 60 * 1000)
+}
+
+let realtimeSetup = false
+let realtimeDebounce = null
+
+// Dispara una sincronización incremental con un pequeño retardo para agrupar
+// varios eventos seguidos en un solo sync.
+function triggerRealtimeSync() {
+  if (realtimeDebounce) clearTimeout(realtimeDebounce)
+  realtimeDebounce = setTimeout(() => {
+    if (navigator.onLine) {
+      console.log('[Sync] Cambio en tiempo real detectado, sincronizando...')
+      syncAll(false)
+    }
+  }, 1200)
+}
+
+function setupRealtime() {
+  if (realtimeSetup) return
+  if (!isSupabaseConfigured() || !supabase) return
+  realtimeSetup = true
+  try {
+    supabase
+      .channel('pap-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visitas' }, triggerRealtimeSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'apicultores' }, triggerRealtimeSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'equipo_tecnico' }, triggerRealtimeSync)
+      .subscribe((status) => console.log('[Sync] Canal tiempo real:', status))
+  } catch (err) {
+    console.error('[Sync] No se pudo configurar tiempo real:', err)
+  }
 }
 
 // Exponer funciones globales para debugging
