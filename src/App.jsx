@@ -18,6 +18,8 @@ import OtrasPlanillas from './pages/OtrasPlanillas'
 import PasswordApicultores from './pages/PasswordApicultores'
 import ObservacionesApicultores from './pages/ObservacionesApicultores'
 import ObservacionesApicultorDetail from './pages/ObservacionesApicultorDetail'
+import ObservacionesVisitaTecnica from './pages/ObservacionesVisitaTecnica'
+import ObservacionesVisitaTecnicaDetail from './pages/ObservacionesVisitaTecnicaDetail'
 import PlanillaAsistenciaActividades from './pages/PlanillaAsistenciaActividades'
 import PlanillaAsistenciaGeneralVisitas from './pages/PlanillaAsistenciaGeneralVisitas'
 import PlanillaAsistenciaReunionesEquipo from './pages/PlanillaAsistenciaReunionesEquipo'
@@ -65,6 +67,8 @@ function AppRoutes() {
         <Route path="password-apicultores" element={<PasswordApicultores />} />
         <Route path="observaciones-apicultores" element={<ObservacionesApicultores />} />
         <Route path="observaciones-apicultores/:id/:tipo" element={<ObservacionesApicultorDetail />} />
+        <Route path="observaciones-visita-tecnica" element={<ObservacionesVisitaTecnica />} />
+        <Route path="observaciones-visita-tecnica/:id/:tipo" element={<ObservacionesVisitaTecnicaDetail />} />
         <Route path="planilla-asistencia-actividades" element={<PlanillaAsistenciaActividades />} />
         <Route path="planilla-asistencia-general-visitas" element={<PlanillaAsistenciaGeneralVisitas />} />
         <Route path="planilla-asistencia-reuniones-equipo" element={<PlanillaAsistenciaReunionesEquipo />} />
