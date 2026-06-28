@@ -88,6 +88,7 @@ export default function PlanillaAsistenciaGeneralVisitas() {
 
         <table className="planilla-table">
           <thead>
+            <tr className="print-pad-row"><th colSpan={7} /></tr>
             <tr>
               <th className="w-12">N°</th>
               <th>NOMBRE</th>
@@ -98,6 +99,7 @@ export default function PlanillaAsistenciaGeneralVisitas() {
               <th className="w-36">FIRMA</th>
             </tr>
           </thead>
+          <tfoot className="print-pad-foot"><tr><td colSpan={7} /></tr></tfoot>
           <tbody>
             {Array.from({ length: TOTAL_ITEMS }).map((_, idx) => (
               <tr key={idx}>

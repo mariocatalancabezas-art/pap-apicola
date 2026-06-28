@@ -52,7 +52,9 @@
   @apply bg-honey-300 rounded-full;
 }
 
-.print-only {
+.print-only,
+.print-pad-row,
+.print-pad-foot {
   display: none;
 }
 
@@ -69,8 +71,11 @@
      @page se repiten en cada página (no solo en la primera, como ocurría con
      padding del contenido). */
   @page { size: letter portrait; margin: 14mm; }
-  /* Página nombrada horizontal para planillas anchas (asistencia). */
-  @page landscape-page { size: letter landscape; margin: 12mm; }
+  /* Página nombrada horizontal para planillas anchas (asistencia). margin:0 evita
+     que el navegador imprima su propio pie/encabezado con la URL de la app. Los
+     márgenes de cada hoja se logran con padding del contenedor (lados y arriba en
+     la 1.ª hoja) + filas espaciadoras que se repiten en thead/tfoot. */
+  @page landscape-page { size: letter landscape; margin: 0; }
 
   aside, header, nav, .no-print { display: none !important; }
   /* No imprimir iconos de la app (lucide-react son <svg>). */
@@ -100,7 +105,7 @@
   .print-landscape { page: landscape-page; }
   .planilla-sheet {
     width: 100%;
-    padding: 0;
+    padding: 12mm 12mm 0;
     font-family: Arial, sans-serif;
     color: #000 !important;
   }
@@ -234,5 +239,16 @@
   }
   .planilla-table td {
     height: 18px;
+  }
+  /* Filas espaciadoras: dan margen superior (thead, se repite por hoja) e inferior
+     (tfoot, se repite por hoja) sin que el navegador dibuje su pie con la URL. */
+  .planilla-table .print-pad-row { display: table-row !important; }
+  .planilla-table .print-pad-foot { display: table-footer-group !important; }
+  .planilla-table .print-pad-row > *,
+  .planilla-table .print-pad-foot td {
+    height: 12mm;
+    border: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
   }
 }
