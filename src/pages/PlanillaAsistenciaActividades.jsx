@@ -131,20 +131,20 @@ export default function PlanillaAsistenciaActividades() {
             </div>
             <img src="/Logo/LOGO%20INDAP.png" alt="INDAP" />
           </div>
-          <div className="mt-8 mb-6">
+          <div className="planilla-campos mt-10 mb-8">
             <div className="flex justify-center gap-8 text-sm">
               <div className="flex items-end gap-2">
-                <span className="font-semibold">Nombre de la actividad:</span>
-                <span className="inline-block border-b border-black w-56" />
+                <span className="font-semibold leading-none whitespace-nowrap">Nombre de la actividad:</span>
+                <span className="inline-block border-b border-black w-56 translate-y-1" />
               </div>
               <div className="flex items-end gap-2">
-                <span className="font-semibold">Fecha:</span>
-                <span className="inline-block border-b border-black w-40" />
+                <span className="font-semibold leading-none whitespace-nowrap">Fecha:</span>
+                <span className="inline-block border-b border-black w-40 translate-y-1" />
               </div>
             </div>
           </div>
 
-          <table className="planilla-table">
+          <table className="planilla-table planilla-compacta">
             <thead>
               <tr className="print-pad-row"><th colSpan={6} /></tr>
               <tr>
@@ -159,7 +159,10 @@ export default function PlanillaAsistenciaActividades() {
             <tfoot className="print-pad-foot"><tr><td colSpan={6} /></tr></tfoot>
             <tbody>
               {apicultores.map((a, idx) => (
-                <tr key={a.id}>
+                <tr
+                  key={a.id}
+                  style={(idx + 1) % 30 === 0 && idx + 1 !== apicultores.length ? { breakAfter: 'page' } : undefined}
+                >
                   <td className="text-center">{idx + 1}</td>
                   <td className="col-nombre">{nombreCompleto(a)}</td>
                   <td className="text-center whitespace-nowrap">{formatearRut(a.rut)}</td>

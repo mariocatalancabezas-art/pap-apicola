@@ -121,15 +121,15 @@ export default function PlanillaAsistenciaReunionesEquipo() {
             </div>
             <img src="/Logo/LOGO%20INDAP.png" alt="INDAP" />
           </div>
-          <div className="mt-8 mb-6">
+          <div className="planilla-campos mt-10 mb-8">
             <div className="flex justify-center gap-8 text-sm">
               <div className="flex items-end gap-2">
-                <span className="font-semibold">Nombre de la actividad:</span>
-                <span className="inline-block border-b border-black w-56" />
+                <span className="font-semibold leading-none whitespace-nowrap">Nombre de la actividad:</span>
+                <span className="inline-block border-b border-black w-56 translate-y-1" />
               </div>
               <div className="flex items-end gap-2">
-                <span className="font-semibold">Fecha:</span>
-                <span className="inline-block border-b border-black w-40" />
+                <span className="font-semibold leading-none whitespace-nowrap">Fecha:</span>
+                <span className="inline-block border-b border-black w-40 translate-y-1" />
               </div>
             </div>
           </div>

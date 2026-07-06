@@ -189,8 +189,13 @@
      (tfoot, se repite por hoja) sin que el navegador dibuje su pie con la URL. */
   .print-pad-row { display: table-row !important; }
   .print-pad-foot { display: table-footer-group !important; }
-  .print-pad-row > *,
-  .print-pad-foot td {
+  /* Selectores con mayor especificidad que `.planilla-table th/td` y
+     `.apicultores-print th/td` (ambos usan !important) para que las filas
+     espaciadoras del margen queden en blanco, SIN borde ni línea alguna. */
+  .planilla-table .print-pad-row > *,
+  .planilla-table .print-pad-foot td,
+  .apicultores-print .print-pad-row > *,
+  .apicultores-print .print-pad-foot td {
     height: 12mm;
     border: 0 !important;
     background: #fff !important;
@@ -295,6 +300,24 @@
   .planilla-table td {
     height: 18px;
   }
+  .planilla-table th,
+  .planilla-table td {
+    padding: 3px 5px;
+  }
+  /* Variante compacta (Asistencia Actividades): filas más bajas para caber 30
+     apicultores por hoja. */
+  .planilla-table.planilla-compacta td {
+    height: 12px;
+  }
+  .planilla-table.planilla-compacta th,
+  .planilla-table.planilla-compacta td {
+    padding: 1px 5px;
+  }
+  /* Encabezado ejecutivo compacto en impresión para aprovechar la hoja. */
+  .planilla-exec-header img { height: 40px !important; }
+  .planilla-exec-header { margin-bottom: 4px !important; }
+  /* Bloque "Nombre de la actividad / Fecha": separación moderada en impresión. */
+  .planilla-campos { margin-top: 6mm !important; margin-bottom: 6mm !important; }
   /* Filas espaciadoras: dan margen superior (thead, se repite por hoja) e inferior
      (tfoot, se repite por hoja) sin que el navegador dibuje su pie con la URL. */
 }
