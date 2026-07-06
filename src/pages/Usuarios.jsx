@@ -29,6 +29,8 @@ const PERMISOS = [
   { key: 'puede_editar_observaciones_tecnico_jriquelme', label: 'Editar Observaciones Técnico J.Riquelme (V. Técnica)' },
   { key: 'puede_ver_observaciones_tecnico_eburgos', label: 'Ver Observaciones Técnico E.Burgos (V. Técnica)' },
   { key: 'puede_editar_observaciones_tecnico_eburgos', label: 'Editar Observaciones Técnico E.Burgos (V. Técnica)' },
+  { key: 'puede_editar_calendario', label: 'Editar Calendario de Actividades' },
+  { key: 'puede_eliminar_calendario', label: 'Eliminar Calendario de Actividades' },
 ]
 
 export default function Usuarios() {

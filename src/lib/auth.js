@@ -126,6 +126,8 @@ export async function login(email, password, remember) {
     puede_editar_observaciones_tecnico_jriquelme: data.puede_editar_observaciones_tecnico_jriquelme,
     puede_ver_observaciones_tecnico_eburgos: data.puede_ver_observaciones_tecnico_eburgos,
     puede_editar_observaciones_tecnico_eburgos: data.puede_editar_observaciones_tecnico_eburgos,
+    puede_editar_calendario: data.puede_editar_calendario,
+    puede_eliminar_calendario: data.puede_eliminar_calendario,
   }
   if (remember) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
@@ -162,7 +164,7 @@ export async function getUsuarios() {
   if (!supabase) throw new Error('Supabase no está configurado')
   const { data, error } = await supabase
     .from('app_users')
-    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, puede_ver_acciones, puede_ver_password_apicultores, puede_editar_password_apicultores, puede_ver_observaciones_apicultores, puede_editar_observaciones_apicultores, puede_ver_observaciones_secretaria, puede_editar_observaciones_secretaria, puede_ver_observaciones_tecnico_administrativa, puede_editar_observaciones_tecnico_administrativa, puede_ver_observaciones_tecnico_jriquelme, puede_editar_observaciones_tecnico_jriquelme, puede_ver_observaciones_tecnico_eburgos, puede_editar_observaciones_tecnico_eburgos, created_at')
+    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, puede_ver_acciones, puede_ver_password_apicultores, puede_editar_password_apicultores, puede_ver_observaciones_apicultores, puede_editar_observaciones_apicultores, puede_ver_observaciones_secretaria, puede_editar_observaciones_secretaria, puede_ver_observaciones_tecnico_administrativa, puede_editar_observaciones_tecnico_administrativa, puede_ver_observaciones_tecnico_jriquelme, puede_editar_observaciones_tecnico_jriquelme, puede_ver_observaciones_tecnico_eburgos, puede_editar_observaciones_tecnico_eburgos, puede_editar_calendario, puede_eliminar_calendario, created_at')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
