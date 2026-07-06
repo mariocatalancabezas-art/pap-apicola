@@ -66,7 +66,7 @@ export default function PlanillaAsistenciaActividades() {
       ],
       columnas,
       filas,
-      columnStyles: { 1: { cellWidth: 45 }, 5: { cellWidth: 70 } },
+      columnStyles: { 1: { cellWidth: 60 }, 3: { cellWidth: 22 }, 5: { cellWidth: 52 } },
     })
   }
 
@@ -79,7 +79,7 @@ export default function PlanillaAsistenciaActividades() {
       ],
       columnas,
       filas,
-      columnStyles: { 1: { cellWidth: 45 }, 5: { cellWidth: 70 } },
+      columnStyles: { 1: { cellWidth: 60 }, 3: { cellWidth: 22 }, 5: { cellWidth: 52 } },
     })
     const ok = await compartirPDF(blob, 'Asistencia Actividades Apicultores', nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
@@ -131,13 +131,13 @@ export default function PlanillaAsistenciaActividades() {
             </div>
             <img src="/Logo/LOGO%20INDAP.png" alt="INDAP" />
           </div>
-          <div className="mb-4">
+          <div className="mt-8 mb-6">
             <div className="flex justify-center gap-8 text-sm">
-              <div className="flex items-center gap-2">
+              <div className="flex items-end gap-2">
                 <span className="font-semibold">Nombre de la actividad:</span>
                 <span className="inline-block border-b border-black w-56" />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-end gap-2">
                 <span className="font-semibold">Fecha:</span>
                 <span className="inline-block border-b border-black w-40" />
               </div>
@@ -149,9 +149,9 @@ export default function PlanillaAsistenciaActividades() {
               <tr className="print-pad-row"><th colSpan={6} /></tr>
               <tr>
                 <th className="w-12">N°</th>
-                <th className="w-44">NOMBRE</th>
-                <th className="w-28">RUT</th>
-                <th className="w-32">TELÉFONO</th>
+                <th className="col-nombre">NOMBRE</th>
+                <th className="w-28 whitespace-nowrap">RUT</th>
+                <th className="w-24 whitespace-nowrap">TELÉFONO</th>
                 <th className="w-40">CORREO</th>
                 <th className="w-56">FIRMA</th>
               </tr>
@@ -161,9 +161,9 @@ export default function PlanillaAsistenciaActividades() {
               {apicultores.map((a, idx) => (
                 <tr key={a.id}>
                   <td className="text-center">{idx + 1}</td>
-                  <td>{nombreCompleto(a)}</td>
-                  <td className="text-center">{formatearRut(a.rut)}</td>
-                  <td>{a.telefono || ''}</td>
+                  <td className="col-nombre">{nombreCompleto(a)}</td>
+                  <td className="text-center whitespace-nowrap">{formatearRut(a.rut)}</td>
+                  <td className="whitespace-nowrap">{a.telefono || ''}</td>
                   <td>{a.email || ''}</td>
                   <td />
                 </tr>

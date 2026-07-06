@@ -43,7 +43,7 @@ export function exportarPDF({ titulo, subtitulos = [], columnas, filas, nombreAr
     y += 6
   })
 
-  y += 4
+  y += 8
 
   autoTable(doc, {
     startY: y,
@@ -98,7 +98,7 @@ export async function generarPDFBlob({ titulo, subtitulos = [], columnas, filas,
     y += 6
   })
 
-  y += 4
+  y += 8
 
   autoTable(doc, {
     startY: y,
