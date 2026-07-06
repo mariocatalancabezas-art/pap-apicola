@@ -89,6 +89,11 @@
   color: #6b7280;
   margin: 2px 0 0;
 }
+/* La columna NOMBRE no debe partirse en dos líneas (se ajusta al nombre
+   completo más largo del listado), tanto en pantalla como en impresión. */
+.planilla-table .col-nombre {
+  white-space: nowrap;
+}
 
 .fade-in {
   animation: fadeIn 0.2s ease-in-out;
@@ -148,6 +153,7 @@
     justify-content: space-between;
     gap: 8mm;
     padding: 12mm 12mm 0;
+    margin-bottom: 8mm;
   }
   .apicultores-print-header img {
     display: inline-block !important;
