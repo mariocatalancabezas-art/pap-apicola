@@ -139,12 +139,12 @@ export default function PlanillaAsistenciaReunionesEquipo() {
               <tr className="print-pad-row"><th colSpan={7} /></tr>
               <tr>
                 <th className="w-12">N° Item</th>
-                <th>Nombre</th>
+                <th className="col-nombre">Nombre</th>
                 <th className="w-28">Rut</th>
-                <th className="w-32">Cargo</th>
-                <th className="w-32">Teléfono</th>
-                <th className="w-40">Institución o Empresa</th>
-                <th className="w-36">Firma</th>
+                <th className="w-28">Cargo</th>
+                <th className="w-20 whitespace-nowrap">Teléfono</th>
+                <th className="w-36">Institución o Empresa</th>
+                <th className="w-52">Firma</th>
               </tr>
             </thead>
             <tfoot className="print-pad-foot"><tr><td colSpan={7} /></tr></tfoot>
@@ -152,10 +152,10 @@ export default function PlanillaAsistenciaReunionesEquipo() {
               {usuarios.map((u, idx) => (
                 <tr key={u.id}>
                   <td className="text-center">{idx + 1}</td>
-                  <td>{u.nombre_completo || ''}</td>
+                  <td className="col-nombre">{u.nombre_completo || ''}</td>
                   <td className="text-center">{formatearRut(u.rut)}</td>
                   <td>{u.cargo || ''}</td>
-                  <td>{u.telefono || ''}</td>
+                  <td className="whitespace-nowrap">{u.telefono || ''}</td>
                   <td>{u.institucion || ''}</td>
                   <td />
                 </tr>
