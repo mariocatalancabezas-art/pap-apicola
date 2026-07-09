@@ -188,7 +188,12 @@
   /* Filas espaciadoras: margen superior (thead, se repite por hoja) e inferior
      (tfoot, se repite por hoja) sin que el navegador dibuje su pie con la URL. */
   .print-pad-row { display: table-row !important; }
-  .print-pad-foot { display: table-footer-group !important; }
+  /* Margen inferior. En las planillas de asistencia se usa un grupo de filas
+     normal (no table-footer-group) para evitar que Chrome genere una hoja en
+     blanco extra al final. El listado de apicultores conserva el footer-group
+     (margen inferior repetido por hoja). */
+  .planilla-table .print-pad-foot { display: table-row-group !important; }
+  .apicultores-print .print-pad-foot { display: table-footer-group !important; }
   /* Selectores con mayor especificidad que `.planilla-table th/td` y
      `.apicultores-print th/td` (ambos usan !important) para que las filas
      espaciadoras del margen queden en blanco, SIN borde ni línea alguna. */
@@ -312,6 +317,20 @@
   .planilla-table.planilla-compacta th,
   .planilla-table.planilla-compacta td {
     padding: 1px 5px;
+  }
+  /* Filas que llenan la hoja: ~20 por página (Actividades y General Visitas),
+     más altas para aprovechar el alto disponible sin desbordar a otra hoja. */
+  .planilla-table.filas-llenas td {
+    height: 5.5mm;
+  }
+  .planilla-table.filas-llenas th,
+  .planilla-table.filas-llenas td {
+    padding: 2px 5px;
+  }
+  /* Filas altas (Reuniones de Equipo): aprox. el doble de la fila normal,
+     sin necesidad de llenar toda la hoja. */
+  .planilla-table.filas-altas td {
+    height: 10mm;
   }
   /* Encabezado ejecutivo compacto en impresión para aprovechar la hoja. */
   .planilla-exec-header img { height: 40px !important; }

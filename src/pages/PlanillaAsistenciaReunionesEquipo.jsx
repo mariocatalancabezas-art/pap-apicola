@@ -44,7 +44,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
       u.institucion || '',
       '',
     ]),
-    ...Array.from({ length: 4 }).map(() => [
+    ...Array.from({ length: 5 }).map(() => [
       '', '', '', '', '', '', ''
     ]),
   ]
@@ -58,6 +58,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
       ],
       columnas,
       filas,
+      rowHeight: 10,
     })
   }
 
@@ -70,6 +71,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
       ],
       columnas,
       filas,
+      rowHeight: 10,
     })
     const ok = await compartirPDF(blob, 'Asistencia a Reuniones de Equipo', nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
@@ -134,7 +136,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
             </div>
           </div>
 
-          <table className="planilla-table">
+          <table className="planilla-table filas-altas">
             <thead>
               <tr className="print-pad-row"><th colSpan={7} /></tr>
               <tr>
@@ -160,7 +162,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
                   <td />
                 </tr>
               ))}
-              {Array.from({ length: 4 }).map((_, idx) => (
+              {Array.from({ length: 5 }).map((_, idx) => (
                 <tr key={`blank-${idx}`}>
                   <td />
                   <td />
