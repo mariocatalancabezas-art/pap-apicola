@@ -22,6 +22,7 @@ export default function PlanillaAsistenciaGeneralVisitas() {
       ],
       columnas,
       filas,
+      rowHeight: 7,
     })
   }
 
@@ -34,6 +35,7 @@ export default function PlanillaAsistenciaGeneralVisitas() {
       ],
       columnas,
       filas,
+      rowHeight: 7,
     })
     const ok = await compartirPDF(blob, 'Asistencia General Visitas', nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
@@ -93,7 +95,7 @@ export default function PlanillaAsistenciaGeneralVisitas() {
           </div>
         </div>
 
-        <table className="planilla-table">
+        <table className="planilla-table filas-llenas">
           <thead>
             <tr className="print-pad-row"><th colSpan={7} /></tr>
             <tr>

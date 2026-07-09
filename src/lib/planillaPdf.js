@@ -19,7 +19,7 @@ function fechaHoy() {
   return `${dia}-${mes}-${anio}`
 }
 
-export function exportarPDF({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {} }) {
+export function exportarPDF({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {}, rowHeight }) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
   const doc = new jsPDF({
@@ -51,6 +51,7 @@ export function exportarPDF({ titulo, subtitulos = [], columnas, filas, nombreAr
     body: filas,
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 2, font: 'helvetica' },
+    bodyStyles: rowHeight ? { minCellHeight: rowHeight } : undefined,
     headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
     columnStyles,
     margin: { left: margen, right: margen },
@@ -74,7 +75,7 @@ export async function compartirPDF(blob, titulo, nombreArchivo = 'planilla.pdf')
   return false
 }
 
-export async function generarPDFBlob({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {} }) {
+export async function generarPDFBlob({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {}, rowHeight }) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
   const doc = new jsPDF({
@@ -106,6 +107,7 @@ export async function generarPDFBlob({ titulo, subtitulos = [], columnas, filas,
     body: filas,
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 2, font: 'helvetica' },
+    bodyStyles: rowHeight ? { minCellHeight: rowHeight } : undefined,
     headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
     columnStyles,
     margin: { left: margen, right: margen },
