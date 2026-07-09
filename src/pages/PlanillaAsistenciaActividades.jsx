@@ -146,7 +146,7 @@ export default function PlanillaAsistenciaActividades() {
             </div>
           </div>
 
-          <table className="planilla-table filas-llenas">
+          <table className="planilla-table filas-llenas filas-actividades">
             <thead>
               <tr className="print-pad-row"><th colSpan={6} /></tr>
               <tr>
