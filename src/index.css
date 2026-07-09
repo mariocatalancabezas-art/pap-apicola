@@ -188,11 +188,12 @@
   /* Filas espaciadoras: margen superior (thead, se repite por hoja) e inferior
      (tfoot, se repite por hoja) sin que el navegador dibuje su pie con la URL. */
   .print-pad-row { display: table-row !important; }
-  /* Margen inferior. En las planillas de asistencia se usa un grupo de filas
-     normal (no table-footer-group) para evitar que Chrome genere una hoja en
-     blanco extra al final. El listado de apicultores conserva el footer-group
-     (margen inferior repetido por hoja). */
-  .planilla-table .print-pad-foot { display: table-row-group !important; }
+  /* En las planillas de asistencia NO se usa margen inferior por tfoot: al ser
+     table-row-group se dibujaba entre el encabezado y el cuerpo (separando los
+     títulos del contenido) y como table-footer-group generaba una hoja en blanco
+     extra. El margen inferior queda dado por el alto de las filas (no llegan al
+     borde). El listado de apicultores sí conserva el footer-group. */
+  .planilla-table .print-pad-foot { display: none !important; }
   .apicultores-print .print-pad-foot { display: table-footer-group !important; }
   /* Selectores con mayor especificidad que `.planilla-table th/td` y
      `.apicultores-print th/td` (ambos usan !important) para que las filas
@@ -321,11 +322,16 @@
   /* Filas que llenan la hoja: ~20 por página (Actividades y General Visitas),
      más altas para aprovechar el alto disponible sin desbordar a otra hoja. */
   .planilla-table.filas-llenas td {
-    height: 5.5mm;
+    height: 6.2mm;
   }
   .planilla-table.filas-llenas th,
   .planilla-table.filas-llenas td {
     padding: 2px 5px;
+  }
+  /* Actividades Apicultores fuerza el salto cada 20 filas, por lo que puede usar
+     filas más altas para llenar la hoja completa sin desbordar. */
+  .planilla-table.filas-actividades td {
+    height: 6.8mm;
   }
   /* Filas altas (Reuniones de Equipo): aprox. el doble de la fila normal,
      sin necesidad de llenar toda la hoja. */
