@@ -44,7 +44,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
       u.institucion || '',
       '',
     ]),
-    ...Array.from({ length: 4 }).map(() => [
+    ...Array.from({ length: 5 }).map(() => [
       '', '', '', '', '', '', ''
     ]),
   ]
@@ -58,6 +58,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
       ],
       columnas,
       filas,
+      rowHeight: 10,
     })
   }
 
@@ -70,6 +71,7 @@ export default function PlanillaAsistenciaReunionesEquipo() {
       ],
       columnas,
       filas,
+      rowHeight: 10,
     })
     const ok = await compartirPDF(blob, 'Asistencia a Reuniones de Equipo', nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
@@ -121,30 +123,30 @@ export default function PlanillaAsistenciaReunionesEquipo() {
             </div>
             <img src="/Logo/LOGO%20INDAP.png" alt="INDAP" />
           </div>
-          <div className="mt-8 mb-6">
+          <div className="planilla-campos mt-10 mb-8">
             <div className="flex justify-center gap-8 text-sm">
               <div className="flex items-end gap-2">
-                <span className="font-semibold">Nombre de la actividad:</span>
-                <span className="inline-block border-b border-black w-56" />
+                <span className="font-semibold leading-none whitespace-nowrap">Nombre de la actividad:</span>
+                <span className="inline-block border-b border-black w-56 translate-y-1" />
               </div>
               <div className="flex items-end gap-2">
-                <span className="font-semibold">Fecha:</span>
-                <span className="inline-block border-b border-black w-40" />
+                <span className="font-semibold leading-none whitespace-nowrap">Fecha:</span>
+                <span className="inline-block border-b border-black w-40 translate-y-1" />
               </div>
             </div>
           </div>
 
-          <table className="planilla-table">
+          <table className="planilla-table filas-altas">
             <thead>
               <tr className="print-pad-row"><th colSpan={7} /></tr>
               <tr>
                 <th className="w-12">N° Item</th>
-                <th>Nombre</th>
+                <th className="col-nombre">Nombre</th>
                 <th className="w-28">Rut</th>
-                <th className="w-32">Cargo</th>
-                <th className="w-32">Teléfono</th>
-                <th className="w-40">Institución o Empresa</th>
-                <th className="w-36">Firma</th>
+                <th className="w-28">Cargo</th>
+                <th className="w-20 whitespace-nowrap">Teléfono</th>
+                <th className="w-36">Institución o Empresa</th>
+                <th className="w-52">Firma</th>
               </tr>
             </thead>
             <tfoot className="print-pad-foot"><tr><td colSpan={7} /></tr></tfoot>
@@ -152,15 +154,15 @@ export default function PlanillaAsistenciaReunionesEquipo() {
               {usuarios.map((u, idx) => (
                 <tr key={u.id}>
                   <td className="text-center">{idx + 1}</td>
-                  <td>{u.nombre_completo || ''}</td>
+                  <td className="col-nombre">{u.nombre_completo || ''}</td>
                   <td className="text-center">{formatearRut(u.rut)}</td>
                   <td>{u.cargo || ''}</td>
-                  <td>{u.telefono || ''}</td>
+                  <td className="whitespace-nowrap">{u.telefono || ''}</td>
                   <td>{u.institucion || ''}</td>
                   <td />
                 </tr>
               ))}
-              {Array.from({ length: 4 }).map((_, idx) => (
+              {Array.from({ length: 5 }).map((_, idx) => (
                 <tr key={`blank-${idx}`}>
                   <td />
                   <td />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronUp, Printer, Database, Pencil, GitFork, PlusCircle, MessageCircleQuestion, ArrowDownUp } from 'lucide-react'
+import { Search, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronUp, Printer, Database, Pencil, GitFork, PlusCircle, MessageCircleQuestion, ArrowDownUp, Layers, Filter } from 'lucide-react'
 import { db, SYNC_STATUS } from '../lib/db'
 import { exportPDF, exportExcel, exportVisitaPDF, exportVisitaExcel, exportBaseDatos, printVisitaPDF, sharePDF, shareExcel, shareBaseDatos, shareVisitaPDF, shareVisitaExcel } from '../lib/exports'
 import ShareButton from '../components/ShareButton'
@@ -16,6 +16,8 @@ export default function Historial() {
   const [filtroHasta, setFiltroHasta] = useState('')
   const [filtroRegion, setFiltroRegion] = useState('')
   const [sortOrder, setSortOrder] = useState('desc')
+  const [filtroASB, setFiltroASB] = useState('todos')
+  const [agruparPor, setAgruparPor] = useState('')
   const [brechasVisita, setBrechasVisita] = useState(null)
   const [preguntasVisita, setPreguntasVisita] = useState(null)
 
@@ -28,6 +30,23 @@ export default function Historial() {
 
   useEffect(() => { load() }, [load])
 
+  // Categorías ASB (tomadas de las respuestas de Preguntas ASB)
+  const esMiel = v2 => v2.asb_nos_entrego_miel === 'si'
+  const esSalaAutorizada = v2 => v2.asb_sala_autorizada === 'si'
+  const esPorAutorizar = v2 => v2.asb_sala_autorizada === 'no' && v2.asb_sala_pronta_autorizar === 'si'
+  const ASB_PRED = { miel: esMiel, autorizada: esSalaAutorizada, por_autorizar: esPorAutorizar }
+  const ASB_LABEL = {
+    miel: 'Nos entregó miel',
+    autorizada: 'Sala autorizada',
+    por_autorizar: 'Sala por autorizar',
+  }
+
+  const sortByFecha = (a, b) => {
+    const da = new Date(a.created_at || 0)
+    const dbb = new Date(b.created_at || 0)
+    return sortOrder === 'desc' ? dbb - da : da - dbb
+  }
+
   const filtered = visitas
     .filter(v2 => {
       const nombre = `${v2.f1_nombre || ''} ${v2.f2_apellido || ''}`.toLowerCase()
@@ -39,13 +58,18 @@ export default function Historial() {
       const matchDesde = !filtroDesde || (v2.f19_fecha_encuesta || '') >= filtroDesde
       const matchHasta = !filtroHasta || (v2.f19_fecha_encuesta || '') <= filtroHasta
       const matchRegion = !filtroRegion || v2.f6_region === filtroRegion
-      return matchSearch && matchDesde && matchHasta && matchRegion
+      const matchASB = filtroASB === 'todos' || (ASB_PRED[filtroASB] && ASB_PRED[filtroASB](v2))
+      return matchSearch && matchDesde && matchHasta && matchRegion && matchASB
     })
-    .sort((a, b) => {
-      const da = new Date(a.created_at || 0)
-      const db = new Date(b.created_at || 0)
-      return sortOrder === 'desc' ? db - da : da - db
-    })
+    .sort(sortByFecha)
+
+  // Agrupación (Sí / No) por la categoría ASB elegida; respeta el orden y lo mostrado.
+  const grupos = agruparPor
+    ? [
+        { key: 'si', label: `${ASB_LABEL[agruparPor]}: Sí`, items: filtered.filter(v2 => ASB_PRED[agruparPor](v2)) },
+        { key: 'no', label: `${ASB_LABEL[agruparPor]}: No`, items: filtered.filter(v2 => !ASB_PRED[agruparPor](v2)) },
+      ].filter(g => g.items.length > 0)
+    : null
 
   async function handleBrechasChange(e) {
     const { name, value } = e.target
@@ -82,6 +106,10 @@ export default function Historial() {
       asb_anios_apicultura: v.asb_anios_apicultura,
       asb_motivacion: v.asb_motivacion,
       asb_talleres_interes: v.asb_talleres_interes,
+      asb_nos_entrego_miel: v.asb_nos_entrego_miel,
+      asb_sala_autorizada: v.asb_sala_autorizada,
+      asb_sala_pronta_autorizar: v.asb_sala_pronta_autorizar,
+      asb_que_le_falta: v.asb_que_le_falta,
       sync_status: SYNC_STATUS.PENDING,
       updated_at: new Date().toISOString(),
     })
@@ -208,6 +236,71 @@ export default function Historial() {
         </button>
       </div>
 
+      {/* Agrupar / Mostrar por respuestas ASB */}
+      <div className="card space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+          <div className="flex-1 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+              <Layers className="w-3.5 h-3.5 text-amber-600" /> Agrupar por
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(ASB_LABEL).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setAgruparPor(prev => prev === key ? '' : key)}
+                  className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                    agruparPor === key
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {agruparPor && (
+                <button
+                  onClick={() => setAgruparPor('')}
+                  className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium"
+                >
+                  Sin agrupar
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+              <Filter className="w-3.5 h-3.5 text-green-600" /> Mostrar
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(ASB_LABEL).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setFiltroASB(prev => prev === key ? 'todos' : key)}
+                  className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                    filtroASB === key
+                      ? 'bg-green-600 text-white border-green-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-green-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                onClick={() => setFiltroASB('todos')}
+                className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                  filtroASB === 'todos'
+                    ? 'bg-gray-700 text-white border-gray-700'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                Mostrar todos
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {filtered.length === 0 && (
         <div className="card text-center py-8 text-gray-400">
           <img
@@ -220,7 +313,14 @@ export default function Historial() {
       )}
 
       <div className="space-y-2">
-        {filtered.map(v2 => {
+        {(grupos || [{ key: '_all', label: null, items: filtered }]).map(grupo => (
+          <div key={grupo.key} className="space-y-2">
+            {grupo.label && (
+              <div className="sticky top-0 z-10 bg-honey-50 text-honey-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-honey-200">
+                {grupo.label} · {grupo.items.length}
+              </div>
+            )}
+            {grupo.items.map(v2 => {
           const isExpanded = expandedId === v2.id
           const nombre = `${v2.f1_nombre || ''} ${v2.f2_apellido || ''}`.trim() || 'Sin nombre'
           return (
@@ -318,7 +418,9 @@ export default function Historial() {
               )}
             </div>
           )
-        })}
+            })}
+          </div>
+        ))}
       </div>
     </div>
 

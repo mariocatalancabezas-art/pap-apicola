@@ -90,6 +90,10 @@ const EMPTY_FORM = {
   asb_anios_apicultura: '',
   asb_motivacion: '',
   asb_talleres_interes: '',
+  asb_nos_entrego_miel: '',
+  asb_sala_autorizada: '',
+  asb_sala_pronta_autorizar: '',
+  asb_que_le_falta: '',
 }
 
 export default function NuevaVisita() {
