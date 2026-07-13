@@ -1,11 +1,24 @@
 import { supabase } from './supabase'
 
-// Devuelve las actividades cuya fecha es hoy o futura, ordenadas
-// cronológicamente (la más próxima primero).
+function fechaLocalISO() {
+  const ahora = new Date()
+  const year = ahora.getFullYear()
+  const month = String(ahora.getMonth() + 1).padStart(2, '0')
+  const day = String(ahora.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export async function listActividadesProximas() {
   if (!supabase) throw new Error('Supabase no está configurado')
 
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = fechaLocalISO()
+  const { error: deleteError } = await supabase
+    .from('actividades')
+    .delete()
+    .lt('fecha', hoy)
+
+  if (deleteError) throw new Error('Error al eliminar actividades vencidas: ' + deleteError.message)
+
   const { data, error } = await supabase
     .from('actividades')
     .select('*')

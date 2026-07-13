@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, Stethoscope, MapPin } from 'lucide-react'
+import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, Stethoscope, MapPin, ArrowRight } from 'lucide-react'
 import { db } from '../lib/db'
 import { listActividadesProximas, formatActividadFecha } from '../lib/actividades'
 import { onSyncChange } from '../lib/sync'
@@ -37,7 +37,6 @@ export default function Dashboard() {
   }
   const [syncStatus, setSyncStatus] = useState('')
   const [actividades, setActividades] = useState([])
-  const [verTodas, setVerTodas] = useState(false)
   const isOnline = useOnlineStatus()
   const supabaseOk = isSupabaseConfigured()
 
@@ -131,7 +130,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500">No hay actividades programadas.</p>
         ) : (
           <div className="space-y-3">
-            {(verTodas ? actividades : actividades.slice(0, 4)).map(a => (
+            {actividades.slice(0, 3).map(a => (
               <div key={a.id} className="flex items-start gap-3 border border-gray-100 rounded-lg p-3.5 bg-gray-50">
                 <div className="p-2 rounded-lg bg-honey-50 text-honey-600 flex-shrink-0">
                   <CalendarDays className="w-5 h-5" />
@@ -147,23 +146,13 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-            {actividades.length > 4 && (
-              !verTodas ? (
-                <button
-                  onClick={() => setVerTodas(true)}
-                  className="w-full text-sm text-honey-600 hover:text-honey-700 font-medium py-1"
-                >
-                  Ver más… ({actividades.length - 4})
-                </button>
-              ) : (
-                <Link
-                  to="/calendario-actividades"
-                  className="block w-full text-center text-sm text-honey-600 hover:text-honey-700 font-medium py-1"
-                >
-                  Ir al calendario
-                </Link>
-              )
-            )}
+            <Link
+              to="/calendario-actividades"
+              className="flex w-full items-center justify-center gap-1.5 text-sm text-honey-600 hover:text-honey-700 font-semibold py-1.5"
+            >
+              Mostrar más actividades
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         )}
       </div>
