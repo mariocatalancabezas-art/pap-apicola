@@ -8,6 +8,22 @@ function fechaLocalISO() {
   return `${year}-${month}-${day}`
 }
 
+export function programarCambioDeDia(callback) {
+  let timeoutId
+
+  function programar() {
+    const ahora = new Date()
+    const manana = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1)
+    timeoutId = window.setTimeout(async () => {
+      await callback()
+      programar()
+    }, manana.getTime() - ahora.getTime() + 1000)
+  }
+
+  programar()
+  return () => window.clearTimeout(timeoutId)
+}
+
 export async function listActividadesProximas() {
   if (!supabase) throw new Error('Supabase no está configurado')
 

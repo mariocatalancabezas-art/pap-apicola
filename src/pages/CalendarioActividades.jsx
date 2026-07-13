@@ -6,6 +6,7 @@ import {
   editarActividad,
   eliminarActividad,
   formatActividadFecha,
+  programarCambioDeDia,
 } from '../lib/actividades'
 import { useAuth } from '../lib/AuthContext'
 
@@ -57,7 +58,19 @@ export default function CalendarioActividades() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const cancelarCambioDeDia = programarCambioDeDia(load)
+    const recargarAlVolver = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', recargarAlVolver)
+
+    return () => {
+      cancelarCambioDeDia()
+      document.removeEventListener('visibilitychange', recargarAlVolver)
+    }
+  }, [])
 
   function abrirNueva() {
     setEditId(null)

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ClipboardList, CalendarDays, CloudOff, Cloud, User, FileText, Printer, Download, Stethoscope, MapPin, ArrowRight } from 'lucide-react'
 import { db } from '../lib/db'
-import { listActividadesProximas, formatActividadFecha } from '../lib/actividades'
+import { listActividadesProximas, formatActividadFecha, programarCambioDeDia } from '../lib/actividades'
 import { onSyncChange } from '../lib/sync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
@@ -65,12 +65,22 @@ export default function Dashboard() {
   useEffect(() => {
     load()
     loadActividades()
-    if (supabaseOk) {
-      const unsub = onSyncChange(status => {
-        setSyncStatus(status)
-        if (status === 'synced') load()
-      })
-      return unsub
+    if (!supabaseOk) return
+
+    const unsub = onSyncChange(status => {
+      setSyncStatus(status)
+      if (status === 'synced') load()
+    })
+    const cancelarCambioDeDia = programarCambioDeDia(loadActividades)
+    const recargarAlVolver = () => {
+      if (document.visibilityState === 'visible') loadActividades()
+    }
+    document.addEventListener('visibilitychange', recargarAlVolver)
+
+    return () => {
+      unsub()
+      cancelarCambioDeDia()
+      document.removeEventListener('visibilitychange', recargarAlVolver)
     }
   }, [])
 
