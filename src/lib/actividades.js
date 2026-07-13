@@ -36,11 +36,41 @@ export async function crearActividad({ actividad, fecha, hora, lugar }) {
   return data
 }
 
+export async function editarActividad(id, { actividad, fecha, hora, lugar }) {
+  if (!supabase) throw new Error('Supabase no está configurado')
+
+  const { data, error } = await supabase
+    .from('actividades')
+    .update({
+      actividad: actividad.trim(),
+      fecha,
+      hora: hora || null,
+      lugar: lugar ? lugar.trim() : null,
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw new Error('Error al actualizar la actividad: ' + error.message)
+  return data
+}
+
 export async function eliminarActividad(id) {
   if (!supabase) throw new Error('Supabase no está configurado')
 
   const { error } = await supabase.from('actividades').delete().eq('id', id)
   if (error) throw new Error('Error al eliminar la actividad: ' + error.message)
+}
+
+// Convierte "HH:MM[:SS]" (24h) a formato 12h con AM/PM (ej: "2:30 PM").
+export function formatHora12(hora) {
+  if (!hora) return ''
+  const [hhStr, mm] = hora.slice(0, 5).split(':')
+  let h = Number(hhStr)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12
+  if (h === 0) h = 12
+  return `${h}:${mm} ${ampm}`
 }
 
 // Formatea fecha (YYYY-MM-DD) + hora (HH:MM[:SS]) para mostrar al usuario.
@@ -54,6 +84,5 @@ export function formatActividadFecha(fecha, hora) {
     month: 'long',
   })
   if (!hora) return fechaTxt
-  const horaTxt = hora.slice(0, 5)
-  return `${fechaTxt} · ${horaTxt} h`
+  return `${fechaTxt} · ${formatHora12(hora)}`
 }
