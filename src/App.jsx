@@ -25,6 +25,8 @@ import PlanillaAsistenciaGeneralVisitas from './pages/PlanillaAsistenciaGeneralV
 import PlanillaAsistenciaReunionesEquipo from './pages/PlanillaAsistenciaReunionesEquipo'
 import EquipoTecnico from './pages/EquipoTecnico'
 import CalendarioActividades from './pages/CalendarioActividades'
+import ProyectosInversion from './pages/ProyectosInversion'
+import ProyectoInversion from './pages/ProyectoInversion'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { initApicultores } from './lib/initApicultores'
 import { setupAutoSync } from './lib/sync'
@@ -64,6 +66,9 @@ function AppRoutes() {
         <Route path="historial-visita-administrativa" element={<HistorialVisitaAdministrativa />} />
         <Route path="otras-planillas" element={<OtrasPlanillas />} />
         <Route path="calendario-actividades" element={<CalendarioActividades />} />
+        <Route path="proyectos-inversion" element={<ProyectosInversion />} />
+        <Route path="proyectos-inversion/nuevo" element={<ProyectoInversion />} />
+        <Route path="proyectos-inversion/:id" element={<ProyectoInversion />} />
         <Route path="password-apicultores" element={<PasswordApicultores />} />
         <Route path="observaciones-apicultores" element={<ObservacionesApicultores />} />
         <Route path="observaciones-apicultores/:id/:tipo" element={<ObservacionesApicultorDetail />} />
