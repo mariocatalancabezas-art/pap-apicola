@@ -58,7 +58,6 @@ export async function saveProveedor(form, id) {
             : null
       const previous = existingByKey.get(`${category}:${value}`)
       products.push({
-        ...(previous?.id ? { id: previous.id } : {}),
         proveedor_id: provider.id,
         categoria: category,
         item_key: value,
