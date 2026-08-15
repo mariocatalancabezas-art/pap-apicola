@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   Home, PlusCircle, ClipboardList,
   WifiOff, RefreshCw, CheckCircle2, AlertCircle, Menu, X, Users, LogOut, UserCircle,
-  Stethoscope, FileText, FolderOpen, UsersRound, ChevronDown, ChevronRight, Lock, Building2, MessageSquare, HardHat, CalendarDays, Briefcase
+  Stethoscope, FileText, FolderOpen, UsersRound, ChevronDown, ChevronRight, Lock, Building2, MessageSquare, HardHat, CalendarDays, Briefcase, CreditCard
 } from 'lucide-react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useSyncStatus } from '../hooks/useSyncStatus'
@@ -44,6 +44,11 @@ const NAV_ALL = [
         icon: Briefcase,
         label: 'Proyectos de Inversión',
         permission: 'puede_ver_proyectos_inversion',
+      },
+      {
+        to: '/credito-apicola',
+        icon: CreditCard,
+        label: 'Crédito Apícola',
       },
       {
         to: '/calendario-actividades',

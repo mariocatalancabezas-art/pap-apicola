@@ -140,6 +140,7 @@
     margin-left: 0 !important;
   }
   .print-landscape { page: landscape-page; }
+  .print-letter { box-shadow: none !important; max-width: none !important; }
   .planilla-sheet {
     width: 100%;
     padding: 12mm 12mm 0;
