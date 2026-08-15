@@ -31,6 +31,9 @@ const PERMISOS = [
   { key: 'puede_editar_observaciones_tecnico_eburgos', label: 'Editar Observaciones Técnico E.Burgos (V. Técnica)' },
   { key: 'puede_editar_calendario', label: 'Editar Calendario de Actividades' },
   { key: 'puede_eliminar_calendario', label: 'Eliminar Calendario de Actividades' },
+  { key: 'puede_ver_proyectos_inversion', label: 'Ver Proyectos de Inversión' },
+  { key: 'puede_editar_proyectos_inversion', label: 'Crear / Editar Proyectos de Inversión' },
+  { key: 'puede_eliminar_proyectos_inversion', label: 'Eliminar Proyectos de Inversión' },
 ]
 
 export default function Usuarios() {

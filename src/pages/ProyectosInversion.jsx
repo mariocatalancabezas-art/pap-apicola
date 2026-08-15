@@ -8,8 +8,9 @@ export default function ProyectosInversion() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const isAdmin = user?.rol === 'admin'
-  const puedeEditar = isAdmin || !!user?.puede_editar
-  const puedeEliminar = isAdmin || !!user?.puede_eliminar
+  const puedeVer = isAdmin || !!user?.puede_ver_proyectos_inversion
+  const puedeEditar = isAdmin || !!user?.puede_editar_proyectos_inversion
+  const puedeEliminar = isAdmin || !!user?.puede_eliminar_proyectos_inversion
 
   const [proyectos, setProyectos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -27,7 +28,7 @@ export default function ProyectosInversion() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (puedeVer) load() }, [puedeVer])
 
   async function borrar(p) {
     if (!confirm(`¿Eliminar el proyecto "${p.nombre_proyecto}" y sus archivos adjuntos?`)) return
@@ -40,16 +41,28 @@ export default function ProyectosInversion() {
     }
   }
 
+  if (!puedeVer) {
+    return (
+      <div className="p-4">
+        <div className="card bg-red-50 border-red-200 text-red-700 text-sm">
+          No tienes permisos para ver los proyectos de inversión. Solicita el acceso al administrador.
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-bold flex items-center gap-2">
           <Briefcase className="w-5 h-5 text-amber-500" /> Proyectos de Inversión
         </h2>
-        <button type="button" onClick={() => navigate('/proyectos-inversion/nuevo')}
-          className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
-          <Plus className="w-4 h-4" /> Nuevo proyecto de inversión
-        </button>
+        {puedeEditar && (
+          <button type="button" onClick={() => navigate('/proyectos-inversion/nuevo')}
+            className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
+            <Plus className="w-4 h-4" /> Nuevo proyecto de inversión
+          </button>
+        )}
       </div>
 
       {error && <div className="card bg-red-50 border-red-200 text-red-700 text-sm">{error}</div>}

@@ -52,7 +52,10 @@ export default function ProyectoInversion() {
   const navigate = useNavigate()
   const { id } = useParams()
   const { user } = useAuth()
-  const puedeEditar = user?.rol === 'admin' || !!user?.puede_editar
+  const isAdmin = user?.rol === 'admin'
+  const puedeVer = isAdmin || !!user?.puede_ver_proyectos_inversion
+  const puedeEditar = isAdmin || !!user?.puede_editar_proyectos_inversion
+  const soloLectura = !puedeEditar
 
   const [form, setForm] = useState({ ...EMPTY })
   const [savedId, setSavedId] = useState(id || null)
@@ -81,7 +84,7 @@ export default function ProyectoInversion() {
   const aporteInsuficiente = montoIndap > 0 && pctAporte < PORCENTAJE_MINIMO_APORTE
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !puedeVer) return
     let active = true
     ;(async () => {
       try {
@@ -105,10 +108,10 @@ export default function ProyectoInversion() {
       }
     })()
     return () => { active = false }
-  }, [id])
+  }, [id, puedeVer])
 
   useEffect(() => {
-    if (!savedId) return
+    if (!savedId || !puedeVer) return
     let active = true
     ;(async () => {
       try {
@@ -119,7 +122,7 @@ export default function ProyectoInversion() {
       }
     })()
     return () => { active = false }
-  }, [savedId])
+  }, [savedId, puedeVer])
 
   useEffect(() => {
     if (skipApiSearch.current) { skipApiSearch.current = false; return }
@@ -171,6 +174,7 @@ export default function ProyectoInversion() {
   }
 
   async function guardar(andClose = false) {
+    if (soloLectura) return
     if (!form.apicultor_nombre.trim()) return alert('Selecciona o escribe el nombre del apicultor')
     if (!form.nombre_proyecto.trim()) return alert('El nombre del proyecto de inversión es obligatorio')
     if (excedeIndap) {
@@ -207,6 +211,7 @@ export default function ProyectoInversion() {
   }
 
   async function adjuntar(files, tipo) {
+    if (soloLectura) return
     if (!files || files.length === 0) return
     if (!savedId) {
       alert('Guarda primero el proyecto para poder adjuntar archivos.')
@@ -276,6 +281,16 @@ export default function ProyectoInversion() {
     )
   }
 
+  if (!puedeVer) {
+    return (
+      <div className="p-4">
+        <div className="card bg-red-50 border-red-200 text-red-700 text-sm">
+          No tienes permisos para ver los proyectos de inversión. Solicita el acceso al administrador.
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return <div className="p-6 flex items-center gap-2 text-gray-500 text-sm">
       <Loader2 className="w-4 h-4 animate-spin" /> Cargando proyecto…
@@ -294,6 +309,13 @@ export default function ProyectoInversion() {
         </h2>
       </div>
 
+      {soloLectura && (
+        <div className="card bg-amber-50 border-amber-200 text-amber-700 text-sm">
+          Sólo lectura: no tienes permiso para crear o editar proyectos de inversión.
+        </div>
+      )}
+
+      <fieldset disabled={soloLectura} className="contents">
       {/* Datos del apicultor */}
       <div className="card space-y-3">
         <h3 className="font-bold text-sm text-gray-700">Datos del Apicultor</h3>
@@ -360,7 +382,7 @@ export default function ProyectoInversion() {
         <div>
           <label className="label text-xs font-medium text-gray-700">Detalle proyecto</label>
           <VoiceInput value={form.detalle_proyecto} onChange={val => set('detalle_proyecto', val)}
-            rows={5} placeholder="Describe el proyecto de inversión (escribe o dicta)…" />
+            disabled={soloLectura} rows={5} placeholder="Describe el proyecto de inversión (escribe o dicta)…" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -423,6 +445,7 @@ export default function ProyectoInversion() {
           </div>
         </div>
       </div>
+      </fieldset>
 
       {/* Cotizaciones */}
       <div className="card space-y-3">
@@ -432,11 +455,13 @@ export default function ProyectoInversion() {
         <p className="text-[11px] text-gray-400">Sólo archivos en formato PDF</p>
         <input ref={cotizacionInput} type="file" accept="application/pdf" multiple className="hidden"
           onChange={e => { adjuntar(e.target.files, 'cotizacion'); e.target.value = '' }} />
-        <button type="button" onClick={() => cotizacionInput.current?.click()} disabled={subiendo}
-          className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
-          <Upload className="w-4 h-4" /> Adjuntar cotización (PDF)
-        </button>
-        {!savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
+        {puedeEditar && (
+          <button type="button" onClick={() => cotizacionInput.current?.click()} disabled={subiendo}
+            className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
+            <Upload className="w-4 h-4" /> Adjuntar cotización (PDF)
+          </button>
+        )}
+        {puedeEditar && !savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
         <ListaArchivos tipo="cotizacion" vacio="Sin cotizaciones adjuntas." />
       </div>
 
@@ -447,7 +472,7 @@ export default function ProyectoInversion() {
         </h3>
         <input ref={fotoInput} type="file" multiple className="hidden"
           onChange={e => { adjuntar(e.target.files, 'fotografia'); e.target.value = '' }} />
-        <div className="flex flex-wrap gap-2">
+        <div className={`flex flex-wrap gap-2 ${puedeEditar ? '' : 'hidden'}`}>
           <button type="button" onClick={() => setShowCamera(true)} disabled={subiendo}
             className="flex items-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
             <Camera className="w-4 h-4" /> Tomar fotografía
@@ -457,7 +482,7 @@ export default function ProyectoInversion() {
             <Upload className="w-4 h-4" /> Subir archivos
           </button>
         </div>
-        {!savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
+        {puedeEditar && !savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
         <ListaArchivos tipo="fotografia" vacio="Sin fotografías adjuntas." />
       </div>
 
@@ -477,7 +502,7 @@ export default function ProyectoInversion() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className={`flex flex-wrap gap-2 ${puedeEditar ? '' : 'hidden'}`}>
         <button type="button" onClick={() => guardar(false)} disabled={saving}
           className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold py-3 rounded-lg transition-colors disabled:opacity-50">
           <Save className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}

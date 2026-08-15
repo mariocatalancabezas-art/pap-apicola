@@ -43,6 +43,7 @@ const NAV_ALL = [
         to: '/proyectos-inversion',
         icon: Briefcase,
         label: 'Proyectos de Inversión',
+        permission: 'puede_ver_proyectos_inversion',
       },
       {
         to: '/calendario-actividades',
