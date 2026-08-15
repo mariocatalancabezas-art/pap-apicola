@@ -46,11 +46,6 @@ const NAV_ALL = [
         permission: 'puede_ver_proyectos_inversion',
       },
       {
-        to: '/credito-apicola',
-        icon: CreditCard,
-        label: 'Crédito Apícola',
-      },
-      {
         to: '/calendario-actividades',
         icon: CalendarDays,
         label: 'Calendario Actividades',
@@ -90,6 +85,7 @@ const NAV_ALL = [
       },
     ],
   },
+  { type: 'item', to: '/credito-apicola', icon: CreditCard, label: 'Crédito Apícola', admin: false },
   { type: 'item', to: '/apicultores', icon: UsersRound, label: 'Apicultores del programa', admin: false },
   { type: 'item', to: '/equipo-tecnico', icon: HardHat, label: 'Equipo Técnico', admin: false },
   { type: 'item', to: '/otras-planillas', icon: FolderOpen, label: 'Otras Planillas', admin: false },
