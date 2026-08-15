@@ -42,7 +42,10 @@ export async function saveProveedor(form, id) {
     const values = category === 'Material vivo' ? row.material_vivo
       : category === 'Material apícola' ? row.material_apicola : [category]
     for (const value of values) {
-      const detail = value === 'Otro' ? row.material_apicola_otro : category === 'Servicios' ? row.servicios_detalle : category === 'Otro' ? row.rubro_otro : null
+      const detail = category === 'Otro' ? row.rubro_otro
+        : category === 'Servicios' ? row.servicios_detalle
+          : category === 'Material apícola' && value === 'Otro' ? row.material_apicola_otro
+            : null
       products.push({ proveedor_id: provider.id, categoria: category, item_key: value, nombre: value, detalle: detail, valor_neto: 0 })
     }
   }

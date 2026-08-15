@@ -597,7 +597,7 @@ function CommitmentLetter({ credit, onClose }) {
             {items.map(item => (
               <li key={item.id}>
                 {item.cantidad} × {item.producto_nombre} — Proveedor: {item.proveedor_nombre || '—'}
-                {' '}({formatPesos(item.total_neto)})
+                <span className="ml-1">({formatPesos(item.total_neto)})</span>
               </li>
             ))}
           </ul>
@@ -617,7 +617,7 @@ function CommitmentLetter({ credit, onClose }) {
           </p>
           <h2>CUARTO: ACEPTACIÓN</h2>
           <p>Las partes declaran conocer y aceptar íntegramente estas condiciones.</p>
-          <div className="mt-20 grid grid-cols-2 gap-8 text-center">
+          <div className="commitment-signatures mt-20 grid grid-cols-2 gap-8 text-center">
             <div>
               __________________________________<br />
               <b>{credit.beneficiario_nombre}</b><br />

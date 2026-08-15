@@ -140,7 +140,28 @@
     margin-left: 0 !important;
   }
   .print-landscape { page: landscape-page; }
-  .print-letter { box-shadow: none !important; max-width: none !important; }
+  .print-letter {
+    box-shadow: none !important;
+    max-width: none !important;
+    height: 279mm;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 10mm 12mm !important;
+  }
+  .print-letter article {
+    font-size: 11pt;
+    line-height: 1.25;
+  }
+  .print-letter article h1 {
+    margin-bottom: 6mm !important;
+  }
+  .print-letter article h2 {
+    margin-top: 4mm !important;
+    margin-bottom: 2mm !important;
+  }
+  .print-letter .commitment-signatures {
+    margin-top: 12mm !important;
+  }
   .planilla-sheet {
     width: 100%;
     padding: 12mm 12mm 0;
