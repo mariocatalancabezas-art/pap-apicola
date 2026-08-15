@@ -143,14 +143,13 @@
   .print-letter {
     box-shadow: none !important;
     max-width: none !important;
-    height: 279mm;
-    overflow: hidden;
     box-sizing: border-box;
-    padding: 10mm 12mm !important;
+    padding: 10mm 12mm 0 !important;
   }
   .print-letter article {
     font-size: 11pt;
     line-height: 1.25;
+    margin-bottom: 0 !important;
   }
   .print-letter article h1 {
     margin-bottom: 6mm !important;
@@ -161,6 +160,11 @@
   }
   .print-letter .commitment-signatures {
     margin-top: 12mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-letter article > :last-child {
+    margin-bottom: 0 !important;
   }
   .planilla-sheet {
     width: 100%;
