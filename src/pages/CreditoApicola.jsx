@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, BriefcaseBusiness, Check, FileText, Plus, Printer, Save, Trash2, Users, X } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
@@ -570,8 +571,13 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
 function CommitmentLetter({ credit, onClose }) {
   const items = credit.credito_items || []
   const providers = [...new Set(items.map(item => item.proveedor_nombre).filter(Boolean))]
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+  useEffect(() => {
+    document.body.classList.add('commitment-print-active')
+    return () => document.body.classList.remove('commitment-print-active')
+  }, [])
+
+  return createPortal(
+    <div className="commitment-letter-overlay fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
       <div className="print-letter mx-auto max-w-3xl bg-white p-8">
         <div className="no-print flex justify-end gap-2">
           <button className="btn-secondary" onClick={onClose}>Cerrar</button>
@@ -633,7 +639,8 @@ function CommitmentLetter({ credit, onClose }) {
           </div>
         </article>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

@@ -118,6 +118,18 @@
   /* No imprimir iconos de la app (lucide-react son <svg>). */
   svg { display: none !important; }
   html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+  body.commitment-print-active #root { display: none !important; }
+  body.commitment-print-active > .commitment-letter-overlay {
+    display: block !important;
+    position: static !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+  body.commitment-print-active > .commitment-letter-overlay .print-letter {
+    width: 100% !important;
+    margin: 0 !important;
+  }
   #root > div {
     display: block !important;
   }

@@ -36,7 +36,17 @@ export async function saveProveedor(form, id) {
     : await supabase.from('credito_proveedores').insert(row).select().single()
   if (result.error) throw new Error(`Error al guardar proveedor: ${result.error.message}`)
   const provider = result.data
-  await supabase.from('credito_productos').delete().eq('proveedor_id', provider.id)
+  const existingResult = await supabase
+    .from('credito_productos')
+    .select('id, categoria, item_key, valor_neto')
+    .eq('proveedor_id', provider.id)
+  if (existingResult.error) {
+    throw new Error(`Error al cargar productos: ${existingResult.error.message}`)
+  }
+  const existingProducts = existingResult.data || []
+  const existingByKey = new Map(
+    existingProducts.map(product => [`${product.categoria}:${product.item_key}`, product]),
+  )
   const products = []
   for (const category of row.rubros) {
     const values = category === 'Material vivo' ? row.material_vivo
@@ -46,12 +56,31 @@ export async function saveProveedor(form, id) {
         : category === 'Servicios' ? row.servicios_detalle
           : category === 'Material apícola' && value === 'Otro' ? row.material_apicola_otro
             : null
-      products.push({ proveedor_id: provider.id, categoria: category, item_key: value, nombre: value, detalle: detail, valor_neto: 0 })
+      const previous = existingByKey.get(`${category}:${value}`)
+      products.push({
+        ...(previous?.id ? { id: previous.id } : {}),
+        proveedor_id: provider.id,
+        categoria: category,
+        item_key: value,
+        nombre: value,
+        detalle: detail,
+        valor_neto: previous?.valor_neto || 0,
+      })
     }
   }
   if (products.length) {
-    const inserted = await supabase.from('credito_productos').insert(products)
-    if (inserted.error) throw new Error(`Error al guardar productos: ${inserted.error.message}`)
+    const upserted = await supabase
+      .from('credito_productos')
+      .upsert(products, { onConflict: 'proveedor_id,categoria,item_key' })
+    if (upserted.error) throw new Error(`Error al guardar productos: ${upserted.error.message}`)
+  }
+  const productKeys = new Set(products.map(product => `${product.categoria}:${product.item_key}`))
+  const obsoleteIds = existingProducts
+    .filter(product => !productKeys.has(`${product.categoria}:${product.item_key}`))
+    .map(product => product.id)
+  if (obsoleteIds.length) {
+    const removed = await supabase.from('credito_productos').delete().in('id', obsoleteIds)
+    if (removed.error) throw new Error(`Error al eliminar productos: ${removed.error.message}`)
   }
   return provider
 }
