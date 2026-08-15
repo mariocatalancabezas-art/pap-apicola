@@ -308,6 +308,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
     items: [{ id: Date.now(), cantidad: 1 }],
   })
   const [results, setResults] = useState([])
+  const [saving, setSaving] = useState(false)
   const itemsTotal = form.items.reduce(
     (sum, item) => sum + (Number(item.cantidad) || 0) * (Number(item.valor_neto) || 0),
     0,
@@ -373,20 +374,24 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
     event.preventDefault()
     if (!form.beneficiario_nombre.trim()) return alert('Ingresa el apicultor o beneficiario')
     if (!form.items.some(item => item.producto_id)) return alert('Agrega al menos un producto')
+    setSaving(true)
     try {
       await saveCredito(form, user?.nombre, form.id)
       onSaved()
     } catch (error) {
       alert(error.message)
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
-    <div className="card space-y-3 border-2 border-honey-200">
+    <div className="card border-2 border-honey-200">
       <div className="flex justify-between">
         <h3 className="font-bold">Nuevo crédito apícola</h3>
         <button type="button" onClick={onClose}><X className="w-4 h-4" /></button>
       </div>
+      <form onSubmit={submit} className="mt-3 space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="relative sm:col-span-2">
           <label className="label text-xs">Apicultor o beneficiario</label>
@@ -553,8 +558,11 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
       </div>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
-        <button className="btn-primary flex items-center gap-2"><Save className="w-4 h-4" />Guardar crédito</button>
+        <button className="btn-primary flex items-center gap-2" disabled={saving}>
+          <Save className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar crédito'}
+        </button>
       </div>
+      </form>
     </div>
   )
 }
