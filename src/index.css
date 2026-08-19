@@ -118,6 +118,18 @@
   /* No imprimir iconos de la app (lucide-react son <svg>). */
   svg { display: none !important; }
   html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+  body.commitment-print-active #root { display: none !important; }
+  body.commitment-print-active > .commitment-letter-overlay {
+    display: block !important;
+    position: static !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+  body.commitment-print-active > .commitment-letter-overlay .print-letter {
+    width: 100% !important;
+    margin: 0 !important;
+  }
   #root > div {
     display: block !important;
   }
@@ -140,6 +152,32 @@
     margin-left: 0 !important;
   }
   .print-landscape { page: landscape-page; }
+  .print-letter {
+    box-shadow: none !important;
+    max-width: none !important;
+    box-sizing: border-box;
+    padding: 10mm 12mm 0 !important;
+  }
+  .print-letter article {
+    font-size: 11pt;
+    line-height: 1.25;
+    margin-bottom: 0 !important;
+  }
+  .print-letter article h1 {
+    margin-bottom: 6mm !important;
+  }
+  .print-letter article h2 {
+    margin-top: 4mm !important;
+    margin-bottom: 2mm !important;
+  }
+  .print-letter .commitment-signatures {
+    margin-top: 12mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-letter article > :last-child {
+    margin-bottom: 0 !important;
+  }
   .planilla-sheet {
     width: 100%;
     padding: 12mm 12mm 0;
