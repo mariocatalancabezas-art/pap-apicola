@@ -12,7 +12,7 @@ import {
 } from '../lib/impresionDatos'
 
 const TITULO = 'Impresión de Datos Apicultores'
-const CAMPO_INICIAL = CAMPOS_IMPRESION[0].fields[1].key
+const CAMPO_INICIAL = 'apicultor.rut'
 
 function diagnosticoDe(apicultor, diagnosticos) {
   const rut = normalizarRut(apicultor.rut)
@@ -20,8 +20,9 @@ function diagnosticoDe(apicultor, diagnosticos) {
   const coincidencias = diagnosticos.filter(diagnostico => {
     const diagnosticoRut = normalizarRut(diagnostico.f3_rut)
     if (rut && diagnosticoRut) return rut === diagnosticoRut
-    return !rut && !diagnosticoRut
-      && normalizarNombre(`${diagnostico.f1_nombre || ''} ${diagnostico.f2_apellido || ''}`) === nombre
+    return normalizarNombre(
+      `${diagnostico.f1_nombre || ''} ${diagnostico.f2_apellido || ''}`,
+    ) === nombre
   })
   return coincidencias.sort((a, b) => {
     const fechaA = a.f19_fecha_encuesta || ''
@@ -37,8 +38,7 @@ function proyectoDe(apicultor, proyectos) {
   return proyectos.find(proyecto => {
     const proyectoRut = normalizarRut(proyecto.apicultor_rut)
     if (rut && proyectoRut) return rut === proyectoRut
-    return !rut && !proyectoRut
-      && normalizarNombre(proyecto.apicultor_nombre) === nombre
+    return normalizarNombre(proyecto.apicultor_nombre) === nombre
   }) || null
 }
 
@@ -130,7 +130,7 @@ export default function ImpresionDatos() {
       setLoading(true)
       const [allApicultores, allDiagnosticos] = await Promise.all([
         db.apicultores.filter(apicultor => !apicultor.deleted_at).sortBy('nombre_completo'),
-        db.visitas.toArray(),
+        db.visitas.filter(diagnostico => !diagnostico.deleted_at).toArray(),
       ])
       const seen = new Set()
       const uniqueApicultores = allApicultores.filter(apicultor => {
@@ -381,8 +381,8 @@ export default function ImpresionDatos() {
             </div>
             <img src="/Logo/LOGO%20INDAP.png" alt="INDAP" />
           </div>
-          <div className="overflow-x-auto">
-            <table className="planilla-table filas-llenas">
+          <div className="impresion-datos-table-wrapper overflow-x-auto">
+            <table className="planilla-table filas-llenas impresion-datos-print-table">
               <thead>
                 <tr className="print-pad-row">
                   <th colSpan={columns.length + 3} />

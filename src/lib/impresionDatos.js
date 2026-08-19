@@ -155,7 +155,7 @@ export function getCampoValue(apicultor, diagnostico, proyecto, key) {
       ? diagnostico
       : proyecto
   const value = key === 'proyecto.estado'
-    ? (source?.estado || source?.estado_proyecto || source?.status)
+    ? 'Con proyecto'
     : source?.[campo]
 
   if (key === 'apicultor.rut') return formatearRut(value)

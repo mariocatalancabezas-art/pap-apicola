@@ -379,6 +379,24 @@
   /* Encabezado ejecutivo compacto en impresión para aprovechar la hoja. */
   .planilla-exec-header img { height: 40px !important; }
   .planilla-exec-header { margin-bottom: 4px !important; }
+  .impresion-datos-table-wrapper {
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  .impresion-datos-print-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    font-size: 7px !important;
+  }
+  .impresion-datos-print-table th,
+  .impresion-datos-print-table td,
+  .impresion-datos-print-table th.min-w-40 {
+    min-width: 0 !important;
+    padding: 1px 2px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
   /* Bloque "Nombre de la actividad / Fecha": separación moderada en impresión. */
   .planilla-campos { margin-top: 6mm !important; margin-bottom: 6mm !important; }
   /* Filas espaciadoras: dan margen superior (thead, se repite por hoja) e inferior
