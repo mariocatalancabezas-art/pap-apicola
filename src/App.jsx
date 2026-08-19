@@ -28,6 +28,7 @@ import CalendarioActividades from './pages/CalendarioActividades'
 import ProyectosInversion from './pages/ProyectosInversion'
 import ProyectoInversion from './pages/ProyectoInversion'
 import CreditoApicola from './pages/CreditoApicola'
+import ImpresionDatos from './pages/ImpresionDatos'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { initApicultores } from './lib/initApicultores'
 import { setupAutoSync } from './lib/sync'
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="nueva-visita" element={<NuevaVisita />} />
         <Route path="historial" element={<Historial />} />
+        <Route path="impresion-datos" element={<ImpresionDatos />} />
         <Route path="visita/editar/:id" element={<EditarVisita />} />
         <Route path="apicultores" element={<Apicultores />} />
         <Route path="equipo-tecnico" element={<EquipoTecnico />} />

@@ -19,11 +19,20 @@ function fechaHoy() {
   return `${dia}-${mes}-${anio}`
 }
 
-export function exportarPDF({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {}, rowHeight }) {
+export function exportarPDF({
+  titulo,
+  subtitulos = [],
+  columnas,
+  filas,
+  nombreArchivo,
+  columnStyles = {},
+  rowHeight,
+  orientation = 'landscape',
+}) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
   const doc = new jsPDF({
-    orientation: 'landscape',
+    orientation,
     unit: 'mm',
     format: 'letter',
   })
@@ -75,11 +84,20 @@ export async function compartirPDF(blob, titulo, nombreArchivo = 'planilla.pdf')
   return false
 }
 
-export async function generarPDFBlob({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {}, rowHeight }) {
+export async function generarPDFBlob({
+  titulo,
+  subtitulos = [],
+  columnas,
+  filas,
+  nombreArchivo,
+  columnStyles = {},
+  rowHeight,
+  orientation = 'landscape',
+}) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
   const doc = new jsPDF({
-    orientation: 'landscape',
+    orientation,
     unit: 'mm',
     format: 'letter',
   })
