@@ -250,6 +250,7 @@ export default function ImpresionDatos() {
       columnStyles,
       horizontalPageBreak: true,
       horizontalPageBreakRepeat: [0, 1],
+      rowPageBreak: 'avoid',
     }
   }
 
@@ -260,6 +261,7 @@ export default function ImpresionDatos() {
       columnStyles,
       horizontalPageBreak,
       horizontalPageBreakRepeat,
+      rowPageBreak,
     } = pdfData()
     exportarPDF({
       titulo: TITULO,
@@ -270,6 +272,7 @@ export default function ImpresionDatos() {
       orientation,
       horizontalPageBreak,
       horizontalPageBreakRepeat,
+      rowPageBreak,
     })
   }
 
@@ -280,6 +283,7 @@ export default function ImpresionDatos() {
       columnStyles,
       horizontalPageBreak,
       horizontalPageBreakRepeat,
+      rowPageBreak,
     } = pdfData()
     const { blob, nombreFinal } = await generarPDFBlob({
       titulo: TITULO,
@@ -290,6 +294,7 @@ export default function ImpresionDatos() {
       orientation,
       horizontalPageBreak,
       horizontalPageBreakRepeat,
+      rowPageBreak,
     })
     const ok = await compartirPDF(blob, TITULO, nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
@@ -428,14 +433,14 @@ export default function ImpresionDatos() {
                           <span>{field?.label}</span>
                           <button
                             type="button"
-                            className="no-print rounded p-1 text-red-500 hover:bg-red-50"
+                            className="no-print rounded p-2 text-red-500 hover:bg-red-50"
                             title="Eliminar columna"
                             onClick={event => {
                               event.stopPropagation()
                               removeColumn(column.id)
                             }}
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </th>

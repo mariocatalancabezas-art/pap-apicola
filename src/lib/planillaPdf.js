@@ -72,6 +72,7 @@ export function exportarPDF({
   orientation = 'landscape',
   horizontalPageBreak = false,
   horizontalPageBreakRepeat = null,
+  rowPageBreak = 'auto',
 }) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
@@ -111,6 +112,7 @@ export function exportarPDF({
     ...(horizontalPageBreak
       ? { horizontalPageBreak: true, horizontalPageBreakRepeat }
       : {}),
+    rowPageBreak,
   })
 
   doc.save(nombreFinal)
@@ -142,6 +144,7 @@ export async function generarPDFBlob({
   orientation = 'landscape',
   horizontalPageBreak = false,
   horizontalPageBreakRepeat = null,
+  rowPageBreak = 'auto',
 }) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
@@ -181,6 +184,7 @@ export async function generarPDFBlob({
     ...(horizontalPageBreak
       ? { horizontalPageBreak: true, horizontalPageBreakRepeat }
       : {}),
+    rowPageBreak,
   })
 
   return { blob: doc.output('blob'), nombreFinal }
