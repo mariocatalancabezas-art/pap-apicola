@@ -5,7 +5,12 @@ import {
 } from 'lucide-react'
 import { db } from '../lib/db'
 import { listProyectos } from '../lib/proyectosInversion'
-import { exportarPDF, generarPDFBlob, compartirPDF } from '../lib/planillaPdf'
+import {
+  calcularAnchosColumnasPDF,
+  exportarPDF,
+  generarPDFBlob,
+  compartirPDF,
+} from '../lib/planillaPdf'
 import {
   CAMPOS_IMPRESION, findCampo, getCampoValue, nombreCompleto,
   normalizarNombre, normalizarRut,
@@ -235,16 +240,27 @@ export default function ImpresionDatos() {
       nombreCompleto(row.apicultor),
       ...row.values,
     ])
-    const columnStyles = {
-      0: { cellWidth: 10 },
-      1: { cellWidth: 48 },
-      ...Object.fromEntries(columns.map((column, index) => [index + 2, { cellWidth: 30 }])),
+    const columnStyles = calcularAnchosColumnasPDF({
+      cantidadConfigurables: columns.length,
+      orientation,
+    })
+    return {
+      columnas,
+      filas,
+      columnStyles,
+      horizontalPageBreak: true,
+      horizontalPageBreakRepeat: [0, 1],
     }
-    return { columnas, filas, columnStyles }
   }
 
   function descargarPDF() {
-    const { columnas, filas, columnStyles } = pdfData()
+    const {
+      columnas,
+      filas,
+      columnStyles,
+      horizontalPageBreak,
+      horizontalPageBreakRepeat,
+    } = pdfData()
     exportarPDF({
       titulo: TITULO,
       columnas,
@@ -252,11 +268,19 @@ export default function ImpresionDatos() {
       columnStyles,
       rowHeight: 7,
       orientation,
+      horizontalPageBreak,
+      horizontalPageBreakRepeat,
     })
   }
 
   async function compartir() {
-    const { columnas, filas, columnStyles } = pdfData()
+    const {
+      columnas,
+      filas,
+      columnStyles,
+      horizontalPageBreak,
+      horizontalPageBreakRepeat,
+    } = pdfData()
     const { blob, nombreFinal } = await generarPDFBlob({
       titulo: TITULO,
       columnas,
@@ -264,6 +288,8 @@ export default function ImpresionDatos() {
       columnStyles,
       rowHeight: 7,
       orientation,
+      horizontalPageBreak,
+      horizontalPageBreakRepeat,
     })
     const ok = await compartirPDF(blob, TITULO, nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
