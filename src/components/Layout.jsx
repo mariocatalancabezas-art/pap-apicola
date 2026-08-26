@@ -27,7 +27,6 @@ const NAV_ALL = [
         items: [
           { to: '/nueva-visita', icon: PlusCircle, label: 'Nuevo Diagnóstico' },
           { to: '/historial', icon: ClipboardList, label: 'Historial Diagnósticos' },
-          { to: '/impresion-datos', icon: Printer, label: 'Impresión de Datos' },
         ],
       },
       {
@@ -46,6 +45,7 @@ const NAV_ALL = [
         label: 'Proyectos de Inversión',
         permission: 'puede_ver_proyectos_inversion',
       },
+      { to: '/impresion-datos', icon: Printer, label: 'Impresión de Datos' },
       {
         to: '/calendario-actividades',
         icon: CalendarDays,
