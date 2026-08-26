@@ -47,6 +47,20 @@ function proyectoDe(apicultor, proyectos) {
   }) || null
 }
 
+function compararValores(valorA, valorB, dir) {
+  const textoA = String(valorA || '').trim()
+  const textoB = String(valorB || '').trim()
+  if (!textoA && !textoB) return 0
+  if (!textoA) return 1
+  if (!textoB) return -1
+
+  const esNumero = valor => /^-?\$?\s*[\d.,\s]+$/.test(valor)
+  const comparacion = esNumero(textoA) && esNumero(textoB)
+    ? Number(textoA.replace(/[^\d-]/g, '')) - Number(textoB.replace(/[^\d-]/g, ''))
+    : textoA.localeCompare(textoB, 'es', { sensitivity: 'base', numeric: true })
+  return dir === 'asc' ? comparacion : -comparacion
+}
+
 function CampoModal({ onClose, onSelect, selectedKey }) {
   const [search, setSearch] = useState('')
   const query = normalizarNombre(search)
@@ -187,25 +201,6 @@ export default function ImpresionDatos() {
       values: columns.map(column => getCampoValue(apicultor, diagnostico, proyecto, column.fieldKey)),
     }
   }), [apicultores, columns, diagnosticos, proyectos])
-
-  function compararValores(valorA, valorB, dir) {
-    const textoA = String(valorA || '').trim()
-    const textoB = String(valorB || '').trim()
-    if (!textoA && !textoB) return 0
-    if (!textoA) return 1
-    if (!textoB) return -1
-
-    const esNumero = valor => /^-?\$?\s*[\d.,\s]+$/.test(String(valor).trim())
-    let comparacion
-    if (esNumero(textoA) && esNumero(textoB)) {
-      const numeroA = Number(textoA.replace(/[^\d-]/g, ''))
-      const numeroB = Number(textoB.replace(/[^\d-]/g, ''))
-      comparacion = numeroA - numeroB
-    } else {
-      comparacion = textoA.localeCompare(textoB, 'es', { sensitivity: 'base', numeric: true })
-    }
-    return dir === 'asc' ? comparacion : -comparacion
-  }
 
   const sortedRows = useMemo(() => {
     const columnIndex = sort.key.startsWith('col-')
@@ -551,31 +546,33 @@ export default function ImpresionDatos() {
                 {sortedRows.map(row => {
                   const isSelected = selectedIds.has(row.apicultor.id)
                   return (
-                  <tr
-                    key={row.apicultor.id}
-                    className={isSelected ? '' : 'no-print text-gray-400 opacity-60'}
-                  >
-                    <td className="no-print text-center">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelected(row.apicultor.id)}
-                        aria-label={`Seleccionar ${nombreCompleto(row.apicultor)}`}
-                      />
-                    </td>
-                    <td className="col-numero text-center">
-                      {isSelected ? selectedNumbers.get(row.apicultor.id) : '—'}
-                    </td>
-                    <td className="col-nombre whitespace-nowrap">{nombreCompleto(row.apicultor)}</td>
-                    {row.values.map((value, valueIndex) => <td key={`${row.apicultor.id}-${valueIndex}`}>{value}</td>)}
-                    <td className="no-print" />
-                  </tr>
+                    <tr
+                      key={row.apicultor.id}
+                      className={isSelected ? '' : 'no-print text-gray-400 opacity-60'}
+                    >
+                      <td className="no-print text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelected(row.apicultor.id)}
+                          aria-label={`Seleccionar ${nombreCompleto(row.apicultor)}`}
+                        />
+                      </td>
+                      <td className="col-numero text-center">
+                        {isSelected ? selectedNumbers.get(row.apicultor.id) : '—'}
+                      </td>
+                      <td className="col-nombre whitespace-nowrap">{nombreCompleto(row.apicultor)}</td>
+                      {row.values.map((value, valueIndex) => (
+                        <td key={`${row.apicultor.id}-${valueIndex}`}>{value}</td>
+                      ))}
+                      <td className="no-print" />
+                    </tr>
                   )
                 })}
-                {selectedRows.length === 0 && (
+                {sortedRows.length === 0 && (
                   <tr>
                     <td colSpan={columns.length + 4} className="py-4 text-center text-gray-500">
-                      No hay apicultores seleccionados.
+                      No hay apicultores registrados.
                     </td>
                   </tr>
                 )}
