@@ -15,6 +15,7 @@ export default function Historial() {
   const [filtroDesde, setFiltroDesde] = useState('')
   const [filtroHasta, setFiltroHasta] = useState('')
   const [filtroRegion, setFiltroRegion] = useState('')
+  const [filtroComuna, setFiltroComuna] = useState('')
   const [sortOrder, setSortOrder] = useState('desc')
   const [filtroASB, setFiltroASB] = useState('todos')
   const [agruparPor, setAgruparPor] = useState('')
@@ -58,13 +59,32 @@ export default function Historial() {
       const matchDesde = !filtroDesde || (v2.f19_fecha_encuesta || '') >= filtroDesde
       const matchHasta = !filtroHasta || (v2.f19_fecha_encuesta || '') <= filtroHasta
       const matchRegion = !filtroRegion || v2.f6_region === filtroRegion
+      const comuna = (v2.f7_comuna || '').trim().toUpperCase()
+      const matchComuna = !filtroComuna || comuna === filtroComuna
       const matchASB = filtroASB === 'todos' || (ASB_PRED[filtroASB] && ASB_PRED[filtroASB](v2))
-      return matchSearch && matchDesde && matchHasta && matchRegion && matchASB
+      return matchSearch && matchDesde && matchHasta && matchRegion && matchComuna && matchASB
     })
     .sort(sortByFecha)
 
   // Agrupación (Sí / No) por la categoría ASB elegida; respeta el orden y lo mostrado.
-  const grupos = agruparPor
+  const grupos = agruparPor === 'comuna'
+    ? [
+        ...[...new Set(filtered
+          .map(v2 => (v2.f7_comuna || '').trim().toUpperCase())
+          .filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, 'es-CL'))
+          .map(comuna => ({
+            key: `comuna-${comuna}`,
+            label: `Comuna: ${comuna}`,
+            items: filtered.filter(v2 => (v2.f7_comuna || '').trim().toUpperCase() === comuna),
+          })),
+        {
+          key: 'sin-comuna',
+          label: 'Sin comuna',
+          items: filtered.filter(v2 => !(v2.f7_comuna || '').trim()),
+        },
+      ].filter(g => g.items.length > 0)
+    : agruparPor
     ? [
         { key: 'si', label: `${ASB_LABEL[agruparPor]}: Sí`, items: filtered.filter(v2 => ASB_PRED[agruparPor](v2)) },
         { key: 'no', label: `${ASB_LABEL[agruparPor]}: No`, items: filtered.filter(v2 => !ASB_PRED[agruparPor](v2)) },
@@ -161,6 +181,10 @@ export default function Historial() {
   }
 
   const regiones = [...new Set(visitas.map(v2 => v2.f6_region).filter(Boolean))].sort()
+  const comunas = [...new Set(visitas
+    .map(v2 => (v2.f7_comuna || '').trim().toUpperCase())
+    .filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'es-CL'))
 
   return (
     <>
@@ -214,10 +238,16 @@ export default function Historial() {
             className="input-field pl-9"
           />
         </div>
-        <select value={filtroRegion} onChange={e => setFiltroRegion(e.target.value)} className="input-field">
-          <option value="">Todas las regiones</option>
-          {regiones.map(r => <option key={r}>{r}</option>)}
-        </select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <select value={filtroRegion} onChange={e => setFiltroRegion(e.target.value)} className="input-field">
+            <option value="">Todas las regiones</option>
+            {regiones.map(r => <option key={r}>{r}</option>)}
+          </select>
+          <select value={filtroComuna} onChange={e => setFiltroComuna(e.target.value)} className="input-field">
+            <option value="">Todas las comunas</option>
+            {comunas.map(comuna => <option key={comuna}>{comuna}</option>)}
+          </select>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <input type="date" value={filtroDesde} onChange={e => setFiltroDesde(e.target.value)} className="input-field" />
           <input type="date" value={filtroHasta} onChange={e => setFiltroHasta(e.target.value)} className="input-field" />
@@ -257,6 +287,16 @@ export default function Historial() {
                   {label}
                 </button>
               ))}
+              <button
+                onClick={() => setAgruparPor(prev => prev === 'comuna' ? '' : 'comuna')}
+                className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                  agruparPor === 'comuna'
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50'
+                }`}
+              >
+                Comuna
+              </button>
               {agruparPor && (
                 <button
                   onClick={() => setAgruparPor('')}

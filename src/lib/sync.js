@@ -159,6 +159,36 @@ async function pushFotosVisita() {
 }
 
 // Sincronización de apicultores
+async function sincronizarTumbaApicultor(item) {
+  const payload = { ...item }
+  delete payload.id
+  delete payload.sync_status
+  const now = new Date().toISOString()
+  const { data: updatedRows, error } = await supabase
+    .from('apicultores')
+    .update({ deleted_at: payload.deleted_at, updated_at: now })
+    .eq('uuid', payload.uuid)
+    .select('uuid')
+
+  if (error) throw error
+
+  if (!updatedRows || updatedRows.length === 0) {
+    const { error: upsertError } = await supabase
+      .from('apicultores')
+      .upsert({ ...payload, updated_at: now }, { onConflict: 'uuid' })
+    if (upsertError) throw upsertError
+  }
+
+  if (payload.nombre_completo?.trim()) {
+    const { error: duplicateError } = await supabase
+      .from('apicultores')
+      .update({ deleted_at: payload.deleted_at, updated_at: now })
+      .eq('nombre_completo', payload.nombre_completo)
+      .neq('uuid', payload.uuid)
+    if (duplicateError) throw duplicateError
+  }
+}
+
 async function syncApicultores(forceFull = false) {
   console.log('[Sync] Sincronizando apicultores...')
   
@@ -174,18 +204,14 @@ async function syncApicultores(forceFull = false) {
     const { id: localId, sync_status, ...payload } = item
     
     if (payload.deleted_at) {
-      // Soft delete en servidor
-      const { error } = await supabase
-        .from('apicultores')
-        .update({ deleted_at: payload.deleted_at, updated_at: new Date().toISOString() })
-        .eq('uuid', payload.uuid)
-      if (error) {
+      try {
+        await sincronizarTumbaApicultor(item)
+        // Conservar el registro local marcado como eliminado para que no sea
+        // reinsertado desde el servidor en el próximo pull.
+        await db.apicultores.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
+      } catch (error) {
         console.error('[Sync] Error al eliminar apicultor en servidor:', error)
         pushErrors.push(error)
-      } else {
-        // Conservar el registro local marcado como eliminado y sincronizado,
-        // para que no sea reinsertado desde el servidor en el próximo pull.
-        await db.apicultores.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
       }
       continue
     }
@@ -228,8 +254,8 @@ async function syncApicultores(forceFull = false) {
     }
   }
   
-  // 3. Traer apicultores del servidor
-  let query = supabase.from('apicultores').select('*').is('deleted_at', null)
+  // 3. Traer apicultores del servidor, incluidos los marcados como eliminados
+  let query = supabase.from('apicultores').select('*')
   
   if (!forceFull) {
     const lastSync = cursorConBuffer('last_sync_apicultores')
@@ -245,18 +271,62 @@ async function syncApicultores(forceFull = false) {
   
   if (remoteApicultores && remoteApicultores.length > 0) {
     console.log(`[Sync] Recibidos ${remoteApicultores.length} apicultores`)
-    
+    const localApicultores = await db.apicultores.toArray()
+    const deletedLocal = localApicultores.filter(a => a.deleted_at)
+
     for (const remote of remoteApicultores) {
       const existing = await db.apicultores.where('uuid').equals(remote.uuid).first()
-      
-      if (!existing) {
+
+      if (remote.deleted_at) {
+        if (existing?.sync_status === SYNC_STATUS.PENDING) continue
+        if (existing) {
+          await db.apicultores.update(existing.id, {
+            deleted_at: remote.deleted_at,
+            updated_at: remote.updated_at,
+            sync_status: SYNC_STATUS.SYNCED,
+          })
+        } else {
+          await db.apicultores.add({
+            ...remote,
+            id: undefined,
+            sync_status: SYNC_STATUS.SYNCED,
+          })
+        }
+      } else if (!existing) {
+        const nombre = (remote.nombre_completo || '').trim().toUpperCase()
+        const rut = (remote.rut || '').trim().toUpperCase()
+        const tombstone = deletedLocal.find(local => (
+          (nombre && (local.nombre_completo || '').trim().toUpperCase() === nombre)
+          || (rut && (local.rut || '').trim().toUpperCase() === rut)
+        ))
+
+        if (tombstone) {
+          try {
+            await sincronizarTumbaApicultor({
+              ...remote,
+              deleted_at: tombstone.deleted_at,
+            })
+          } catch (error) {
+            console.error(`[Sync] Error al autocurar apicultor remoto ${remote.uuid}:`, error)
+          }
+          console.log(`[Sync] Apicultor remoto ${remote.nombre_completo || remote.uuid} ignorado y marcado como eliminado (coincide con una eliminación previa)`)
+          continue
+        }
+
         await db.apicultores.add({ 
           ...remote, 
           id: undefined, // Dejar que Dexie asigne nuevo id local
           sync_status: SYNC_STATUS.SYNCED 
         })
       } else if (existing.deleted_at) {
-        // No reinsertar un apicultor que ya fue eliminado localmente
+        try {
+          await sincronizarTumbaApicultor({
+            ...remote,
+            deleted_at: existing.deleted_at,
+          })
+        } catch (error) {
+          console.error(`[Sync] Error al autocurar apicultor remoto ${remote.uuid}:`, error)
+        }
         console.log(`[Sync] Ignorando apicultor remoto ${remote.uuid} porque fue eliminado localmente`)
       } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
         // No sobrescribir registros locales pendientes (evita que una eliminación en curso se revierta)
@@ -538,17 +608,14 @@ async function syncDeletions() {
   console.log(`[Sync] ${localDeletedApicultores.length} apicultores marcados para eliminación`)
   
   for (const item of localDeletedApicultores) {
-    const { error } = await supabase
-      .from('apicultores')
-      .update({ deleted_at: item.deleted_at, updated_at: new Date().toISOString() })
-      .eq('uuid', item.uuid)
-    if (error) {
-      console.error('[Sync] Error al sincronizar eliminación de apicultor:', error)
-      errors.push(error)
-    } else {
+    try {
+      await sincronizarTumbaApicultor(item)
       // Conservar el registro local marcado como eliminado para evitar
       // que el mismo registro remoto vuelva a aparecer en el próximo pull.
       await db.apicultores.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
+    } catch (error) {
+      console.error('[Sync] Error al sincronizar eliminación de apicultor:', error)
+      errors.push(error)
     }
   }
 
@@ -713,11 +780,10 @@ export async function hardResetAndSync() {
       }
     }
     
-    // Traer todos los apicultores no eliminados
+    // Traer todos los apicultores, incluidos los marcados como eliminados
     const { data: remoteApicultores, error: errApicultores } = await supabase
       .from('apicultores')
       .select('*')
-      .is('deleted_at', null)
     
     if (errApicultores) {
       console.error('[Sync] Error trayendo apicultores:', errApicultores)
