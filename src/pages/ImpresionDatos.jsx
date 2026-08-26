@@ -305,7 +305,7 @@ export default function ImpresionDatos() {
       <div className="no-print flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => navigate('/historial')}
+          onClick={() => navigate('/')}
           className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
         >
           <ArrowLeft className="w-5 h-5" />
