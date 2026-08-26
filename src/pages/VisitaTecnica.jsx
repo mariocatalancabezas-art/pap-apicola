@@ -8,6 +8,7 @@ import { useAuth } from '../lib/AuthContext'
 import { exportVisitaPlanillaPDF, printVisitaPlanillaPDF } from '../lib/visitaExports'
 import { buscarApicultoresPorNombre, buscarEquipoTecnicoPorNombre } from '../lib/importApicultores'
 import VoiceInput from '../components/VoiceInput'
+import FotosVisita from '../components/FotosVisita'
 
 const EMPTY = {
   vt_nombre_tecnico: '',
@@ -59,6 +60,7 @@ export default function VisitaTecnica() {
 
   const [form, setForm] = useState({ ...EMPTY })
   const [savedId, setSavedId] = useState(null)
+  const [savedUuid, setSavedUuid] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -87,6 +89,7 @@ export default function VisitaTecnica() {
       skipTecSearch.current = true
       setForm({ ...EMPTY, ...v })
       setSavedId(v.id)
+      setSavedUuid(v.uuid)
     })()
     return () => { active = false }
   }, [id, puedeEditar])
@@ -187,9 +190,11 @@ export default function VisitaTecnica() {
           sync_status: SYNC_STATUS.PENDING,
           updated_at: now,
         })
+        setSavedUuid(form.uuid || savedUuid)
       } else {
+        const uuid = generateUUID()
         const id = await db.visitas.add({
-          uuid: generateUUID(),
+          uuid,
           ...form,
           tipo_visita: 'tecnica',
           sync_status: SYNC_STATUS.PENDING,
@@ -197,6 +202,7 @@ export default function VisitaTecnica() {
           updated_at: now,
         })
         setSavedId(id)
+        setSavedUuid(uuid)
       }
       setSaved(true)
       if (isOnline) {
@@ -455,6 +461,8 @@ export default function VisitaTecnica() {
             rows={5} className="input-field w-full resize-none" placeholder="Detallar actividad realizada…" />
         </div>
       </div>
+
+      <FotosVisita visitaUuid={savedUuid} puedeEditar={puedeEditar} />
 
       {/* Firmas */}
       <div className="card space-y-3">

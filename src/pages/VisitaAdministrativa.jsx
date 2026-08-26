@@ -8,6 +8,7 @@ import { useAuth } from '../lib/AuthContext'
 import { exportVisitaPlanillaPDF, printVisitaPlanillaPDF } from '../lib/visitaExports'
 import { buscarApicultoresPorNombre, buscarEquipoTecnicoPorNombre } from '../lib/importApicultores'
 import VoiceInput from '../components/VoiceInput'
+import FotosVisita from '../components/FotosVisita'
 
 const TEMAS = [
   'Documentación SAG',
@@ -52,6 +53,7 @@ export default function VisitaAdministrativa() {
 
   const [form, setForm] = useState({ ...EMPTY })
   const [savedId, setSavedId] = useState(null)
+  const [savedUuid, setSavedUuid] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -80,6 +82,7 @@ export default function VisitaAdministrativa() {
       skipTecSearch.current = true
       setForm({ ...EMPTY, ...v })
       setSavedId(v.id)
+      setSavedUuid(v.uuid)
     })()
     return () => { active = false }
   }, [id, puedeEditar])
@@ -180,9 +183,11 @@ export default function VisitaAdministrativa() {
           sync_status: SYNC_STATUS.PENDING,
           updated_at: now,
         })
+        setSavedUuid(form.uuid || savedUuid)
       } else {
+        const uuid = generateUUID()
         const id = await db.visitas.add({
-          uuid: generateUUID(),
+          uuid,
           ...form,
           tipo_visita: 'administrativa',
           sync_status: SYNC_STATUS.PENDING,
@@ -190,6 +195,7 @@ export default function VisitaAdministrativa() {
           updated_at: now,
         })
         setSavedId(id)
+        setSavedUuid(uuid)
       }
       setSaved(true)
       if (isOnline) {
@@ -344,6 +350,8 @@ export default function VisitaAdministrativa() {
             disabled={!puedeEditar} rows={5} placeholder="Acuerdos o compromisos…" />
         </div>
       </div>
+
+      <FotosVisita visitaUuid={savedUuid} puedeEditar={puedeEditar} />
 
       {/* Firmas */}
       <div className="card space-y-3">

@@ -54,6 +54,10 @@ db.version(10).stores({
     sync_status, created_at, updated_at, deleted_at`,
 })
 
+db.version(11).stores({
+  visita_fotos: '++id, uuid, visita_uuid, sync_status, created_at, deleted_at',
+})
+
 export const SYNC_STATUS = {
   PENDING: 'pending',
   SYNCED: 'synced',
