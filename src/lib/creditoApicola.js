@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 export const RUBROS = ['Maquinaria', 'Material vivo', 'Servicios', 'Material apícola', 'Otro']
-export const MATERIAL_VIVO = ['Reinas fecundas', 'Celdas', 'Núcleos']
+export const MATERIAL_VIVO = ['Reinas fecundas', 'Celdas reales', 'Núcleos']
 export const MATERIAL_APICOLA = [
   'Cámara de cría completa', 'Cajón nuclero', 'Fecundador', 'Triplero',
   'Techo', 'Entretecho', 'Alza con marcos', 'Piso', 'Otro',
@@ -9,6 +9,13 @@ export const MATERIAL_APICOLA = [
 
 function ensure() {
   if (!supabase) throw new Error('Supabase no está configurado')
+}
+
+export function nombreProducto(product) {
+  const nombre = String(product?.nombre || product?.item_key || '').trim()
+  const detalle = String(product?.detalle || '').trim()
+  if (nombre.toLowerCase() === 'otro' || product?.categoria === 'Otro') return detalle || nombre
+  return detalle ? `${nombre} — ${detalle}` : nombre
 }
 
 export async function listProveedores() {
@@ -26,7 +33,7 @@ export async function saveProveedor(form, id) {
   ensure()
   const row = {
     nombre: form.nombre.trim(), rut: form.rut || null, giro: form.giro || null,
-    direccion: form.direccion || null, rubros: form.rubros || [],
+    direccion: form.direccion || null, comuna: form.comuna || null, rubros: form.rubros || [],
     material_vivo: form.material_vivo || [], material_apicola: form.material_apicola || [],
     material_apicola_otro: form.material_apicola_otro || null,
     servicios_detalle: form.servicios_detalle || null, rubro_otro: form.rubro_otro || null,
@@ -98,9 +105,56 @@ export async function saveProducto(id, valor) {
 
 export async function listCreditos() {
   ensure()
-  const { data, error } = await supabase.from('credito_creditos').select('*, credito_items(*)').order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('credito_creditos')
+    .select('*, credito_items(*), credito_abonos(*)')
+    .order('created_at', { ascending: false })
   if (error) throw new Error(`Error al cargar créditos: ${error.message}`)
-  return data || []
+  return (data || []).map(credit => ({
+    ...credit,
+    credito_items: [...(credit.credito_items || [])].sort((a, b) => (a.orden || 0) - (b.orden || 0)),
+    credito_abonos: [...(credit.credito_abonos || [])].sort((a, b) => (
+      String(a.fecha || '').localeCompare(String(b.fecha || ''))
+      || String(a.created_at || '').localeCompare(String(b.created_at || ''))
+    )),
+  }))
+}
+
+export async function addAbono(creditoId, monto, fecha, userName, observacion) {
+  ensure()
+  const amount = Number(monto) || 0
+  if (amount <= 0) throw new Error('El monto del abono debe ser mayor que cero')
+  const { error: insertError } = await supabase.from('credito_abonos').insert({
+    credito_id: creditoId,
+    monto: amount,
+    fecha: fecha || new Date().toISOString().slice(0, 10),
+    observacion: observacion || null,
+    created_by: userName || null,
+  })
+  if (insertError) throw new Error(`Error al guardar abono: ${insertError.message}`)
+
+  const [{ data: credit, error: creditError }, { data: abonos, error: abonosError }] = await Promise.all([
+    supabase.from('credito_creditos').select('total_neto, estado').eq('id', creditoId).single(),
+    supabase.from('credito_abonos').select('monto').eq('credito_id', creditoId),
+  ])
+  if (creditError) throw new Error(`Error al revisar crédito: ${creditError.message}`)
+  if (abonosError) throw new Error(`Error al revisar abonos: ${abonosError.message}`)
+  const total = (abonos || []).reduce((sum, abono) => sum + (Number(abono.monto) || 0), 0)
+  if (total >= Number(credit.total_neto || 0) && credit.estado === 'pendiente') {
+    const { error: updateError } = await supabase
+      .from('credito_creditos')
+      .update({ estado: 'pagado', fecha_cumplimiento: new Date().toISOString().slice(0, 10) })
+      .eq('id', creditoId)
+    if (updateError) throw new Error(`Error al saldar crédito: ${updateError.message}`)
+  }
+}
+
+export function totalAbonado(credit) {
+  return (credit?.credito_abonos || []).reduce((sum, abono) => sum + (Number(abono.monto) || 0), 0)
+}
+
+export function saldoPendiente(credit) {
+  return Math.max(0, Number(credit?.total_neto || 0) - totalAbonado(credit))
 }
 
 export async function saveCredito(form, userName, id) {
