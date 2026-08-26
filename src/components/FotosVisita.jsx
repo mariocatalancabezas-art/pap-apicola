@@ -11,24 +11,16 @@ export default function FotosVisita({ visitaUuid, puedeEditar }) {
   const [showCamera, setShowCamera] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [puedeEnviar, setPuedeEnviar] = useState(false)
   const fileInput = useRef(null)
+  const puedeEnviar = fotos.length > 0 && !!navigator.canShare && !!navigator.share
 
   async function cargarFotos() {
     if (!visitaUuid) {
       setFotos([])
-      setPuedeEnviar(false)
       return
     }
     try {
-      const next = await listFotosVisita(visitaUuid)
-      setFotos(next)
-      if (navigator.share && navigator.canShare && next.length) {
-        const files = await Promise.all(next.map(obtenerArchivoFotoVisita))
-        setPuedeEnviar(navigator.canShare({ files }))
-      } else {
-        setPuedeEnviar(false)
-      }
+      setFotos(await listFotosVisita(visitaUuid))
     } catch (loadError) {
       setError(loadError.message)
     }
