@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Check, FileDown, Loader2, Printer, Search, Share2, Trash2, X,
+  ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, FileDown, Loader2, Printer,
+  Search, Share2, Trash2, X,
 } from 'lucide-react'
 import { db } from '../lib/db'
 import { listProyectos } from '../lib/proyectosInversion'
 import {
-  calcularAnchosColumnasPDF,
   exportarPDF,
   generarPDFBlob,
   compartirPDF,
@@ -127,6 +127,7 @@ export default function ImpresionDatos() {
   const [nextColumnId, setNextColumnId] = useState(2)
   const [editingColumn, setEditingColumn] = useState(null)
   const [orientation, setOrientation] = useState('portrait')
+  const [sort, setSort] = useState({ key: 'nombre', dir: 'asc' })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -176,13 +177,7 @@ export default function ImpresionDatos() {
     ))
   }, [apicultores, search])
 
-  const selectedApicultores = useMemo(() => (
-    apicultores
-      .filter(apicultor => selectedIds.has(apicultor.id))
-      .sort((a, b) => normalizarNombre(nombreCompleto(a)).localeCompare(normalizarNombre(nombreCompleto(b))))
-  ), [apicultores, selectedIds])
-
-  const rows = useMemo(() => selectedApicultores.map(apicultor => {
+  const allRows = useMemo(() => apicultores.map(apicultor => {
     const diagnostico = diagnosticoDe(apicultor, diagnosticos)
     const proyecto = proyectoDe(apicultor, proyectos)
     return {
@@ -191,7 +186,56 @@ export default function ImpresionDatos() {
       proyecto,
       values: columns.map(column => getCampoValue(apicultor, diagnostico, proyecto, column.fieldKey)),
     }
-  }), [columns, diagnosticos, proyectos, selectedApicultores])
+  }), [apicultores, columns, diagnosticos, proyectos])
+
+  function compararValores(valorA, valorB, dir) {
+    const textoA = String(valorA || '').trim()
+    const textoB = String(valorB || '').trim()
+    if (!textoA && !textoB) return 0
+    if (!textoA) return 1
+    if (!textoB) return -1
+
+    const esNumero = valor => /^-?\$?\s*[\d.,\s]+$/.test(String(valor).trim())
+    let comparacion
+    if (esNumero(textoA) && esNumero(textoB)) {
+      const numeroA = Number(textoA.replace(/[^\d-]/g, ''))
+      const numeroB = Number(textoB.replace(/[^\d-]/g, ''))
+      comparacion = numeroA - numeroB
+    } else {
+      comparacion = textoA.localeCompare(textoB, 'es', { sensitivity: 'base', numeric: true })
+    }
+    return dir === 'asc' ? comparacion : -comparacion
+  }
+
+  const sortedRows = useMemo(() => {
+    const columnIndex = sort.key.startsWith('col-')
+      ? columns.findIndex(column => `col-${column.id}` === sort.key)
+      : -1
+    return allRows
+      .map((row, index) => ({ row, index }))
+      .sort((a, b) => {
+        const valueA = sort.key === 'nombre'
+          ? nombreCompleto(a.row.apicultor)
+          : a.row.values[columnIndex]
+        const valueB = sort.key === 'nombre'
+          ? nombreCompleto(b.row.apicultor)
+          : b.row.values[columnIndex]
+        return compararValores(valueA, valueB, sort.dir)
+          || compararValores(nombreCompleto(a.row.apicultor), nombreCompleto(b.row.apicultor), 'asc')
+          || a.index - b.index
+      })
+      .map(entry => entry.row)
+  }, [allRows, columns, sort])
+
+  const selectedRows = useMemo(
+    () => sortedRows.filter(row => selectedIds.has(row.apicultor.id)),
+    [selectedIds, sortedRows],
+  )
+
+  const selectedNumbers = useMemo(
+    () => new Map(selectedRows.map((row, index) => [row.apicultor.id, index + 1])),
+    [selectedRows],
+  )
 
   function toggleSelected(id) {
     setSelectedIds(previous => {
@@ -218,7 +262,7 @@ export default function ImpresionDatos() {
   }
 
   function addColumn() {
-    setColumns(previous => [...previous, { id: nextColumnId, fieldKey: CAMPO_INICIAL }])
+    setColumns(previous => [...previous, { id: nextColumnId, fieldKey: '' }])
     setNextColumnId(previous => previous + 1)
   }
 
@@ -233,24 +277,40 @@ export default function ImpresionDatos() {
     setEditingColumn(null)
   }
 
+  function cycleSort(key) {
+    setSort(previous => (
+      previous.key === key && previous.dir === 'asc'
+        ? { key, dir: 'desc' }
+        : { key, dir: 'asc' }
+    ))
+  }
+
+  function sortIcon(key) {
+    if (sort.key !== key) return <ArrowUpDown className="h-3 w-3" />
+    return sort.dir === 'asc'
+      ? <ArrowUp className="h-3 w-3" />
+      : <ArrowDown className="h-3 w-3" />
+  }
+
   function pdfData() {
-    const columnas = ['N°', 'NOMBRE DEL APICULTOR', ...columns.map(column => findCampo(column.fieldKey)?.label || '')]
-    const filas = rows.map((row, index) => [
+    const columnas = [
+      'N°',
+      'NOMBRE DEL APICULTOR',
+      ...columns.map(column => findCampo(column.fieldKey)?.label || 'Seleccionar'),
+    ]
+    const filas = selectedRows.map((row, index) => [
       String(index + 1),
       nombreCompleto(row.apicultor),
       ...row.values,
     ])
-    const columnStyles = calcularAnchosColumnasPDF({
-      cantidadConfigurables: columns.length,
-      orientation,
-    })
     return {
       columnas,
       filas,
-      columnStyles,
+      columnStyles: { 0: { cellWidth: 8 } },
       horizontalPageBreak: true,
       horizontalPageBreakRepeat: [0, 1],
       rowPageBreak: 'avoid',
+      headFontSize: 10,
     }
   }
 
@@ -262,6 +322,7 @@ export default function ImpresionDatos() {
       horizontalPageBreak,
       horizontalPageBreakRepeat,
       rowPageBreak,
+      headFontSize,
     } = pdfData()
     exportarPDF({
       titulo: TITULO,
@@ -273,6 +334,7 @@ export default function ImpresionDatos() {
       horizontalPageBreak,
       horizontalPageBreakRepeat,
       rowPageBreak,
+      headFontSize,
     })
   }
 
@@ -284,6 +346,7 @@ export default function ImpresionDatos() {
       horizontalPageBreak,
       horizontalPageBreakRepeat,
       rowPageBreak,
+      headFontSize,
     } = pdfData()
     const { blob, nombreFinal } = await generarPDFBlob({
       titulo: TITULO,
@@ -295,6 +358,7 @@ export default function ImpresionDatos() {
       horizontalPageBreak,
       horizontalPageBreakRepeat,
       rowPageBreak,
+      headFontSize,
     })
     const ok = await compartirPDF(blob, TITULO, nombreFinal)
     if (!ok) alert('Tu navegador no soporta compartir archivos. Descarga el PDF y envíalo manualmente.')
@@ -416,11 +480,27 @@ export default function ImpresionDatos() {
             <table className="planilla-table filas-llenas impresion-datos-print-table">
               <thead>
                 <tr className="print-pad-row">
-                  <th colSpan={columns.length + 3} />
+                  <th colSpan={columns.length + 4} />
                 </tr>
                 <tr>
-                  <th className="w-12">N°</th>
-                  <th className="whitespace-nowrap">Nombre del apicultor</th>
+                  <th className="no-print" />
+                  <th className="col-numero">N°</th>
+                  <th className="col-nombre">
+                    <div className="flex items-center justify-center gap-1">
+                      <span>Nombre del apicultor</span>
+                      <button
+                        type="button"
+                        className="no-print rounded p-0.5 hover:bg-honey-100"
+                        title="Ordenar por nombre"
+                        onClick={event => {
+                          event.stopPropagation()
+                          cycleSort('nombre')
+                        }}
+                      >
+                        {sortIcon('nombre')}
+                      </button>
+                    </div>
+                  </th>
                   {columns.map(column => {
                     const field = findCampo(column.fieldKey)
                     return (
@@ -430,7 +510,18 @@ export default function ImpresionDatos() {
                         onClick={() => setEditingColumn(column.id)}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>{field?.label}</span>
+                          <span>{field?.label || 'Seleccionar'}</span>
+                          <button
+                            type="button"
+                            className="no-print rounded p-0.5 hover:bg-honey-100"
+                            title="Ordenar por columna"
+                            onClick={event => {
+                              event.stopPropagation()
+                              cycleSort(`col-${column.id}`)
+                            }}
+                          >
+                            {sortIcon(`col-${column.id}`)}
+                          </button>
                           <button
                             type="button"
                             className="no-print rounded p-2 text-red-500 hover:bg-red-50"
@@ -454,25 +545,36 @@ export default function ImpresionDatos() {
                 </tr>
               </thead>
               <tfoot className="print-pad-foot">
-                <tr><td colSpan={columns.length + 3} /></tr>
+                <tr><td colSpan={columns.length + 4} /></tr>
               </tfoot>
               <tbody>
-                {rows.map((row, index) => (
+                {sortedRows.map(row => {
+                  const isSelected = selectedIds.has(row.apicultor.id)
+                  return (
                   <tr
                     key={row.apicultor.id}
-                    style={(index + 1) % 20 === 0 && index + 1 !== rows.length
-                      ? { breakAfter: 'page' }
-                      : undefined}
+                    className={isSelected ? '' : 'no-print text-gray-400 opacity-60'}
                   >
-                    <td className="text-center">{index + 1}</td>
-                    <td className="whitespace-nowrap">{nombreCompleto(row.apicultor)}</td>
+                    <td className="no-print text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelected(row.apicultor.id)}
+                        aria-label={`Seleccionar ${nombreCompleto(row.apicultor)}`}
+                      />
+                    </td>
+                    <td className="col-numero text-center">
+                      {isSelected ? selectedNumbers.get(row.apicultor.id) : '—'}
+                    </td>
+                    <td className="col-nombre whitespace-nowrap">{nombreCompleto(row.apicultor)}</td>
                     {row.values.map((value, valueIndex) => <td key={`${row.apicultor.id}-${valueIndex}`}>{value}</td>)}
                     <td className="no-print" />
                   </tr>
-                ))}
-                {rows.length === 0 && (
+                  )
+                })}
+                {selectedRows.length === 0 && (
                   <tr>
-                    <td colSpan={columns.length + 3} className="py-4 text-center text-gray-500">
+                    <td colSpan={columns.length + 4} className="py-4 text-center text-gray-500">
                       No hay apicultores seleccionados.
                     </td>
                   </tr>

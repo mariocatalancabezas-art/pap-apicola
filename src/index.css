@@ -384,9 +384,11 @@
     width: 100% !important;
   }
   .impresion-datos-print-table {
-    width: 100% !important;
+    width: auto !important;
     max-width: 100% !important;
-    table-layout: fixed !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    table-layout: auto !important;
     font-size: 7px !important;
   }
   .impresion-datos-print-table th,
@@ -396,6 +398,29 @@
     padding: 1px 2px !important;
     white-space: normal !important;
     overflow-wrap: anywhere;
+  }
+  .impresion-datos-print-table th {
+    font-size: 9px !important;
+  }
+  .impresion-datos-print-table td {
+    font-size: 7.5px !important;
+    height: 5.5mm !important;
+  }
+  .impresion-datos-print-table .col-numero {
+    width: 7mm !important;
+    text-align: center !important;
+  }
+  .impresion-datos-print-table .col-nombre {
+    white-space: nowrap !important;
+  }
+  .impresion-datos-print-table .print-pad-foot {
+    display: table-footer-group !important;
+  }
+  .impresion-datos-print-table .print-pad-foot td {
+    height: 8mm !important;
+    border: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
   }
   /* Bloque "Nombre de la actividad / Fecha": separación moderada en impresión. */
   .planilla-campos { margin-top: 6mm !important; margin-bottom: 6mm !important; }

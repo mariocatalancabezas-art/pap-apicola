@@ -146,6 +146,7 @@ function formatearCumplimiento(value) {
 }
 
 export function getCampoValue(apicultor, diagnostico, proyecto, key) {
+  if (!key) return ''
   const [origen, campo] = key.split('.')
   if (origen === 'proyecto' && !proyecto) return 'Sin proyecto'
 

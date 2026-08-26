@@ -73,6 +73,7 @@ export function exportarPDF({
   horizontalPageBreak = false,
   horizontalPageBreakRepeat = null,
   rowPageBreak = 'auto',
+  headFontSize = 9,
 }) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
@@ -106,7 +107,13 @@ export function exportarPDF({
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 2, font: 'helvetica' },
     bodyStyles: rowHeight ? { minCellHeight: rowHeight } : undefined,
-    headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+    headStyles: {
+      fillColor: [220, 220, 220],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      halign: 'center',
+      fontSize: headFontSize,
+    },
     columnStyles,
     margin: { left: margen, right: margen },
     ...(horizontalPageBreak
@@ -145,6 +152,7 @@ export async function generarPDFBlob({
   horizontalPageBreak = false,
   horizontalPageBreakRepeat = null,
   rowPageBreak = 'auto',
+  headFontSize = 9,
 }) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
@@ -178,7 +186,13 @@ export async function generarPDFBlob({
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 2, font: 'helvetica' },
     bodyStyles: rowHeight ? { minCellHeight: rowHeight } : undefined,
-    headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+    headStyles: {
+      fillColor: [220, 220, 220],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      halign: 'center',
+      fontSize: headFontSize,
+    },
     columnStyles,
     margin: { left: margen, right: margen },
     ...(horizontalPageBreak
