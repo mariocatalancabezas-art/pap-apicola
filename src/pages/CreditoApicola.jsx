@@ -5,7 +5,7 @@ import { ArrowLeft, BriefcaseBusiness, FileText, Pencil, Plus, Printer, Save, Tr
 import { useAuth } from '../lib/AuthContext'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
 import {
-  MATERIAL_APICOLA, MATERIAL_VIVO, RUBROS, deleteProveedor, formatPesos,
+  MATERIAL_APICOLA, MATERIAL_VIVO, RUBROS, deleteCredito, deleteProveedor, formatPesos,
   addAbono, listCreditos, listProveedores, nombreProducto, saldoPendiente, saveCredito,
   saveProducto, saveProveedor, totalAbonado, updateCreditoEstado,
 } from '../lib/creditoApicola'
@@ -246,7 +246,7 @@ function ProviderList({ providers, reload }) {
   )
 }
 
-function ProductCatalog({ providers, reload }) {
+function ProductCatalog({ providers, reload, isAdmin }) {
   const [values, setValues] = useState({})
   const [savingId, setSavingId] = useState(null)
 
@@ -297,19 +297,23 @@ function ProductCatalog({ providers, reload }) {
                   <p>{nombreProducto(product)}</p>
                   <p className="text-xs text-gray-500">{product.categoria}</p>
                 </div>
-                <label className="flex items-center gap-1 text-sm">
-                  <span>$</span>
-                  <input
-                    className="input-field w-36 py-1 text-right"
-                    inputMode="numeric"
-                    value={formatInputValue(values[product.id])}
-                    onChange={event => updateValue(product.id, event.target.value)}
-                    onBlur={() => saveValue(product)}
-                    disabled={savingId === product.id}
-                    placeholder="Valor neto"
-                    aria-label={`Valor neto de ${nombreProducto(product)}`}
-                  />
-                </label>
+                {isAdmin ? (
+                  <label className="flex items-center gap-1 text-sm">
+                    <span>$</span>
+                    <input
+                      className="input-field w-36 py-1 text-right"
+                      inputMode="numeric"
+                      value={formatInputValue(values[product.id])}
+                      onChange={event => updateValue(product.id, event.target.value)}
+                      onBlur={() => saveValue(product)}
+                      disabled={savingId === product.id}
+                      placeholder="Valor neto"
+                      aria-label={`Valor neto de ${nombreProducto(product)}`}
+                    />
+                  </label>
+                ) : (
+                  <span className="text-right text-sm text-gray-600">{formatPesos(product.valor_neto)}</span>
+                )}
               </div>
             ))}
           </div>
@@ -676,6 +680,9 @@ function AbonoDialog({ credit, user, onClose, onSaved }) {
 function CommitmentLetter({ credit, onClose }) {
   const items = credit.credito_items || []
   const providers = [...new Set(items.map(item => item.proveedor_nombre).filter(Boolean))]
+  const totalNeto = items.length
+    ? items.reduce((sum, item) => sum + (Number(item.total_neto) || 0), 0)
+    : Number(credit.total_neto || 0)
   useEffect(() => {
     document.body.classList.add('commitment-print-active')
     return () => document.body.classList.remove('commitment-print-active')
@@ -691,7 +698,7 @@ function CommitmentLetter({ credit, onClose }) {
           </button>
         </div>
         <article className="prose max-w-none text-gray-900">
-          <h1 className="text-center text-xl font-bold">CARTA DE COMPROMISO DE PAGO Y AUTORIZACIÓN DE DESCUENTO</h1>
+          <h1 className="mb-8 text-center text-xl font-bold">CARTA DE COMPROMISO DE PAGO Y AUTORIZACIÓN DE DESCUENTO</h1>
           <p>
             En <b>Santa Bárbara</b>, a <b>{new Date().toLocaleDateString('es-CL')}</b>, comparecen por
             una parte <b>APÍCOLA SANTA BÁRBARA SpA</b>, RUT <b>77.121.660-9</b>, domiciliada en calle
@@ -707,16 +714,16 @@ function CommitmentLetter({ credit, onClose }) {
           <ul>
             {items.map(item => (
               <li key={item.id}>
-                {item.cantidad} × {item.producto_nombre} — Proveedor: {item.proveedor_nombre || '—'}
-                <span className="ml-1">({formatPesos(item.total_neto)})</span>
+                {item.cantidad} {item.producto_nombre || nombreProducto(item) || 'Producto'}
+                {' por un valor total neto de '}{formatPesos(item.total_neto)}
               </li>
             ))}
           </ul>
-          <p><b>Valor total neto: {formatPesos(credit.total_neto)}</b></p>
+          <p><b>Valor total neto de los productos: {formatPesos(totalNeto)}</b></p>
           <h2>SEGUNDO: COMPROMISO DE PAGO</h2>
           <p>
             El Apicultor se compromete a pagar a Apícola Santa Bárbara SpA la suma total neta de
-            <b> {formatPesos(credit.total_neto)}</b>, a más tardar el día
+            <b> {formatPesos(totalNeto)}</b>, a más tardar el día
             <b> {formatDate(credit.fecha_limite_pago)}</b>.
           </p>
           <h2>TERCERO: AUTORIZACIÓN DE DESCUENTO DE MIEL</h2>
@@ -832,6 +839,16 @@ export default function CreditoApicola() {
     }
   }
 
+  async function removeCredit(credit) {
+    if (!confirm(`¿Eliminar el crédito de ${credit.beneficiario_nombre}?`)) return
+    try {
+      await deleteCredito(credit.id)
+      await reload()
+    } catch (deleteError) {
+      setError(deleteError.message)
+    }
+  }
+
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-center gap-2">
@@ -858,13 +875,11 @@ export default function CreditoApicola() {
           </button>
         ))}
       </div>
-      {puedeEditar && (
-        <button className="btn-primary flex items-center gap-2" onClick={openCreditForm}>
-          <Plus className="w-4 h-4" /> Nuevo crédito
-        </button>
-      )}
+      <button className="btn-primary flex items-center gap-2" onClick={openCreditForm}>
+        <Plus className="w-4 h-4" /> Nuevo crédito
+      </button>
       {tab === 'proveedores' && <ProviderList providers={providers} reload={reload} />}
-      {tab === 'productos' && <ProductCatalog providers={providers} reload={reload} />}
+      {tab === 'productos' && <ProductCatalog providers={providers} reload={reload} isAdmin={isAdmin} />}
       {tab === 'plazo' && (
         <div className="space-y-2">
           <h3 className="font-bold">Apicultores fuera de plazo</h3>
@@ -914,6 +929,15 @@ export default function CreditoApicola() {
                     </button>
                   </>
                 )}
+                {isAdmin && (
+                  <button
+                    className="rounded p-1 text-red-500 hover:bg-red-50"
+                    title="Eliminar crédito"
+                    onClick={() => removeCredit(credit)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
                 <button className="btn-secondary text-xs" onClick={() => setLetter(credit)}>
                   <FileText className="inline w-3 h-3" /> Compromiso
                 </button>
@@ -945,6 +969,15 @@ export default function CreditoApicola() {
               <button className="btn-secondary text-xs" onClick={() => setLetter(credit)}>
                 <FileText className="inline w-3 h-3" /> Compromiso
               </button>
+              {isAdmin && (
+                <button
+                  className="rounded p-1 text-red-500 hover:bg-red-50"
+                  title="Eliminar crédito"
+                  onClick={() => removeCredit(credit)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
