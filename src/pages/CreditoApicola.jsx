@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, BriefcaseBusiness, Check, FileText, Plus, Printer, Save, Trash2, Users, X } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, FileText, Pencil, Plus, Printer, Save, Trash2, Users, X } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
 import {
   MATERIAL_APICOLA, MATERIAL_VIVO, RUBROS, deleteProveedor, formatPesos,
-  listCreditos, listProveedores, saveCredito, saveProducto, saveProveedor, updateCreditoEstado,
+  addAbono, listCreditos, listProveedores, nombreProducto, saldoPendiente, saveCredito,
+  saveProducto, saveProveedor, totalAbonado, updateCreditoEstado,
 } from '../lib/creditoApicola'
+import { formatRut } from '../lib/rut'
 
 const EMPTY_PROVIDER = {
-  nombre: '', rut: '', giro: '', direccion: '', rubros: [], material_vivo: [],
+  nombre: '', rut: '', giro: '', direccion: '', comuna: '', rubros: [], material_vivo: [],
   material_apicola: [], material_apicola_otro: '', servicios_detalle: '', rubro_otro: '',
 }
 const EMPTY_CREDIT = {
@@ -33,6 +35,20 @@ function formatDate(value) {
   if (!value) return '—'
   const [year, month, day] = value.split('-')
   return `${day}/${month}/${year}`
+}
+
+function resumenCredito(credit, providers = []) {
+  const items = credit.credito_items || []
+  const productsById = new Map(
+    providers.flatMap(provider => (provider.productos || []).map(product => [product.id, product])),
+  )
+  const rubros = [...new Set(items.map(item => (
+    item.categoria || item.producto_categoria || productsById.get(item.producto_id)?.categoria
+  )).filter(Boolean))]
+  const productos = items
+    .map(item => `${item.cantidad || 0} × ${item.producto_nombre || nombreProducto(productsById.get(item.producto_id)) || 'Producto'}`)
+    .join(', ')
+  return [...rubros, productos].filter(Boolean).join(' · ') || 'Sin detalle de productos'
 }
 
 function ToggleList({ values, options, onChange }) {
@@ -86,7 +102,7 @@ function ProviderForm({ initial, onClose, onSaved }) {
       </div>
       <form onSubmit={submit} className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          {['nombre', 'rut', 'giro', 'direccion'].map(key => (
+          {['nombre', 'rut', 'giro', 'direccion', 'comuna'].map(key => (
             <div key={key}>
               <label className="label text-xs">
                 {key === 'nombre' ? 'Nombre o razón social' : key[0].toUpperCase() + key.slice(1)}
@@ -94,7 +110,7 @@ function ProviderForm({ initial, onClose, onSaved }) {
               <input
                 className="input-field w-full"
                 value={form[key]}
-                onChange={event => set(key, event.target.value)}
+                onChange={event => set(key, key === 'rut' ? formatRut(event.target.value) : event.target.value)}
                 required={key === 'nombre'}
               />
             </div>
@@ -217,6 +233,7 @@ function ProviderList({ providers, reload }) {
           {open === provider.id && (
             <div className="mt-3 space-y-2 border-t pt-3 text-xs">
               <p><b>Dirección:</b> {provider.direccion || '—'}</p>
+              <p><b>Comuna:</b> {provider.comuna || '—'}</p>
               <p><b>Rubros:</b> {(provider.rubros || []).join(', ') || '—'}</p>
               <p className="text-gray-500">
                 Los valores netos se editan en la pestaña Productos y servicios.
@@ -277,8 +294,7 @@ function ProductCatalog({ providers, reload }) {
                 key={product.id}
               >
                 <div>
-                  <p>{product.nombre}</p>
-                  {product.detalle && <p className="text-xs text-gray-500">{product.detalle}</p>}
+                  <p>{nombreProducto(product)}</p>
                   <p className="text-xs text-gray-500">{product.categoria}</p>
                 </div>
                 <label className="flex items-center gap-1 text-sm">
@@ -291,7 +307,7 @@ function ProductCatalog({ providers, reload }) {
                     onBlur={() => saveValue(product)}
                     disabled={savingId === product.id}
                     placeholder="Valor neto"
-                    aria-label={`Valor neto de ${product.nombre}`}
+                    aria-label={`Valor neto de ${nombreProducto(product)}`}
                   />
                 </label>
               </div>
@@ -324,7 +340,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
       ...previous,
       beneficiario_nombre: person.nombre_completo
         || `${person.nombres || ''} ${person.apellidos || ''}`.trim(),
-      beneficiario_rut: person.rut || '',
+      beneficiario_rut: formatRut(person.rut || ''),
       beneficiario_telefono: person.telefono || '',
       beneficiario_direccion: person.direccion || '',
       beneficiario_comuna: person.comuna || '',
@@ -364,7 +380,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
         return {
           ...item,
           producto_id: productId,
-          producto_nombre: product?.nombre || '',
+          producto_nombre: nombreProducto(product),
           valor_neto: product?.valor_neto || 0,
         }
       }),
@@ -389,7 +405,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
   return (
     <div className="card border-2 border-honey-200">
       <div className="flex justify-between">
-        <h3 className="font-bold">Nuevo crédito apícola</h3>
+        <h3 className="font-bold">{form.id ? 'Editar crédito apícola' : 'Nuevo crédito apícola'}</h3>
         <button type="button" onClick={onClose}><X className="w-4 h-4" /></button>
       </div>
       <form onSubmit={submit} className="mt-3 space-y-3">
@@ -431,7 +447,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
             <input
               className="input-field w-full"
               value={form[key]}
-              onChange={event => set(key, event.target.value)}
+              onChange={event => set(key, key.endsWith('_rut') ? formatRut(event.target.value) : event.target.value)}
             />
           </div>
         ))}
@@ -476,7 +492,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
                       <option value="">Seleccionar producto o servicio</option>
                       {(provider?.productos || []).map(product => (
                         <option key={product.id} value={product.id}>
-                          {product.nombre}{product.detalle ? ` — ${product.detalle}` : ''}
+                        {nombreProducto(product)}
                         </option>
                       ))}
                     </select>
@@ -553,7 +569,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
           <input
             className="input-field w-full"
             value={form.representante_rut}
-            onChange={event => set('representante_rut', event.target.value)}
+            onChange={event => set('representante_rut', formatRut(event.target.value))}
           />
         </div>
       </div>
@@ -564,6 +580,95 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
         </button>
       </div>
       </form>
+    </div>
+  )
+}
+
+function AbonoDialog({ credit, user, onClose, onSaved }) {
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [observacion, setObservacion] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const saldo = saldoPendiente(credit)
+  const abonos = [...(credit.credito_abonos || [])].sort((a, b) => (
+    String(b.fecha || '').localeCompare(String(a.fecha || ''))
+  ))
+
+  async function submit(event) {
+    event.preventDefault()
+    const monto = Number(parseInputValue(amount))
+    if (monto <= 0) return setError('Ingresa un monto mayor que cero')
+    if (monto > saldo) return setError('El abono no puede superar el saldo pendiente')
+    setSaving(true)
+    setError('')
+    try {
+      await addAbono(credit.id, monto, date, user?.nombre, observacion)
+      onSaved()
+    } catch (saveError) {
+      setError(saveError.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/30 p-4">
+      <div className="mx-auto mt-8 max-w-lg card">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold">Registrar abono</h3>
+          <button type="button" onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+        <p className="mt-1 text-sm text-gray-700">{credit.beneficiario_nombre}</p>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+          <div className="rounded bg-gray-50 p-2"><b>Total</b><br />{formatPesos(credit.total_neto)}</div>
+          <div className="rounded bg-gray-50 p-2"><b>Abonado</b><br />{formatPesos(totalAbonado(credit))}</div>
+          <div className="rounded bg-orange-50 p-2"><b>Saldo</b><br />{formatPesos(saldo)}</div>
+        </div>
+        <form onSubmit={submit} className="mt-4 space-y-3">
+          <div>
+            <label className="label text-xs">Monto del abono</label>
+            <input
+              className="input-field w-full text-right"
+              inputMode="numeric"
+              value={formatInputValue(amount)}
+              onChange={event => setAmount(parseInputValue(event.target.value))}
+              placeholder="0"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="label text-xs">Fecha</label>
+            <input type="date" className="input-field w-full" value={date} onChange={event => setDate(event.target.value)} />
+          </div>
+          <div>
+            <label className="label text-xs">Observación (opcional)</label>
+            <textarea className="input-field w-full" rows={2} value={observacion} onChange={event => setObservacion(event.target.value)} />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
+            <button className="btn-primary" disabled={saving || saldo <= 0}>
+              {saving ? 'Guardando…' : 'Guardar abono'}
+            </button>
+          </div>
+        </form>
+        <div className="mt-5 border-t pt-3">
+          <h4 className="text-sm font-semibold">Abonos registrados</h4>
+          {abonos.length === 0 ? (
+            <p className="mt-2 text-xs text-gray-500">Aún no hay abonos.</p>
+          ) : (
+            <div className="mt-2 space-y-1 text-xs">
+              {abonos.map(abono => (
+                <div key={abono.id} className="flex justify-between gap-2 rounded bg-gray-50 p-2">
+                  <span>{formatDate(abono.fecha)}{abono.observacion ? ` · ${abono.observacion}` : ''}</span>
+                  <b>{formatPesos(abono.monto)}</b>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -647,10 +752,13 @@ function CommitmentLetter({ credit, onClose }) {
 export default function CreditoApicola() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const isAdmin = user?.rol === 'admin'
+  const puedeEditar = isAdmin || !!user?.puede_editar_credito_apicola
   const [tab, setTab] = useState('proveedores')
   const [providers, setProviders] = useState([])
   const [credits, setCredits] = useState([])
   const [form, setForm] = useState(null)
+  const [abonoCredit, setAbonoCredit] = useState(null)
   const [letter, setLetter] = useState(null)
   const [error, setError] = useState('')
 
@@ -659,7 +767,16 @@ export default function CreditoApicola() {
       setError('')
       const [providerList, creditList] = await Promise.all([listProveedores(), listCreditos()])
       setProviders(providerList)
-      setCredits(creditList)
+      const productsById = new Map(
+        providerList.flatMap(provider => (provider.productos || []).map(product => [product.id, product])),
+      )
+      setCredits(creditList.map(credit => ({
+        ...credit,
+        credito_items: (credit.credito_items || []).map(item => ({
+          ...item,
+          producto_nombre: nombreProducto(productsById.get(item.producto_id)) || item.producto_nombre || '',
+        })),
+      })))
     } catch (loadError) {
       setError(loadError.message)
     }
@@ -677,9 +794,42 @@ export default function CreditoApicola() {
     )),
     [credits],
   )
+  const pending = useMemo(
+    () => credits.filter(credit => credit.estado === 'pendiente'),
+    [credits],
+  )
+  const history = useMemo(
+    () => credits.filter(credit => credit.estado === 'pagado' || credit.estado === 'miel_entregada'),
+    [credits],
+  )
 
   function openCreditForm() {
     setForm({ ...EMPTY_CREDIT, items: [{ id: Date.now(), cantidad: 1 }] })
+  }
+
+  function openEditCredit(credit) {
+    setForm({
+      ...credit,
+      items: (credit.credito_items || []).map(item => ({
+        id: item.id,
+        proveedor_id: item.proveedor_id || '',
+        proveedor_nombre: item.proveedor_nombre || '',
+        producto_id: item.producto_id || '',
+        producto_nombre: item.producto_nombre || '',
+        cantidad: item.cantidad || 1,
+        valor_neto: item.valor_neto || 0,
+      })),
+    })
+  }
+
+  async function markEstado(credit, estado) {
+    if (estado === 'pagado' && !confirm(`¿Marcar como pagado el crédito de ${credit.beneficiario_nombre}?`)) return
+    try {
+      await updateCreditoEstado(credit.id, estado)
+      await reload()
+    } catch (updateError) {
+      setError(updateError.message)
+    }
   }
 
   return (
@@ -708,9 +858,11 @@ export default function CreditoApicola() {
           </button>
         ))}
       </div>
-      <button className="btn-primary flex items-center gap-2" onClick={openCreditForm}>
-        <Plus className="w-4 h-4" /> Nuevo crédito
-      </button>
+      {puedeEditar && (
+        <button className="btn-primary flex items-center gap-2" onClick={openCreditForm}>
+          <Plus className="w-4 h-4" /> Nuevo crédito
+        </button>
+      )}
       {tab === 'proveedores' && <ProviderList providers={providers} reload={reload} />}
       {tab === 'productos' && <ProductCatalog providers={providers} reload={reload} />}
       {tab === 'plazo' && (
@@ -723,33 +875,75 @@ export default function CreditoApicola() {
               <div>
                 <b>{credit.beneficiario_nombre}</b>
                 <p className="text-xs text-red-600">
-                  Vencimiento: {credit.fecha_limite_pago} · {formatPesos(credit.total_neto)}
+                  {resumenCredito(credit, providers)}
+                </p>
+                <p className="text-xs text-red-600">
+                  Vencimiento: {credit.fecha_limite_pago} · Total {formatPesos(credit.total_neto)}
+                  {' · Abonado '}{formatPesos(totalAbonado(credit))}
+                  {' · Adeudado '}{formatPesos(saldoPendiente(credit))}
                 </p>
               </div>
-              <button
-                className="btn-secondary text-xs"
-                onClick={() => updateCreditoEstado(credit.id, 'miel_entregada').then(reload)}
-              >
-                Marcar cumplido
-              </button>
+              {puedeEditar && (
+                <button className="btn-secondary text-xs" onClick={() => markEstado(credit, 'miel_entregada')}>
+                  Marcar cumplido
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
       {credits.length > 0 && tab !== 'plazo' && (
         <div className="card">
-          <h3 className="mb-2 font-bold">Créditos recientes</h3>
-          {credits.slice(0, 10).map(credit => (
-            <div className="flex items-center gap-2 border-b py-2 text-sm last:border-0" key={credit.id}>
-              <span className="flex-1">{credit.beneficiario_nombre} · {formatPesos(credit.total_neto)}</span>
+          <h3 className="mb-2 font-bold">Créditos pendientes</h3>
+          {pending.length === 0 ? (
+            <p className="text-sm text-gray-500">No hay créditos pendientes.</p>
+          ) : pending.map(credit => (
+            <div className="border-b py-3 text-sm last:border-0" key={credit.id}>
+              <div className="flex flex-wrap items-center gap-2">
+                <b className="mr-auto">{credit.beneficiario_nombre}</b>
+                {puedeEditar && (
+                  <>
+                    <button className="rounded bg-orange-500 px-2 py-1 text-xs text-white" onClick={() => setAbonoCredit(credit)}>
+                      Abono
+                    </button>
+                    <button className="rounded bg-green-600 px-2 py-1 text-xs text-white" onClick={() => markEstado(credit, 'pagado')}>
+                      Pagado
+                    </button>
+                    <button className="rounded p-1 text-gray-500 hover:bg-gray-100" title="Editar crédito" onClick={() => openEditCredit(credit)}>
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+                <button className="btn-secondary text-xs" onClick={() => setLetter(credit)}>
+                  <FileText className="inline w-3 h-3" /> Compromiso
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-600">{resumenCredito(credit, providers)}</p>
+              <p className="text-xs text-gray-500">
+                Total {formatPesos(credit.total_neto)}
+                {' · Abonado '}{formatPesos(totalAbonado(credit))}
+                {' · Adeudado '}{formatPesos(saldoPendiente(credit))}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+      {tab !== 'plazo' && (
+        <div className="card">
+          <h3 className="mb-2 font-bold">Historial de créditos</h3>
+          {history.length === 0 ? (
+            <p className="text-sm text-gray-500">No hay créditos saldados.</p>
+          ) : history.map(credit => (
+            <div className="flex flex-wrap items-center gap-2 border-b py-2 text-sm last:border-0" key={credit.id}>
+              <span className="mr-auto">
+                <b>{credit.beneficiario_nombre}</b>
+                <span className="ml-2 text-xs text-gray-500">
+                  Total {formatPesos(credit.total_neto)} · Abonado {formatPesos(totalAbonado(credit))}
+                  {' · Cumplido '}{formatDate(credit.fecha_cumplimiento)}
+                </span>
+              </span>
               <button className="btn-secondary text-xs" onClick={() => setLetter(credit)}>
                 <FileText className="inline w-3 h-3" /> Compromiso
-              </button>
-              <button
-                className="text-xs text-green-700"
-                onClick={() => updateCreditoEstado(credit.id, 'pagado').then(reload)}
-              >
-                <Check className="w-4 h-4" />
               </button>
             </div>
           ))}
@@ -769,6 +963,14 @@ export default function CreditoApicola() {
         </div>
       )}
       {letter && <CommitmentLetter credit={letter} onClose={() => setLetter(null)} />}
+      {abonoCredit && (
+        <AbonoDialog
+          credit={abonoCredit}
+          user={user}
+          onClose={() => setAbonoCredit(null)}
+          onSaved={() => { setAbonoCredit(null); reload() }}
+        />
+      )}
     </div>
   )
 }

@@ -34,6 +34,8 @@ const PERMISOS = [
   { key: 'puede_ver_proyectos_inversion', label: 'Ver Proyectos de Inversión' },
   { key: 'puede_editar_proyectos_inversion', label: 'Crear / Editar Proyectos de Inversión' },
   { key: 'puede_eliminar_proyectos_inversion', label: 'Eliminar Proyectos de Inversión' },
+  { key: 'puede_ver_credito_apicola', label: 'Ver Crédito Apícola' },
+  { key: 'puede_editar_credito_apicola', label: 'Crear / Editar Crédito Apícola' },
 ]
 
 export default function Usuarios() {
