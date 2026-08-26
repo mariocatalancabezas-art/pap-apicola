@@ -42,9 +42,9 @@ function resumenCredito(credit, providers = []) {
   const productsById = new Map(
     providers.flatMap(provider => (provider.productos || []).map(product => [product.id, product])),
   )
-  const rubros = [...new Set(items.map(item => (
-    item.categoria || item.producto_categoria || productsById.get(item.producto_id)?.categoria
-  )).filter(Boolean))]
+  const rubros = [...new Set(items
+    .map(item => productsById.get(item.producto_id)?.categoria)
+    .filter(Boolean))]
   const productos = items
     .map(item => `${item.cantidad || 0} × ${item.producto_nombre || nombreProducto(productsById.get(item.producto_id)) || 'Producto'}`)
     .join(', ')
@@ -492,7 +492,7 @@ function CreditForm({ providers, initial, onClose, onSaved, user }) {
                       <option value="">Seleccionar producto o servicio</option>
                       {(provider?.productos || []).map(product => (
                         <option key={product.id} value={product.id}>
-                        {nombreProducto(product)}
+                          {nombreProducto(product)}
                         </option>
                       ))}
                     </select>
@@ -892,7 +892,7 @@ export default function CreditoApicola() {
           ))}
         </div>
       )}
-      {credits.length > 0 && tab !== 'plazo' && (
+      {tab !== 'plazo' && (
         <div className="card">
           <h3 className="mb-2 font-bold">Créditos pendientes</h3>
           {pending.length === 0 ? (
