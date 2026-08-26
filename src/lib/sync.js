@@ -301,10 +301,14 @@ async function syncApicultores(forceFull = false) {
         ))
 
         if (tombstone) {
-          await sincronizarTumbaApicultor({
-            ...remote,
-            deleted_at: tombstone.deleted_at,
-          })
+          try {
+            await sincronizarTumbaApicultor({
+              ...remote,
+              deleted_at: tombstone.deleted_at,
+            })
+          } catch (error) {
+            console.error(`[Sync] Error al autocurar apicultor remoto ${remote.uuid}:`, error)
+          }
           console.log(`[Sync] Apicultor remoto ${remote.nombre_completo || remote.uuid} ignorado y marcado como eliminado (coincide con una eliminación previa)`)
           continue
         }
@@ -315,10 +319,14 @@ async function syncApicultores(forceFull = false) {
           sync_status: SYNC_STATUS.SYNCED 
         })
       } else if (existing.deleted_at) {
-        await sincronizarTumbaApicultor({
-          ...remote,
-          deleted_at: existing.deleted_at,
-        })
+        try {
+          await sincronizarTumbaApicultor({
+            ...remote,
+            deleted_at: existing.deleted_at,
+          })
+        } catch (error) {
+          console.error(`[Sync] Error al autocurar apicultor remoto ${remote.uuid}:`, error)
+        }
         console.log(`[Sync] Ignorando apicultor remoto ${remote.uuid} porque fue eliminado localmente`)
       } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
         // No sobrescribir registros locales pendientes (evita que una eliminación en curso se revierta)
@@ -772,11 +780,10 @@ export async function hardResetAndSync() {
       }
     }
     
-    // Traer todos los apicultores no eliminados
+    // Traer todos los apicultores, incluidos los marcados como eliminados
     const { data: remoteApicultores, error: errApicultores } = await supabase
       .from('apicultores')
       .select('*')
-      .is('deleted_at', null)
     
     if (errApicultores) {
       console.error('[Sync] Error trayendo apicultores:', errApicultores)
