@@ -1,5 +1,6 @@
 import { db, SYNC_STATUS } from './db'
 import { supabase, isSupabaseConfigured } from './supabase'
+import { nombreSeguro, VISITAS_FOTOS_BUCKET } from './visitaFotos'
 
 let isSyncing = false
 let pendingSync = false
@@ -63,6 +64,8 @@ export async function syncAll(forceFull = false) {
       console.log('[Sync] Iniciando sincronización', fullSyncInProgress ? 'COMPLETA' : 'incremental')
       
       // 1. Primero enviar cambios locales pendientes
+      console.log('[Sync] Paso 1: pushFotosVisita')
+      await pushFotosVisita()
       console.log('[Sync] Paso 1: pushLocalChanges')
       await pushLocalChanges()
       
@@ -95,6 +98,64 @@ export async function syncAll(forceFull = false) {
       fullSyncInProgress = false
     }
   } while (pendingSync)
+}
+
+async function pushFotosVisita() {
+  const pending = await db.visita_fotos
+    .where('sync_status').equals(SYNC_STATUS.PENDING)
+    .toArray()
+  if (!pending.length) return
+  const errors = []
+  for (const foto of pending) {
+    try {
+      if (foto.deleted_at) {
+        if (foto.path) {
+          const { error: storageError } = await supabase.storage
+            .from(VISITAS_FOTOS_BUCKET)
+            .remove([foto.path])
+          if (storageError) throw storageError
+        }
+        const { error } = await supabase
+          .from('visita_fotos')
+          .update({ deleted_at: foto.deleted_at, updated_at: new Date().toISOString() })
+          .eq('uuid', foto.uuid)
+        if (error) throw error
+        await db.visita_fotos.update(foto.id, { sync_status: SYNC_STATUS.SYNCED })
+        continue
+      }
+      if (!foto.blob) throw new Error('La fotografía no tiene contenido local')
+      const path = `${foto.visita_uuid}/${foto.uuid}_${nombreSeguro(foto.nombre)}`
+      const { error: uploadError } = await supabase.storage
+        .from(VISITAS_FOTOS_BUCKET)
+        .upload(path, foto.blob, {
+          contentType: foto.mime_type || foto.blob.type || 'image/jpeg',
+          upsert: true,
+        })
+      if (uploadError) throw uploadError
+      const now = new Date().toISOString()
+      const { error } = await supabase.from('visita_fotos').upsert({
+        uuid: foto.uuid,
+        visita_uuid: foto.visita_uuid,
+        nombre: foto.nombre,
+        path,
+        mime_type: foto.mime_type,
+        tamano: foto.tamano,
+        created_at: foto.created_at,
+        updated_at: now,
+        deleted_at: null,
+      }, { onConflict: 'uuid' })
+      if (error) throw error
+      await db.visita_fotos.update(foto.id, {
+        path,
+        sync_status: SYNC_STATUS.SYNCED,
+        updated_at: now,
+      })
+    } catch (error) {
+      console.error('[Sync] Error al sincronizar fotografía:', error)
+      errors.push(error)
+    }
+  }
+  if (errors.length) console.error(`[Sync] ${errors.length} fotografías no pudieron sincronizarse`)
 }
 
 // Sincronización de apicultores
