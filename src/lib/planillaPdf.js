@@ -1,6 +1,48 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+export const PDF_MARGEN_MM = 14
+
+const PDF_LETTER_ANCHOS_MM = {
+  portrait: 215.9,
+  landscape: 279.4,
+}
+
+export function obtenerAnchoUtilPDF(orientation = 'landscape') {
+  const anchoPagina = PDF_LETTER_ANCHOS_MM[orientation] || PDF_LETTER_ANCHOS_MM.landscape
+  return anchoPagina - PDF_MARGEN_MM * 2
+}
+
+export function calcularAnchosColumnasPDF({
+  cantidadConfigurables,
+  orientation = 'landscape',
+  anchoNumero = 10,
+  anchoNombre = 48,
+  anchoMinimoConfigurable = 12,
+}) {
+  const anchoConfigurable = Math.max(
+    0,
+    obtenerAnchoUtilPDF(orientation) - anchoNumero - anchoNombre,
+  )
+  const anchoPorColumna = cantidadConfigurables > 0
+    ? anchoConfigurable / cantidadConfigurables
+    : 0
+  const anchoAplicado = cantidadConfigurables > 0
+    ? Math.max(anchoMinimoConfigurable, anchoPorColumna)
+    : 0
+
+  return {
+    0: { cellWidth: anchoNumero },
+    1: { cellWidth: anchoNombre },
+    ...Object.fromEntries(
+      Array.from({ length: cantidadConfigurables }, (_, index) => [
+        index + 2,
+        { cellWidth: anchoAplicado },
+      ]),
+    ),
+  }
+}
+
 function slugify(texto) {
   return texto
     .toString()
@@ -19,16 +61,28 @@ function fechaHoy() {
   return `${dia}-${mes}-${anio}`
 }
 
-export function exportarPDF({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {}, rowHeight }) {
+export function exportarPDF({
+  titulo,
+  subtitulos = [],
+  columnas,
+  filas,
+  nombreArchivo,
+  columnStyles = {},
+  rowHeight,
+  orientation = 'landscape',
+  horizontalPageBreak = false,
+  horizontalPageBreakRepeat = null,
+  rowPageBreak = 'auto',
+}) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
   const doc = new jsPDF({
-    orientation: 'landscape',
+    orientation,
     unit: 'mm',
     format: 'letter',
   })
 
-  const margen = 14
+  const margen = PDF_MARGEN_MM
   let y = 14
 
   doc.setFont('helvetica', 'bold')
@@ -55,6 +109,10 @@ export function exportarPDF({ titulo, subtitulos = [], columnas, filas, nombreAr
     headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
     columnStyles,
     margin: { left: margen, right: margen },
+    ...(horizontalPageBreak
+      ? { horizontalPageBreak: true, horizontalPageBreakRepeat }
+      : {}),
+    rowPageBreak,
   })
 
   doc.save(nombreFinal)
@@ -75,16 +133,28 @@ export async function compartirPDF(blob, titulo, nombreArchivo = 'planilla.pdf')
   return false
 }
 
-export async function generarPDFBlob({ titulo, subtitulos = [], columnas, filas, nombreArchivo, columnStyles = {}, rowHeight }) {
+export async function generarPDFBlob({
+  titulo,
+  subtitulos = [],
+  columnas,
+  filas,
+  nombreArchivo,
+  columnStyles = {},
+  rowHeight,
+  orientation = 'landscape',
+  horizontalPageBreak = false,
+  horizontalPageBreakRepeat = null,
+  rowPageBreak = 'auto',
+}) {
   const nombreBase = nombreArchivo || `${slugify(titulo)}-${fechaHoy()}.pdf`
   const nombreFinal = nombreBase.endsWith('.pdf') ? nombreBase : `${nombreBase}.pdf`
   const doc = new jsPDF({
-    orientation: 'landscape',
+    orientation,
     unit: 'mm',
     format: 'letter',
   })
 
-  const margen = 14
+  const margen = PDF_MARGEN_MM
   let y = 14
 
   doc.setFont('helvetica', 'bold')
@@ -111,6 +181,10 @@ export async function generarPDFBlob({ titulo, subtitulos = [], columnas, filas,
     headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
     columnStyles,
     margin: { left: margen, right: margen },
+    ...(horizontalPageBreak
+      ? { horizontalPageBreak: true, horizontalPageBreakRepeat }
+      : {}),
+    rowPageBreak,
   })
 
   return { blob: doc.output('blob'), nombreFinal }
