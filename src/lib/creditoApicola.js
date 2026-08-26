@@ -97,6 +97,12 @@ export async function deleteProveedor(id) {
   if (error) throw new Error(`Error al eliminar proveedor: ${error.message}`)
 }
 
+export async function deleteCredito(id) {
+  ensure()
+  const { error } = await supabase.from('credito_creditos').delete().eq('id', id)
+  if (error) throw new Error(`Error al eliminar crédito: ${error.message}`)
+}
+
 export async function saveProducto(id, valor) {
   ensure()
   const { error } = await supabase.from('credito_productos').update({ valor_neto: Number(valor) || 0 }).eq('id', id)
