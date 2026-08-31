@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Save, ChevronLeft, Briefcase, User, AlertTriangle, FileText, Image as ImageIcon,
-  Upload, Camera, Download, Trash2, Loader2,
+  Upload, Camera, Download, Trash2, Loader2, Paperclip,
 } from 'lucide-react'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
 import VoiceInput from '../components/VoiceInput'
@@ -12,7 +12,7 @@ import {
   MAX_APORTE_INDAP, PORCENTAJE_MINIMO_APORTE,
   crearProyecto, editarProyecto, getProyecto,
   listArchivos, subirArchivo, eliminarArchivo, descargarArchivo,
-  formatMiles, formatPesos, parseMonto, porcentajeAporte,
+  urlArchivo, formatMiles, formatPesos, parseMonto, porcentajeAporte,
 } from '../lib/proyectosInversion'
 
 const EMPTY = {
@@ -26,9 +26,19 @@ const EMPTY = {
   detalle_proyecto: '',
   monto_indap: '',
   monto_propio: '',
+  aporte_valorizado: false,
+  monto_valorizado: '',
   solicita_credito: false,
   monto_credito: '',
 }
+
+const DOCUMENTACION_REQUERIDA = [
+  { tipo: 'doc_tenencia', label: 'Contrato o acreditación de tenencia actualizada del predio' },
+  { tipo: 'doc_dominio', label: 'Dominio vigente del predio' },
+  { tipo: 'doc_uso_suelo', label: 'Certificado de Uso de Suelo' },
+  { tipo: 'doc_croquis', label: 'Croquis (diseño de la infraestructura)' },
+  { tipo: 'doc_emplazamiento', label: 'Fotografía mapa emplazamiento de la construcción' },
+]
 
 function MontoInput({ name, value, onChange, disabled, placeholder = '0' }) {
   return (
@@ -74,13 +84,15 @@ export default function ProyectoInversion() {
   const [showCamera, setShowCamera] = useState(false)
   const cotizacionInput = useRef(null)
   const fotoInput = useRef(null)
+  const documentInputs = useRef({})
 
   const montoIndap = parseMonto(form.monto_indap)
   const montoPropio = parseMonto(form.monto_propio)
   const montoCredito = form.solicita_credito ? parseMonto(form.monto_credito) : 0
-  const montoTotal = montoIndap + montoPropio + montoCredito
+  const montoValorizado = form.aporte_valorizado ? parseMonto(form.monto_valorizado) : 0
+  const montoTotal = montoIndap + montoPropio + montoCredito + montoValorizado
   const excedeIndap = montoIndap > MAX_APORTE_INDAP
-  const pctAporte = porcentajeAporte({ montoIndap, montoPropio, montoCredito })
+  const pctAporte = porcentajeAporte({ montoIndap, montoPropio, montoCredito, montoValorizado })
   const aporteInsuficiente = montoIndap > 0 && pctAporte < PORCENTAJE_MINIMO_APORTE
 
   useEffect(() => {
@@ -254,6 +266,16 @@ export default function ProyectoInversion() {
     }
   }
 
+  async function abrirArchivo(archivo) {
+    setError('')
+    try {
+      const url = await urlArchivo(archivo)
+      window.open(url, '_blank', 'noopener')
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   function ListaArchivos({ tipo, vacio }) {
     const items = archivos.filter(a => a.tipo === tipo)
     if (items.length === 0) return <p className="text-xs text-gray-400">{vacio}</p>
@@ -263,8 +285,13 @@ export default function ProyectoInversion() {
           <li key={a.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
             {tipo === 'cotizacion'
               ? <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
-              : <ImageIcon className="w-4 h-4 text-amber-500 flex-shrink-0" />}
-            <span className="text-sm text-gray-700 truncate flex-1">{a.nombre}</span>
+              : tipo === 'fotografia'
+                ? <ImageIcon className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                : <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />}
+            <button type="button" onClick={() => abrirArchivo(a)}
+              className="text-sm text-gray-700 truncate flex-1 text-left hover:text-amber-700 hover:underline">
+              {a.nombre}
+            </button>
             <button type="button" onClick={() => bajarArchivo(a)}
               className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200" title="Descargar">
               <Download className="w-4 h-4" />
@@ -381,6 +408,12 @@ export default function ProyectoInversion() {
 
         <div>
           <label className="label text-xs font-medium text-gray-700">Detalle proyecto</label>
+          {form.aporte_valorizado && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mb-2 text-xs text-amber-800">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>Proyecto con aporte valorizado de {formatPesos(montoValorizado)}: recuerda considerarlo en la redacción del informe técnico.</span>
+            </div>
+          )}
           <VoiceInput value={form.detalle_proyecto} onChange={val => set('detalle_proyecto', val)}
             disabled={soloLectura} rows={5} placeholder="Describe el proyecto de inversión (escribe o dicta)…" />
         </div>
@@ -413,6 +446,20 @@ export default function ProyectoInversion() {
             <p className={`text-[11px] mt-1 ${aporteInsuficiente ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
               Mínimo 30%, Aporte Indap
             </p>
+            <label className="flex items-center gap-2 text-xs text-gray-700 mt-2">
+              <input type="checkbox" checked={!!form.aporte_valorizado}
+                onChange={e => {
+                  set('aporte_valorizado', e.target.checked)
+                  if (!e.target.checked) set('monto_valorizado', '')
+                }} />
+              Aporte valorizado (solo cuando es construcción)
+            </label>
+            {form.aporte_valorizado && (
+              <div className="mt-2">
+                <MontoInput name="monto_valorizado" value={form.monto_valorizado} onChange={set} />
+                <p className="text-[11px] text-gray-400 mt-1">Se suma al aporte del usuario para calcular el porcentaje</p>
+              </div>
+            )}
           </div>
 
           <div className="sm:col-span-2">
@@ -484,6 +531,33 @@ export default function ProyectoInversion() {
         </div>
         {puedeEditar && !savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
         <ListaArchivos tipo="fotografia" vacio="Sin fotografías adjuntas." />
+      </div>
+
+      <div className="card space-y-3">
+        <h3 className="font-bold text-sm text-gray-700 flex items-center gap-2">
+          <Paperclip className="w-4 h-4 text-gray-500" /> Documentación requerida para crédito y construcción
+        </h3>
+        {!savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
+        {DOCUMENTACION_REQUERIDA.map(({ tipo, label }) => (
+          <div key={tipo} className="space-y-2 border-t border-gray-100 pt-3 first:border-t-0 first:pt-0">
+            <p className="text-sm font-medium text-gray-700">{label}</p>
+            <input
+              ref={element => { documentInputs.current[tipo] = element }}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={e => { adjuntar(e.target.files, tipo); e.target.value = '' }}
+            />
+            {puedeEditar && (
+              <button type="button" onClick={() => documentInputs.current[tipo]?.click()}
+                disabled={subiendo || !savedId}
+                className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
+                <Upload className="w-4 h-4" /> Adjuntar archivos
+              </button>
+            )}
+            <ListaArchivos tipo={tipo} vacio="Sin archivos adjuntos." />
+          </div>
+        ))}
       </div>
 
       {subiendo && (

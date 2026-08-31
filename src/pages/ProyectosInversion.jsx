@@ -65,6 +65,11 @@ export default function ProyectosInversion() {
         )}
       </div>
 
+      <button type="button" onClick={() => navigate('/proyectos-inversion/resumen')}
+        className="w-full card text-left text-sm font-semibold text-amber-700 hover:bg-amber-50 transition-colors">
+        Resumen de proyectos de inversión
+      </button>
+
       {error && <div className="card bg-red-50 border-red-200 text-red-700 text-sm">{error}</div>}
 
       {loading ? (
