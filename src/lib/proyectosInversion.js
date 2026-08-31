@@ -23,11 +23,11 @@ export function formatPesos(valor) {
   return '$ ' + n.toLocaleString('es-CL')
 }
 
-// Porcentaje que representa el aporte del usuario (propio + crédito) sobre el aporte Indap.
-export function porcentajeAporte({ montoIndap, montoPropio, montoCredito }) {
+// Porcentaje que representa el aporte del usuario (propio + crédito + valorizado) sobre el aporte Indap.
+export function porcentajeAporte({ montoIndap, montoPropio, montoCredito, montoValorizado }) {
   const indap = parseMonto(montoIndap)
   if (!indap) return 0
-  const aporte = parseMonto(montoPropio) + parseMonto(montoCredito)
+  const aporte = parseMonto(montoPropio) + parseMonto(montoCredito) + parseMonto(montoValorizado)
   return (aporte / indap) * 100
 }
 
@@ -60,6 +60,7 @@ function toRow(form) {
   const montoIndap = parseMonto(form.monto_indap)
   const montoPropio = parseMonto(form.monto_propio)
   const montoCredito = form.solicita_credito ? parseMonto(form.monto_credito) : 0
+  const montoValorizado = form.aporte_valorizado ? parseMonto(form.monto_valorizado) : 0
   return {
     apicultor_nombre: (form.apicultor_nombre || '').trim(),
     apicultor_rut: form.apicultor_rut || null,
@@ -71,9 +72,11 @@ function toRow(form) {
     detalle_proyecto: form.detalle_proyecto || null,
     monto_indap: montoIndap,
     monto_propio: montoPropio,
+    aporte_valorizado: !!form.aporte_valorizado,
+    monto_valorizado: montoValorizado,
     solicita_credito: !!form.solicita_credito,
     monto_credito: montoCredito,
-    monto_total: montoIndap + montoPropio + montoCredito,
+    monto_total: montoIndap + montoPropio + montoCredito + montoValorizado,
   }
 }
 

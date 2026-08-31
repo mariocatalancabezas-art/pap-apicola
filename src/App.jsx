@@ -27,6 +27,7 @@ import EquipoTecnico from './pages/EquipoTecnico'
 import CalendarioActividades from './pages/CalendarioActividades'
 import ProyectosInversion from './pages/ProyectosInversion'
 import ProyectoInversion from './pages/ProyectoInversion'
+import ResumenProyectosInversion from './pages/ResumenProyectosInversion'
 import CreditoApicola from './pages/CreditoApicola'
 import ImpresionDatos from './pages/ImpresionDatos'
 import { AuthProvider, useAuth } from './lib/AuthContext'
@@ -71,6 +72,7 @@ function AppRoutes() {
         <Route path="calendario-actividades" element={<CalendarioActividades />} />
         <Route path="proyectos-inversion" element={<ProyectosInversion />} />
         <Route path="proyectos-inversion/nuevo" element={<ProyectoInversion />} />
+        <Route path="proyectos-inversion/resumen" element={<ResumenProyectosInversion />} />
         <Route path="proyectos-inversion/:id" element={<ProyectoInversion />} />
         <Route path="credito-apicola" element={<CreditoApicola />} />
         <Route path="password-apicultores" element={<PasswordApicultores />} />
