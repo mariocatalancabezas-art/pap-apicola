@@ -671,10 +671,10 @@ export async function shareURL(url, filename, type = 'application/pdf') {
 
 // ── APICULTORES (CSV) ─────────────────────────────────────────────────────────
 export function generateApicultoresCSV(apicultores) {
-  const headers = ['Nombres', 'Apellidos', 'RUT', 'Teléfono', 'Comuna', 'Dirección', 'Programa INDAP']
+  const headers = ['Nombres', 'Apellidos', 'RUT', 'Teléfono', 'N° Reg. SAG', 'Comuna', 'Dirección', 'Programa INDAP']
   const escape = val => '"' + String(val || '').replace(/"/g, '""') + '"'
   const rows = apicultores.map(a => [
-    a.nombres, a.apellidos, a.rut, a.telefono, a.comuna, a.direccion, a.programa_indap
+    a.nombres, a.apellidos, a.rut, a.telefono, a.n_reg_sag, a.comuna, a.direccion, a.programa_indap
   ].map(escape))
   const csv = [headers.join(','), ...rows].join('\n')
   const filename = `apicultores_${new Date().toISOString().slice(0, 10)}.csv`

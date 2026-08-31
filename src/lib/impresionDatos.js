@@ -8,6 +8,7 @@ export const CAMPOS_IMPRESION = [
       { key: 'apicultor.nombre_completo', label: 'Nombre completo' },
       { key: 'apicultor.rut', label: 'RUT' },
       { key: 'apicultor.telefono', label: 'Teléfono' },
+      { key: 'apicultor.n_reg_sag', label: 'N° Reg. SAG' },
       { key: 'apicultor.email', label: 'Email' },
       { key: 'apicultor.comuna', label: 'Comuna' },
       { key: 'apicultor.direccion', label: 'Dirección' },
