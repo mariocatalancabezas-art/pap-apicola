@@ -106,7 +106,9 @@ export default function ResumenProyectosInversion() {
                   <User className="w-3 h-3" />
                   {proyecto.apicultor_rut || 'Sin RUT'}
                 </p>
-                <p className="text-sm text-gray-700 mt-1 truncate">{proyecto.nombre_proyecto}</p>
+                <p className="text-sm text-gray-700 mt-1 truncate">
+                  {proyecto.nombre_proyecto} · {proyecto.anio || 2026}
+                </p>
               </button>
             ))}
           </div>

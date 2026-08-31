@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 export const BUCKET = 'proyectos-inversion'
 export const MAX_APORTE_INDAP = 3500000
 export const PORCENTAJE_MINIMO_APORTE = 30
+export const ANIOS_PROYECTO = [2026, 2027, 2028, 2029, 2030]
 
 // Deja sólo dígitos: "$ 1.200.000" → 1200000
 export function parseMonto(valor) {
@@ -31,13 +32,16 @@ export function porcentajeAporte({ montoIndap, montoPropio, montoCredito, montoV
   return (aporte / indap) * 100
 }
 
-export async function listProyectos() {
+export async function listProyectos(anio) {
   if (!supabase) throw new Error('Supabase no está configurado')
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('proyectos_inversion')
     .select('*')
     .order('created_at', { ascending: false })
+  if (anio !== undefined && anio !== null) query = query.eq('anio', anio)
+
+  const { data, error } = await query
 
   if (error) throw new Error('Error al cargar los proyectos: ' + error.message)
   return data || []
@@ -70,6 +74,7 @@ function toRow(form) {
     apicultor_direccion: form.apicultor_direccion || null,
     nombre_proyecto: (form.nombre_proyecto || '').trim(),
     detalle_proyecto: form.detalle_proyecto || null,
+    anio: Number(form.anio) || 2026,
     monto_indap: montoIndap,
     monto_propio: montoPropio,
     aporte_valorizado: !!form.aporte_valorizado,
