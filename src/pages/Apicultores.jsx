@@ -23,6 +23,7 @@ export default function Apicultores() {
     apellidos: '',
     rut: '',
     telefono: '',
+    n_reg_sag: '',
     email: '',
     comuna: '',
     direccion: '',
@@ -150,6 +151,8 @@ export default function Apicultores() {
       apellidos: '',
       rut: '',
       telefono: '',
+      n_reg_sag: '',
+      email: '',
       comuna: '',
       direccion: '',
       programa_indap: ''
@@ -164,6 +167,7 @@ export default function Apicultores() {
       apellidos: '',
       rut: '',
       telefono: '',
+      n_reg_sag: '',
       email: '',
       comuna: '',
       direccion: '',
@@ -187,6 +191,7 @@ export default function Apicultores() {
         nombre_completo: `${newApicultor.nombres} ${newApicultor.apellidos}`.toUpperCase().trim(),
         rut: newApicultor.rut || '',
         telefono: newApicultor.telefono || '',
+        n_reg_sag: (newApicultor.n_reg_sag || '').toUpperCase(),
         email: (newApicultor.email || '').toLowerCase(),
         comuna: (newApicultor.comuna || '').toUpperCase(),
         direccion: (newApicultor.direccion || '').toUpperCase(),
@@ -221,6 +226,7 @@ export default function Apicultores() {
       nombre_completo: nombreCompleto,
       nombres: editForm.nombres.toUpperCase(),
       apellidos: editForm.apellidos.toUpperCase(),
+      n_reg_sag: editForm.n_reg_sag ? editForm.n_reg_sag.toUpperCase().trim() : '',
       comuna: editForm.comuna ? editForm.comuna.toUpperCase() : '',
       direccion: editForm.direccion ? editForm.direccion.toUpperCase() : '',
       programa_indap: editForm.programa_indap ? editForm.programa_indap.toUpperCase() : '',
@@ -244,6 +250,7 @@ export default function Apicultores() {
     a.comuna?.toLowerCase().includes(search.toLowerCase()) ||
     a.rut?.toLowerCase().includes(search.toLowerCase()) ||
     a.telefono?.includes(search) ||
+    a.n_reg_sag?.toLowerCase().includes(search.toLowerCase()) ||
     a.email?.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -344,7 +351,7 @@ export default function Apicultores() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
-                <tr className="print-pad-row">{Array.from({ length: 8 }).map((_, i) => <th key={i} />)}</tr>
+                <tr className="print-pad-row">{Array.from({ length: 9 }).map((_, i) => <th key={i} />)}</tr>
                 <tr>
                   <th 
                     className="text-left px-2 py-2 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 select-none"
@@ -370,6 +377,7 @@ export default function Apicultores() {
                   </th>
                   <th className="text-left px-2 py-2 font-semibold text-gray-700 whitespace-nowrap min-w-[110px]">RUT</th>
                   <th className="text-left px-2 py-2 font-semibold text-gray-700">Teléfono</th>
+                  <th className="text-left px-2 py-2 font-semibold text-gray-700 whitespace-nowrap">N° Reg. SAG</th>
                   <th className="text-left px-2 py-2 font-semibold text-gray-700">Correo</th>
                   <th 
                     className="text-left px-3 py-2 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 select-none"
@@ -393,13 +401,13 @@ export default function Apicultores() {
                   {puedeVerAcciones && <th className="text-center px-3 py-2 font-semibold text-gray-700 no-print">Acciones</th>}
                 </tr>
               </thead>
-              <tfoot className="print-pad-foot"><tr><td colSpan={puedeVerAcciones ? 9 : 8} /></tr></tfoot>
+              <tfoot className="print-pad-foot"><tr><td colSpan={puedeVerAcciones ? 10 : 9} /></tr></tfoot>
               <tbody className="divide-y divide-gray-100">
                 {Object.entries(groupedData).map(([groupName, items]) => (
                   <React.Fragment key={groupName}>
                     {groupBy && (
                       <tr className="bg-amber-50">
-                        <td colSpan={puedeVerAcciones ? 9 : 8} className="px-3 py-2 font-bold text-amber-800">
+                        <td colSpan={puedeVerAcciones ? 10 : 9} className="px-3 py-2 font-bold text-amber-800">
                           {groupBy === 'comuna' ? '📍 ' : '📋 '}
                           {groupName} ({items.length} apicultores)
                         </td>
@@ -435,6 +443,13 @@ export default function Apicultores() {
                           <input
                             value={editForm.telefono || ''}
                             onChange={e => handleEditChange('telefono', e.target.value)}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            value={editForm.n_reg_sag || ''}
+                            onChange={e => handleEditChange('n_reg_sag', e.target.value)}
                             className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                           />
                         </td>
@@ -497,6 +512,7 @@ export default function Apicultores() {
                             </div>
                           )}
                         </td>
+                        <td className="px-2 py-2 text-gray-600 whitespace-nowrap">{a.n_reg_sag}</td>
                         <td className="px-2 py-2 text-gray-600 text-sm">{a.email}</td>
                         <td className="px-3 py-2 text-gray-600">{a.comuna}</td>
                         <td className="px-3 py-2 text-gray-600">{a.direccion}</td>
@@ -613,6 +629,17 @@ export default function Apicultores() {
                     placeholder="9 1234 5678"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">N° Reg. SAG</label>
+                <input
+                  type="text"
+                  value={newApicultor.n_reg_sag}
+                  onChange={e => setNewApicultor({...newApicultor, n_reg_sag: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  placeholder="Ej: 12345"
+                />
               </div>
 
               <div>
