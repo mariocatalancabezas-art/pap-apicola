@@ -40,7 +40,7 @@ export default function ProyectosInversion() {
 
       <button type="button" onClick={() => navigate('/proyectos-inversion/resumen')}
         className="w-full card text-left text-sm font-semibold text-amber-700 hover:bg-amber-50 transition-colors">
-        Resumen de proyectos de inversión
+        Resumen general Proyectos de Inversión
       </button>
     </div>
   )

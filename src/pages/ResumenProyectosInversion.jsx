@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { BarChart3, Briefcase, ChevronLeft, Loader2, List, User } from 'lucide-react'
-import { listProyectos, formatPesos, parseMonto } from '../lib/proyectosInversion'
+import { ANIOS_PROYECTO, listProyectos, formatPesos, parseMonto } from '../lib/proyectosInversion'
 import { useAuth } from '../lib/AuthContext'
 
 export default function ResumenProyectosInversion() {
   const navigate = useNavigate()
+  const { anio: anioParam } = useParams()
   const { user } = useAuth()
   const isAdmin = user?.rol === 'admin'
   const puedeVer = isAdmin || !!user?.puede_ver_proyectos_inversion
+  const anio = Number(anioParam)
+  const porAnio = ANIOS_PROYECTO.includes(anio)
 
   const [proyectos, setProyectos] = useState([])
   const [vista, setVista] = useState('listado')
@@ -22,7 +25,7 @@ export default function ResumenProyectosInversion() {
       setLoading(true)
       setError('')
       try {
-        const data = await listProyectos()
+        const data = await listProyectos(porAnio ? anio : undefined)
         if (active) setProyectos(data)
       } catch (e) {
         if (active) setError(e.message)
@@ -31,7 +34,7 @@ export default function ResumenProyectosInversion() {
       }
     })()
     return () => { active = false }
-  }, [puedeVer])
+  }, [puedeVer, anio, porAnio])
 
   const proyectosOrdenados = useMemo(() => (
     [...proyectos].sort((a, b) => (
@@ -57,15 +60,32 @@ export default function ResumenProyectosInversion() {
     )
   }
 
-  return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center gap-2">
+  if (anioParam && !porAnio) {
+    return (
+      <div className="p-4 space-y-4">
         <button type="button" onClick={() => navigate('/proyectos-inversion')}
           className="p-1 rounded-lg hover:bg-gray-100" title="Volver">
           <ChevronLeft className="w-5 h-5" />
         </button>
+        <div className="card bg-red-50 border-red-200 text-red-700 text-sm">
+          El año de proyectos de inversión no es válido.
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => navigate(
+          porAnio ? `/proyectos-inversion/anio/${anio}` : '/proyectos-inversion',
+        )}
+          className="p-1 rounded-lg hover:bg-gray-100" title="Volver">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
         <h2 className="text-lg font-bold flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-amber-500" /> Resumen de proyectos de inversión
+          <Briefcase className="w-5 h-5 text-amber-500" />
+          {porAnio ? `Resumen Proyectos de Inversión año ${anio}` : 'Resumen general Proyectos de Inversión'}
         </h2>
       </div>
 
@@ -93,7 +113,9 @@ export default function ResumenProyectosInversion() {
       ) : vista === 'listado' ? (
         proyectosOrdenados.length === 0 ? (
           <div className="card text-sm text-gray-500">
-            Aún no hay proyectos de inversión registrados.
+            {porAnio
+              ? `Aún no hay proyectos de inversión registrados para el año ${anio}.`
+              : 'Aún no hay proyectos de inversión registrados.'}
           </div>
         ) : (
           <div className="space-y-2">
@@ -107,7 +129,7 @@ export default function ResumenProyectosInversion() {
                   {proyecto.apicultor_rut || 'Sin RUT'}
                 </p>
                 <p className="text-sm text-gray-700 mt-1 truncate">
-                  {proyecto.nombre_proyecto} · {proyecto.anio || 2026}
+                  {proyecto.nombre_proyecto}{!porAnio && ` · ${proyecto.anio || 2026}`}
                 </p>
               </button>
             ))}

@@ -90,6 +90,11 @@ export default function ProyectosInversionAnio() {
         )}
       </div>
 
+      <button type="button" onClick={() => navigate(`/proyectos-inversion/anio/${anio}/resumen`)}
+        className="w-full card text-left text-sm font-semibold text-amber-700 hover:bg-amber-50 transition-colors">
+        Resumen Proyectos de Inversión año {anio}
+      </button>
+
       {error && <div className="card bg-red-50 border-red-200 text-red-700 text-sm">{error}</div>}
 
       {loading ? (
