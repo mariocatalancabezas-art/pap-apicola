@@ -113,7 +113,7 @@ export default function NuevoApicultor() {
 
         <div className="card space-y-3">
           <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Notas</h3>
-          <textarea name="notas" value={form.notas} onChange={handleChange} rows={3} className="input-field resize-none" placeholder="Observaciones…" />
+          <textarea name="notas" value={form.notas} onChange={handleChange} rows={3} spellCheck="true" lang="es" className="input-field resize-none" placeholder="Observaciones…" />
         </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full flex items-center justify-center gap-2 py-3">

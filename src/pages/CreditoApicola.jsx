@@ -136,6 +136,8 @@ function ProviderForm({ initial, onClose, onSaved }) {
             <textarea
               className="input-field w-full"
               maxLength={1000}
+              spellCheck="true"
+              lang="es"
               rows={3}
               value={form.servicios_detalle}
               onChange={event => set('servicios_detalle', event.target.value)}
@@ -647,7 +649,7 @@ function AbonoDialog({ credit, user, onClose, onSaved }) {
           </div>
           <div>
             <label className="label text-xs">Observación (opcional)</label>
-            <textarea className="input-field w-full" rows={2} value={observacion} onChange={event => setObservacion(event.target.value)} />
+            <textarea className="input-field w-full" rows={2} spellCheck="true" lang="es" value={observacion} onChange={event => setObservacion(event.target.value)} />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex justify-end gap-2">
