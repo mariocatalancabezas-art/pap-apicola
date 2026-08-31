@@ -111,6 +111,8 @@ export default function BreachasModal({ form, onChange, onClose, onSave }) {
                       name={solKey}
                       value={form[solKey] || ''}
                       onChange={onChange}
+                      spellCheck="true"
+                      lang="es"
                       rows={2}
                       className="input-field w-full resize-none"
                       placeholder="Asesoría técnica, inversión en equipamiento…"
@@ -128,6 +130,8 @@ export default function BreachasModal({ form, onChange, onClose, onSave }) {
               name="brechas_nota"
               value={form.brechas_nota || ''}
               onChange={onChange}
+              spellCheck="true"
+              lang="es"
               rows={3}
               className="input-field w-full resize-none"
               placeholder="En caso que el usuario requiera inversión, deberá estar contemplado en el Plan de Inversión."

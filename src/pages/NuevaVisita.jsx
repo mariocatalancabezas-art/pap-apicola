@@ -877,7 +877,7 @@ export default function NuevaVisita() {
           </div>
           <div>
             <FieldLabel num={100} text="Notas" />
-            <textarea name="f100_notas" value={form.f100_notas} onChange={handleChange} rows={4} className="input-field resize-none" placeholder="Observaciones del encuestador…" />
+            <textarea name="f100_notas" value={form.f100_notas} onChange={handleChange} rows={4} spellCheck="true" lang="es" className="input-field resize-none" placeholder="Observaciones del encuestador…" />
           </div>
         </div>
 

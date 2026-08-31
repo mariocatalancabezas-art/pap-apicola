@@ -71,6 +71,8 @@ export default function VoiceInput({ value, onChange, disabled = false, placehol
         value={value || ''}
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
+        spellCheck="true"
+        lang="es"
         placeholder={placeholder}
         rows={rows}
         className="input-field w-full pr-10 text-sm resize-y"

@@ -101,6 +101,8 @@ export default function PreguntasASBModal({ form, onChange, onClose, onSave }) {
                   name="asb_que_le_falta"
                   value={form.asb_que_le_falta || ''}
                   onChange={onChange}
+                  spellCheck="true"
+                  lang="es"
                   rows={3}
                   className="input-field w-full resize-none"
                   placeholder="Describe qué le falta para autorizar la sala…"
@@ -116,6 +118,8 @@ export default function PreguntasASBModal({ form, onChange, onClose, onSave }) {
                 name={key}
                 value={form[key] || ''}
                 onChange={onChange}
+                spellCheck="true"
+                lang="es"
                 rows={3}
                 className="input-field w-full resize-none"
                 placeholder="Escribe la respuesta…"

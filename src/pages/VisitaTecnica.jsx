@@ -368,12 +368,12 @@ export default function VisitaTecnica() {
           <div className="sm:col-span-2">
             <label className="label text-xs font-medium text-gray-700">Enfermedades observadas</label>
             <textarea name="vt_enfermedades" value={form.vt_enfermedades} onChange={handleChange}
-              rows={2} className="input-field w-full resize-none" placeholder="Enfermedades observadas…" />
+              rows={2} spellCheck="true" lang="es" className="input-field w-full resize-none" placeholder="Enfermedades observadas…" />
           </div>
           <div className="sm:col-span-2">
             <label className="label text-xs font-medium text-gray-700">Tratamientos aplicados</label>
             <textarea name="vt_tratamientos" value={form.vt_tratamientos} onChange={handleChange}
-              rows={2} className="input-field w-full resize-none" placeholder="Tratamientos aplicados…" />
+              rows={2} spellCheck="true" lang="es" className="input-field w-full resize-none" placeholder="Tratamientos aplicados…" />
           </div>
         </div>
       </div>
@@ -458,7 +458,7 @@ export default function VisitaTecnica() {
         <div>
           <label className="label text-xs font-medium text-gray-700">Detallar actividad realizada</label>
           <textarea name="vt_informe" value={form.vt_informe} onChange={handleChange}
-            rows={5} className="input-field w-full resize-none" placeholder="Detallar actividad realizada…" />
+            rows={5} spellCheck="true" lang="es" className="input-field w-full resize-none" placeholder="Detallar actividad realizada…" />
         </div>
       </div>
 
