@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Save, ChevronLeft, Briefcase, User, AlertTriangle, FileText, Image as ImageIcon,
   Upload, Camera, Download, Trash2, Loader2, Paperclip,
@@ -10,6 +10,7 @@ import CameraCapture from '../components/CameraCapture'
 import { useAuth } from '../lib/AuthContext'
 import {
   MAX_APORTE_INDAP, PORCENTAJE_MINIMO_APORTE,
+  ANIOS_PROYECTO,
   crearProyecto, editarProyecto, getProyecto,
   listArchivos, subirArchivo, eliminarArchivo, descargarArchivo,
   urlArchivo, formatMiles, formatPesos, parseMonto, porcentajeAporte,
@@ -26,6 +27,7 @@ const EMPTY = {
   detalle_proyecto: '',
   monto_indap: '',
   monto_propio: '',
+  anio: 2026,
   aporte_valorizado: false,
   monto_valorizado: '',
   solicita_credito: false,
@@ -61,13 +63,16 @@ function MontoInput({ name, value, onChange, disabled, placeholder = '0' }) {
 export default function ProyectoInversion() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const isAdmin = user?.rol === 'admin'
   const puedeVer = isAdmin || !!user?.puede_ver_proyectos_inversion
   const puedeEditar = isAdmin || !!user?.puede_editar_proyectos_inversion
   const soloLectura = !puedeEditar
 
-  const [form, setForm] = useState({ ...EMPTY })
+  const anioQuery = Number(searchParams.get('anio'))
+  const anioInicial = ANIOS_PROYECTO.includes(anioQuery) ? anioQuery : 2026
+  const [form, setForm] = useState({ ...EMPTY, anio: anioInicial })
   const [savedId, setSavedId] = useState(id || null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -106,6 +111,7 @@ export default function ProyectoInversion() {
         setForm({
           ...EMPTY,
           ...p,
+          anio: ANIOS_PROYECTO.includes(Number(p.anio)) ? Number(p.anio) : 2026,
           apicultor_rut: p.apicultor_rut || '',
           apicultor_telefono: p.apicultor_telefono || '',
           apicultor_comuna: p.apicultor_comuna || '',
@@ -209,7 +215,10 @@ export default function ProyectoInversion() {
         setSavedId(nuevo.id)
       }
       setSaved(true)
-      if (andClose) setTimeout(() => navigate('/proyectos-inversion'), 900)
+      if (andClose) {
+        const anio = ANIOS_PROYECTO.includes(Number(form.anio)) ? Number(form.anio) : 2026
+        setTimeout(() => navigate(`/proyectos-inversion/anio/${anio}`), 900)
+      }
     } catch (e) {
       setError(e.message)
     } finally {
@@ -404,6 +413,14 @@ export default function ProyectoInversion() {
           <label className="label text-xs font-medium text-gray-700">Nombre del proyecto de inversión</label>
           <input name="nombre_proyecto" value={form.nombre_proyecto} onChange={handleChange}
             className="input-field w-full" placeholder="Sala de extracción" />
+        </div>
+
+        <div>
+          <label className="label text-xs font-medium text-gray-700">Año del proyecto</label>
+          <select name="anio" value={form.anio} onChange={e => set('anio', Number(e.target.value))}
+            className="input-field w-full">
+            {ANIOS_PROYECTO.map(anio => <option key={anio} value={anio}>{anio}</option>)}
+          </select>
         </div>
 
         <div>
