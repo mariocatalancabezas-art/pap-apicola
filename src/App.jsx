@@ -74,6 +74,7 @@ function AppRoutes() {
         <Route path="proyectos-inversion" element={<ProyectosInversion />} />
         <Route path="proyectos-inversion/nuevo" element={<ProyectoInversion />} />
         <Route path="proyectos-inversion/resumen" element={<ResumenProyectosInversion />} />
+        <Route path="proyectos-inversion/anio/:anio/resumen" element={<ResumenProyectosInversion />} />
         <Route path="proyectos-inversion/anio/:anio" element={<ProyectosInversionAnio />} />
         <Route path="proyectos-inversion/:id" element={<ProyectoInversion />} />
         <Route path="credito-apicola" element={<CreditoApicola />} />
