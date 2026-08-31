@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Save, ChevronLeft, Briefcase, User, AlertTriangle, FileText, Image as ImageIcon,
-  Upload, Camera, Download, Trash2, Loader2, Paperclip,
+  Upload, Camera, Download, Trash2, Loader2, Paperclip, FileDown, Printer,
 } from 'lucide-react'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
 import VoiceInput from '../components/VoiceInput'
 import CameraCapture from '../components/CameraCapture'
+import InformeProyectoPrint from '../components/InformeProyectoPrint'
 import { useAuth } from '../lib/AuthContext'
 import {
   MAX_APORTE_INDAP, PORCENTAJE_MINIMO_APORTE,
@@ -15,6 +16,8 @@ import {
   listArchivos, subirArchivo, eliminarArchivo, descargarArchivo,
   urlArchivo, formatMiles, formatPesos, parseMonto, porcentajeAporte,
 } from '../lib/proyectosInversion'
+import { datosInforme, DOCUMENTACION_REQUERIDA } from '../lib/proyectoInforme'
+import { exportarInformePDF } from '../lib/proyectoInformePdf'
 
 const EMPTY = {
   apicultor_nombre: '',
@@ -33,14 +36,6 @@ const EMPTY = {
   solicita_credito: false,
   monto_credito: '',
 }
-
-const DOCUMENTACION_REQUERIDA = [
-  { tipo: 'doc_tenencia', label: 'Contrato o acreditación de tenencia actualizada del predio' },
-  { tipo: 'doc_dominio', label: 'Dominio vigente del predio' },
-  { tipo: 'doc_uso_suelo', label: 'Certificado de Uso de Suelo' },
-  { tipo: 'doc_croquis', label: 'Croquis (diseño de la infraestructura)' },
-  { tipo: 'doc_emplazamiento', label: 'Fotografía mapa emplazamiento de la construcción' },
-]
 
 function MontoInput({ name, value, onChange, disabled, placeholder = '0' }) {
   return (
@@ -87,6 +82,8 @@ export default function ProyectoInversion() {
   const [archivos, setArchivos] = useState([])
   const [subiendo, setSubiendo] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
+  const [imprimiendoAdjuntos, setImprimiendoAdjuntos] = useState(false)
+  const [informePrint, setInformePrint] = useState(null)
   const cotizacionInput = useRef(null)
   const fotoInput = useRef(null)
   const documentInputs = useRef({})
@@ -285,6 +282,62 @@ export default function ProyectoInversion() {
     }
   }
 
+  function obtenerDatosInforme() {
+    return datosInforme(form, {
+      montoIndap,
+      montoPropio,
+      montoValorizado,
+      montoCredito,
+      montoTotal,
+      pctAporte,
+    })
+  }
+
+  function nombreInforme() {
+    const slug = (form.apicultor_nombre || 'apicultor')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'apicultor'
+    const hoy = new Date()
+    const fecha = `${String(hoy.getDate()).padStart(2, '0')}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${hoy.getFullYear()}`
+    return `informe-tecnico-${slug}-${fecha}.pdf`
+  }
+
+  async function exportarInforme() {
+    setError('')
+    try {
+      await exportarInformePDF({ ...obtenerDatosInforme(), adjuntos: archivos }, nombreInforme())
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  function imprimirInforme(incluirAdjuntos = false) {
+    const datos = obtenerDatosInforme()
+    if (!incluirAdjuntos || !savedId || archivos.length === 0) {
+      setInformePrint({ datos, adjuntos: [], urlsImagenes: {}, incluirAdjuntos: false })
+      return
+    }
+    setImprimiendoAdjuntos(true)
+    setError('')
+    Promise.all(archivos.map(async archivo => [archivo.id, await urlArchivo(archivo)]))
+      .then(resultados => {
+        setInformePrint({
+          datos,
+          adjuntos: archivos,
+          urlsImagenes: Object.fromEntries(resultados),
+          incluirAdjuntos: true,
+        })
+      })
+      .catch(e => {
+        setError(e.message)
+        setInformePrint({ datos, adjuntos: archivos, urlsImagenes: {}, incluirAdjuntos: true })
+      })
+      .finally(() => setImprimiendoAdjuntos(false))
+  }
+
   function ListaArchivos({ tipo, vacio }) {
     const items = archivos.filter(a => a.tipo === tipo)
     if (items.length === 0) return <p className="text-xs text-gray-400">{vacio}</p>
@@ -424,7 +477,7 @@ export default function ProyectoInversion() {
         </div>
 
         <div>
-          <label className="label text-xs font-medium text-gray-700">Detalle proyecto</label>
+          <label className="label text-xs font-medium text-gray-700">Informe Técnico del Proyecto</label>
           {form.aporte_valorizado && (
             <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mb-2 text-xs text-amber-800">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -432,7 +485,7 @@ export default function ProyectoInversion() {
             </div>
           )}
           <VoiceInput value={form.detalle_proyecto} onChange={val => set('detalle_proyecto', val)}
-            disabled={soloLectura} rows={5} placeholder="Describe el proyecto de inversión (escribe o dicta)…" />
+            disabled={soloLectura} rows={5} placeholder="Redacta el informe técnico del proyecto (escribe o dicta)…" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -604,11 +657,29 @@ export default function ProyectoInversion() {
         </button>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={exportarInforme}
+          className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-3 rounded-lg transition-colors">
+          <FileDown className="w-4 h-4" /> Exportar PDF
+        </button>
+        <button type="button" onClick={() => imprimirInforme(false)}
+          className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-3 rounded-lg transition-colors">
+          <Printer className="w-4 h-4" /> Imprimir Informe
+        </button>
+        <button type="button" onClick={() => imprimirInforme(true)} disabled={imprimiendoAdjuntos}
+          className="flex-1 min-w-[180px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-3 rounded-lg transition-colors disabled:opacity-50">
+          <Printer className="w-4 h-4" /> {imprimiendoAdjuntos ? 'Preparando…' : 'Imprimir Informe y adjuntos'}
+        </button>
+      </div>
+
       {showCamera && (
         <CameraCapture
           onClose={() => setShowCamera(false)}
           onCapture={file => { setShowCamera(false); adjuntar([file], 'fotografia') }}
         />
+      )}
+      {informePrint && (
+        <InformeProyectoPrint {...informePrint} onClose={() => setInformePrint(null)} />
       )}
     </form>
   )
