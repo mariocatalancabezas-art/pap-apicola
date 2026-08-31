@@ -63,17 +63,17 @@ export default function InformeProyectoPrint({
         <article className="prose max-w-none text-gray-900">
           <h1 className="mb-8 text-center text-xl font-bold">{datos.titulo}</h1>
 
-          <h2>Datos del Apicultor</h2>
+          <h2 className="mt-6 mb-2 text-base font-bold">Datos del Apicultor</h2>
           {datos.datosApicultor.map(item => (
-            <p key={item.label}><b>{item.label}:</b> {item.valor}</p>
+            <div key={item.label} className="text-sm"><b>{item.label}:</b> {item.valor}</div>
           ))}
 
-          <h2>Proyecto de Inversión</h2>
+          <h2 className="mt-6 mb-2 text-base font-bold">Proyecto de Inversión</h2>
           {datos.proyecto.map(item => (
-            <p key={item.label}><b>{item.label}:</b> {item.valor}</p>
+            <div key={item.label} className="text-sm"><b>{item.label}:</b> {item.valor}</div>
           ))}
 
-          <h2>Montos</h2>
+          <h2 className="mt-6 mb-2 text-base font-bold">Montos</h2>
           <table className="w-full border-collapse border border-gray-400 text-sm">
             <thead>
               <tr>
@@ -91,17 +91,17 @@ export default function InformeProyectoPrint({
             </tbody>
           </table>
 
-          <h2>Informe Técnico del Proyecto</h2>
+          <h2 className="mt-6 mb-2 text-base font-bold">Informe Técnico del Proyecto</h2>
           {datos.informeTecnico.map((parrafo, index) => <p key={`${parrafo}-${index}`}>{parrafo}</p>)}
 
           {datos.notaValorizado && <p><b>{datos.notaValorizado}</b></p>}
 
           {incluirAdjuntos && adjuntos.length > 0 && (
             <section>
-              <h2>Archivos adjuntos</h2>
+              <h2 className="mt-6 mb-2 text-base font-bold">Archivos adjuntos</h2>
               {grupos.map(([tipo, archivos]) => (
                 <div key={tipo}>
-                  <h3>{ETIQUETAS_ADJUNTOS[tipo] || tipo}</h3>
+                  <h3 className="mt-3 mb-1 text-sm font-semibold">{ETIQUETAS_ADJUNTOS[tipo] || tipo}</h3>
                   <ul>
                     {archivos.map(archivo => <li key={archivo.id}>{archivo.nombre}</li>)}
                   </ul>
@@ -109,7 +109,7 @@ export default function InformeProyectoPrint({
               ))}
               {adjuntos.filter(archivo => archivo.mime_type?.startsWith('image/')).map(archivo => (
                 <div key={`imagen-${archivo.id}`} style={{ breakBefore: 'page', pageBreakBefore: 'always' }}>
-                  <h3>{archivo.nombre}</h3>
+                  <h3 className="mt-3 mb-1 text-sm font-semibold">{archivo.nombre}</h3>
                   {urlsImagenes[archivo.id] && (
                     <img src={urlsImagenes[archivo.id]} alt={archivo.nombre}
                       style={{ maxWidth: '100%', maxHeight: '230mm' }} />
