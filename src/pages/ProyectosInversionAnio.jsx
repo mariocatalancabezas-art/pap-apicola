@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Briefcase, ChevronLeft, Loader2, Pencil, Plus, Trash2, User } from 'lucide-react'
+import { Briefcase, ChevronLeft, Loader2, Pencil, Plus, Search, Trash2, User, X } from 'lucide-react'
 import { ANIOS_PROYECTO, eliminarProyecto, formatPesos, listProyectos } from '../lib/proyectosInversion'
 import { useAuth } from '../lib/AuthContext'
 
@@ -18,6 +18,16 @@ export default function ProyectosInversionAnio() {
   const [proyectos, setProyectos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [busqueda, setBusqueda] = useState('')
+
+  const normalizar = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const palabras = normalizar(busqueda).split(/\s+/).filter(Boolean)
+  const proyectosFiltrados = palabras.length === 0
+    ? proyectos
+    : proyectos.filter(p => {
+        const texto = normalizar(`${p.nombre_proyecto} ${p.apicultor_nombre} ${p.apicultor_rut} ${p.detalle_proyecto}`)
+        return palabras.every(w => texto.includes(w))
+      })
 
   async function load() {
     setLoading(true)
@@ -95,6 +105,19 @@ export default function ProyectosInversionAnio() {
         Resumen Proyectos de Inversión año {anio}
       </button>
 
+      <div className="relative">
+        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <input type="search" value={busqueda} onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar proyecto por nombre, apicultor, RUT o palabra…"
+          className="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        {busqueda && (
+          <button type="button" onClick={() => setBusqueda('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-gray-400 hover:bg-gray-100" title="Limpiar">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {error && <div className="card bg-red-50 border-red-200 text-red-700 text-sm">{error}</div>}
 
       {loading ? (
@@ -105,9 +128,13 @@ export default function ProyectosInversionAnio() {
         <div className="card text-sm text-gray-500">
           Aún no hay proyectos de inversión registrados para el año {anio}.
         </div>
+      ) : proyectosFiltrados.length === 0 ? (
+        <div className="card text-sm text-gray-500">
+          Ningún proyecto coincide con “{busqueda}”.
+        </div>
       ) : (
         <div className="space-y-2">
-          {proyectos.map(proyecto => (
+          {proyectosFiltrados.map(proyecto => (
             <div key={proyecto.id} className="card flex items-start justify-between gap-3">
               <button type="button" onClick={() => navigate(`/proyectos-inversion/${proyecto.id}`)}
                 className="flex-1 text-left min-w-0">
