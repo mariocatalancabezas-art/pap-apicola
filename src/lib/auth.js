@@ -162,11 +162,25 @@ export function logout() {
   sessionStorage.removeItem(SESSION_KEY)
 }
 
+export const PERMISOS_USUARIO = [
+  'puede_crear', 'puede_editar', 'puede_eliminar', 'puede_exportar',
+  'puede_editar_apicultores', 'puede_ver_acciones',
+  'puede_ver_password_apicultores', 'puede_editar_password_apicultores',
+  'puede_ver_observaciones_apicultores', 'puede_editar_observaciones_apicultores',
+  'puede_ver_observaciones_secretaria', 'puede_editar_observaciones_secretaria',
+  'puede_ver_observaciones_tecnico_administrativa', 'puede_editar_observaciones_tecnico_administrativa',
+  'puede_ver_observaciones_tecnico_jriquelme', 'puede_editar_observaciones_tecnico_jriquelme',
+  'puede_ver_observaciones_tecnico_eburgos', 'puede_editar_observaciones_tecnico_eburgos',
+  'puede_editar_calendario', 'puede_eliminar_calendario',
+  'puede_ver_proyectos_inversion', 'puede_editar_proyectos_inversion', 'puede_eliminar_proyectos_inversion',
+  'puede_ver_credito_apicola', 'puede_editar_credito_apicola',
+]
+
 export async function getUsuarios() {
   if (!supabase) throw new Error('Supabase no está configurado')
   const { data, error } = await supabase
     .from('app_users')
-    .select('id, email, nombre, rol, activo, puede_crear, puede_editar, puede_eliminar, puede_exportar, puede_editar_apicultores, puede_ver_acciones, puede_ver_password_apicultores, puede_editar_password_apicultores, puede_ver_observaciones_apicultores, puede_editar_observaciones_apicultores, puede_ver_observaciones_secretaria, puede_editar_observaciones_secretaria, puede_ver_observaciones_tecnico_administrativa, puede_editar_observaciones_tecnico_administrativa, puede_ver_observaciones_tecnico_jriquelme, puede_editar_observaciones_tecnico_jriquelme, puede_ver_observaciones_tecnico_eburgos, puede_editar_observaciones_tecnico_eburgos, puede_editar_calendario, puede_eliminar_calendario, puede_ver_credito_apicola, puede_editar_credito_apicola, created_at')
+    .select(['id', 'email', 'nombre', 'rol', 'activo', ...PERMISOS_USUARIO, 'created_at'].join(', '))
     .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
