@@ -97,6 +97,46 @@ async function hashPassword(password) {
   return sha256Fallback(message)
 }
 
+export const PERMISOS_USUARIO = [
+  'puede_crear', 'puede_editar', 'puede_eliminar', 'puede_exportar',
+  'puede_editar_apicultores', 'puede_ver_acciones',
+  'puede_ver_password_apicultores', 'puede_editar_password_apicultores',
+  'puede_ver_observaciones_apicultores', 'puede_editar_observaciones_apicultores',
+  'puede_ver_observaciones_secretaria', 'puede_editar_observaciones_secretaria',
+  'puede_ver_observaciones_tecnico_administrativa', 'puede_editar_observaciones_tecnico_administrativa',
+  'puede_ver_observaciones_tecnico_jriquelme', 'puede_editar_observaciones_tecnico_jriquelme',
+  'puede_ver_observaciones_tecnico_eburgos', 'puede_editar_observaciones_tecnico_eburgos',
+  'puede_editar_calendario', 'puede_eliminar_calendario',
+  'puede_ver_proyectos_inversion', 'puede_editar_proyectos_inversion', 'puede_eliminar_proyectos_inversion',
+  'puede_ver_credito_apicola', 'puede_editar_credito_apicola',
+]
+
+function buildSession(data) {
+  const session = { id: data.id, email: data.email, nombre: data.nombre, rol: data.rol }
+  for (const k of PERMISOS_USUARIO) session[k] = !!data[k]
+  return session
+}
+
+function saveSession(session) {
+  const store = localStorage.getItem(SESSION_KEY) ? localStorage : sessionStorage
+  store.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+export async function refreshSession() {
+  const current = getSession()
+  if (!current || !supabase) return null
+  const { data, error } = await supabase
+    .from('app_users')
+    .select(['id', 'email', 'nombre', 'rol', 'activo', ...PERMISOS_USUARIO].join(', '))
+    .eq('id', current.id)
+    .maybeSingle()
+  if (error || !data) return current
+  if (!data.activo) { logout(); return null }
+  const session = buildSession(data)
+  saveSession(session)
+  return session
+}
+
 export async function login(email, password, remember) {
   const hash = await hashPassword(password)
   const { data, error } = await supabase
@@ -109,28 +149,7 @@ export async function login(email, password, remember) {
   if (error || !data) throw new Error('Usuario o contraseña incorrectos')
   if (!data.activo) throw new Error('Tu cuenta está pendiente de aprobación por el administrador')
 
-  const session = {
-    id: data.id, email: data.email, nombre: data.nombre, rol: data.rol,
-    puede_crear: data.puede_crear, puede_editar: data.puede_editar,
-    puede_eliminar: data.puede_eliminar, puede_exportar: data.puede_exportar,
-    puede_editar_apicultores: data.puede_editar_apicultores,
-    puede_ver_password_apicultores: data.puede_ver_password_apicultores,
-    puede_editar_password_apicultores: data.puede_editar_password_apicultores,
-    puede_ver_observaciones_apicultores: data.puede_ver_observaciones_apicultores,
-    puede_editar_observaciones_apicultores: data.puede_editar_observaciones_apicultores,
-    puede_ver_observaciones_secretaria: data.puede_ver_observaciones_secretaria,
-    puede_editar_observaciones_secretaria: data.puede_editar_observaciones_secretaria,
-    puede_ver_observaciones_tecnico_administrativa: data.puede_ver_observaciones_tecnico_administrativa,
-    puede_editar_observaciones_tecnico_administrativa: data.puede_editar_observaciones_tecnico_administrativa,
-    puede_ver_observaciones_tecnico_jriquelme: data.puede_ver_observaciones_tecnico_jriquelme,
-    puede_editar_observaciones_tecnico_jriquelme: data.puede_editar_observaciones_tecnico_jriquelme,
-    puede_ver_observaciones_tecnico_eburgos: data.puede_ver_observaciones_tecnico_eburgos,
-    puede_editar_observaciones_tecnico_eburgos: data.puede_editar_observaciones_tecnico_eburgos,
-    puede_editar_calendario: data.puede_editar_calendario,
-    puede_eliminar_calendario: data.puede_eliminar_calendario,
-    puede_ver_credito_apicola: data.puede_ver_credito_apicola,
-    puede_editar_credito_apicola: data.puede_editar_credito_apicola,
-  }
+  const session = buildSession(data)
   if (remember) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   } else {
@@ -161,20 +180,6 @@ export function logout() {
   localStorage.removeItem(SESSION_KEY)
   sessionStorage.removeItem(SESSION_KEY)
 }
-
-export const PERMISOS_USUARIO = [
-  'puede_crear', 'puede_editar', 'puede_eliminar', 'puede_exportar',
-  'puede_editar_apicultores', 'puede_ver_acciones',
-  'puede_ver_password_apicultores', 'puede_editar_password_apicultores',
-  'puede_ver_observaciones_apicultores', 'puede_editar_observaciones_apicultores',
-  'puede_ver_observaciones_secretaria', 'puede_editar_observaciones_secretaria',
-  'puede_ver_observaciones_tecnico_administrativa', 'puede_editar_observaciones_tecnico_administrativa',
-  'puede_ver_observaciones_tecnico_jriquelme', 'puede_editar_observaciones_tecnico_jriquelme',
-  'puede_ver_observaciones_tecnico_eburgos', 'puede_editar_observaciones_tecnico_eburgos',
-  'puede_editar_calendario', 'puede_eliminar_calendario',
-  'puede_ver_proyectos_inversion', 'puede_editar_proyectos_inversion', 'puede_eliminar_proyectos_inversion',
-  'puede_ver_credito_apicola', 'puede_editar_credito_apicola',
-]
 
 export async function getUsuarios() {
   if (!supabase) throw new Error('Supabase no está configurado')
