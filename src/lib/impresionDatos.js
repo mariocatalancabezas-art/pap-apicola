@@ -58,6 +58,22 @@ export const CAMPOS_IMPRESION = [
     ],
   },
   {
+    key: 'puntos-criticos',
+    label: 'Puntos críticos',
+    fields: [
+      { key: 'diagnostico.f79_pc1', label: 'Punto Crítico 1' },
+      { key: 'diagnostico.f84_tipo_pc1', label: 'Tipo Punto Crítico 1' },
+      { key: 'diagnostico.f80_pc2', label: 'Punto Crítico 2' },
+      { key: 'diagnostico.f85_tipo_pc2', label: 'Tipo Punto Crítico 2' },
+      { key: 'diagnostico.f81_pc3', label: 'Punto Crítico 3' },
+      { key: 'diagnostico.f86_tipo_pc3', label: 'Tipo Punto Crítico 3' },
+      { key: 'diagnostico.f82_pc4', label: 'Punto Crítico 4' },
+      { key: 'diagnostico.f87_tipo_pc4', label: 'Tipo Punto Crítico 4' },
+      { key: 'diagnostico.f83_pc5', label: 'Punto Crítico 5' },
+      { key: 'diagnostico.f88_tipo_pc5', label: 'Tipo Punto Crítico 5' },
+    ],
+  },
+  {
     key: 'asb',
     label: 'Preguntas ASB',
     fields: [
