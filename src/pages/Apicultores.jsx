@@ -127,12 +127,13 @@ export default function Apicultores() {
     if (!confirm('¿Eliminar este apicultor?')) return
     const apicultor = await db.apicultores.get(id)
     if (apicultor) {
-      // Soft delete
+      // Soft delete con marca manual
       await db.apicultores.update(id, {
         ...apicultor,
         deleted_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        sync_status: SYNC_STATUS.PENDING
+        sync_status: SYNC_STATUS.PENDING,
+        eliminado_manual: true
       })
     }
     load()

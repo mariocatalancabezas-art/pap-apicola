@@ -154,15 +154,16 @@ export default function Historial() {
 
   async function deleteVisita(id) {
     if (!confirm('¿Eliminar este diagnóstico?\n\nSe sincronizará la eliminación en todos los dispositivos.')) return
-    
+
     const visita = await db.visitas.get(id)
     if (!visita) return
-    
+
     // Soft delete: marcar como eliminado en lugar de borrar
     await db.visitas.update(id, {
       deleted_at: new Date().toISOString(),
       sync_status: 'pending',
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      eliminado_manual: true
     })
     
     // Sincronización automática completa después de eliminar

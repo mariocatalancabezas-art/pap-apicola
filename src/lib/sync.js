@@ -160,9 +160,16 @@ async function pushFotosVisita() {
 
 // Sincronización de apicultores
 async function sincronizarTumbaApicultor(item) {
+  // Solo propagar al servidor si el borrado fue manual (usuario confirmó)
+  if (item.eliminado_manual !== true) {
+    console.log(`[Sync] Ignorando borrado automático de apicultor ${item.uuid}, marcando como synced`)
+    await db.apicultores.update(item.id, { sync_status: SYNC_STATUS.SYNCED })
+    return
+  }
   const payload = { ...item }
   delete payload.id
   delete payload.sync_status
+  delete payload.eliminado_manual
   const now = new Date().toISOString()
   const { data: updatedRows, error } = await supabase
     .from('apicultores')
