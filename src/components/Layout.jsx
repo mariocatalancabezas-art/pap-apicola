@@ -218,7 +218,7 @@ export default function Layout() {
       <aside className="hidden md:flex flex-col w-60 xl:w-64 bg-white border-r border-honey-100 shadow-sm fixed inset-y-0 left-0 z-40">
         <div 
           onClick={() => navigate('/')}
-          className="flex items-center gap-3 px-4 py-3 bg-honey-500 border-b border-honey-600 cursor-pointer hover:bg-honey-600 transition-colors"
+          className="flex items-center gap-3 px-4 py-3 bg-emerald-600 border-b border-emerald-700 cursor-pointer hover:bg-emerald-700 transition-colors"
         >
           <img
             src="/Logo/LOGO%20ASB.png.png"
@@ -226,7 +226,7 @@ export default function Layout() {
             className="w-10 h-10 object-contain"
           />
           <div>
-            <h1 className="font-bold text-white text-sm leading-tight">PAP Apícola Santa Bárbara-Indap</h1>
+            <h1 className="font-bold text-white text-sm leading-tight">PAP Apícola Santa Bárbara-Indap v2.0</h1>
           </div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -261,7 +261,7 @@ export default function Layout() {
               className="w-8 h-8 object-contain"
             />
             <div>
-              <h1 className="font-bold text-sm leading-tight">PAP Apícola Santa Bárbara-Indap</h1>
+              <h1 className="font-bold text-sm leading-tight">PAP Apícola Santa Bárbara-Indap v2.0</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -307,7 +307,7 @@ export default function Layout() {
                 className="w-7 h-7 object-contain"
               />
             </button>
-            <p className="text-sm font-medium text-gray-400">PAP Apícola Santa Bárbara-Indap — Sistema de Diagnóstico</p>
+            <p className="text-sm font-medium text-emerald-600">PAP Apícola Santa Bárbara-Indap v2.0 — Sistema de Diagnóstico</p>
           </div>
           <StatusBadge />
         </header>
