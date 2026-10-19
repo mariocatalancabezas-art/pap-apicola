@@ -34,6 +34,7 @@ import ImpresionDatos from './pages/ImpresionDatos'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { initApicultores } from './lib/initApicultores'
 import { setupAutoSync } from './lib/sync'
+import { checkAppVersion } from './lib/versionCheck'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -44,6 +45,13 @@ function AppRoutes() {
   const { user } = useAuth()
 
   useEffect(() => {
+    // Verificar versión de la app antes de permitir acceso
+    checkAppVersion().then(isAuthorized => {
+      if (!isAuthorized) {
+        console.error('[App] Versión no autorizada, bloqueando acceso')
+      }
+    })
+
     // Cargar apicultores automáticamente
     initApicultores().catch(console.error)
     setupAutoSync()

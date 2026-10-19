@@ -9,14 +9,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['Logo/LOGO ASB.png.png', 'Logo/LOGO INDAP.png', 'favicon.svg'],
       manifest: {
-        name: 'PAP Apícola - Gestión de Visitas',
-        short_name: 'PAP Apícola',
-        description: 'Gestión de visitas apícolas con sincronización offline',
-        theme_color: '#f59e0b',
-        background_color: '#fffbeb',
+        name: 'PAP Apícola - VERSIÓN PROTEGIDA (NUEVA)',
+        short_name: 'PAP Apícola NUEVA',
+        description: 'Gestión de visitas apícolas con sincronización offline - VERSIÓN PROTEGIDA',
+        theme_color: '#059669',
+        background_color: '#ecfdf5',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -49,7 +49,11 @@ export default defineConfig({
               }
             }
           }
-        ]
+        ],
+        // Forzar actualización más agresiva
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true
       }
     })
   ]
