@@ -82,6 +82,7 @@ function toRow(form) {
     solicita_credito: !!form.solicita_credito,
     monto_credito: montoCredito,
     monto_total: montoIndap + montoPropio + montoCredito + montoValorizado,
+    formulario: form.formulario && typeof form.formulario === 'object' ? form.formulario : {},
   }
 }
 

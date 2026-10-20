@@ -1,23 +1,39 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
-  Save, ChevronLeft, Briefcase, User, AlertTriangle, FileText, Image as ImageIcon,
-  Upload, Camera, Download, Trash2, Loader2, Paperclip, FileDown, Printer,
+  Save, ChevronLeft, Briefcase, User, AlertTriangle, FileDown, Printer,
+  Loader2, Plus, Trash2,
 } from 'lucide-react'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
 import VoiceInput from '../components/VoiceInput'
-import CameraCapture from '../components/CameraCapture'
-import InformeProyectoPrint from '../components/InformeProyectoPrint'
 import { useAuth } from '../lib/AuthContext'
 import {
   MAX_APORTE_INDAP, PORCENTAJE_MINIMO_APORTE,
   ANIOS_PROYECTO,
   crearProyecto, editarProyecto, getProyecto,
-  listArchivos, subirArchivo, eliminarArchivo, descargarArchivo,
-  urlArchivo, formatMiles, formatPesos, parseMonto, porcentajeAporte,
+  formatMiles, formatPesos, parseMonto, porcentajeAporte,
 } from '../lib/proyectosInversion'
-import { datosInforme, DOCUMENTACION_REQUERIDA } from '../lib/proyectoInforme'
-import { exportarInformePDF } from '../lib/proyectoInformePdf'
+import { descargarWord, imprimirFormulario } from '../lib/proyectoFormularioDoc'
+
+const SEMANAS = 6
+const TIPOS_INVERSION = ['Inversión física', 'Mano de obra y flete']
+
+const EMPTY_FORMULARIO = {
+  agencia_area: '',
+  antecedentes_usuario: '',
+  identificacion_predio: '',
+  regimen_tenencia_predio: '',
+  regimen_tenencia_agua: '',
+  fundamentacion: '',
+  objetivos: '',
+  descripcion: '',
+  impacto: '',
+  rubros_principales: '',
+  descripcion_produccion: '',
+  formulador: '',
+  gantt: [],
+  inversion_items: [],
+}
 
 const EMPTY = {
   apicultor_nombre: '',
@@ -35,6 +51,7 @@ const EMPTY = {
   monto_valorizado: '',
   solicita_credito: false,
   monto_credito: '',
+  formulario: { ...EMPTY_FORMULARIO },
 }
 
 function MontoInput({ name, value, onChange, disabled, placeholder = '0' }) {
@@ -51,6 +68,17 @@ function MontoInput({ name, value, onChange, disabled, placeholder = '0' }) {
         placeholder={placeholder}
         className="input-field w-full pl-7 text-right"
       />
+    </div>
+  )
+}
+
+function TextoLargo({ label, nota, value, onChange, disabled, rows = 3 }) {
+  return (
+    <div>
+      <label className="label text-xs font-medium text-gray-700">{label}</label>
+      {nota && <p className="text-[11px] text-gray-400 italic mb-1">{nota}</p>}
+      <VoiceInput value={value} onChange={onChange} disabled={disabled} rows={rows}
+        placeholder="Escribe o dicta aquí…" />
     </div>
   )
 }
@@ -79,15 +107,6 @@ export default function ProyectoInversion() {
   const [apiLoading, setApiLoading] = useState(false)
   const skipApiSearch = useRef(false)
 
-  const [archivos, setArchivos] = useState([])
-  const [subiendo, setSubiendo] = useState(false)
-  const [showCamera, setShowCamera] = useState(false)
-  const [imprimiendoAdjuntos, setImprimiendoAdjuntos] = useState(false)
-  const [informePrint, setInformePrint] = useState(null)
-  const cotizacionInput = useRef(null)
-  const fotoInput = useRef(null)
-  const documentInputs = useRef({})
-
   const montoIndap = parseMonto(form.monto_indap)
   const montoPropio = parseMonto(form.monto_propio)
   const montoCredito = form.solicita_credito ? parseMonto(form.monto_credito) : 0
@@ -105,6 +124,9 @@ export default function ProyectoInversion() {
         const p = await getProyecto(id)
         if (!active) return
         skipApiSearch.current = true
+        // Migración de formato antiguo: detalle_proyecto → descripción
+        const formulario = { ...EMPTY_FORMULARIO, ...(p.formulario || {}) }
+        if (!p.formulario && p.detalle_proyecto) formulario.descripcion = p.detalle_proyecto
         setForm({
           ...EMPTY,
           ...p,
@@ -115,6 +137,7 @@ export default function ProyectoInversion() {
           apicultor_direccion: p.apicultor_direccion || '',
           apicultor_email: p.apicultor_email || '',
           detalle_proyecto: p.detalle_proyecto || '',
+          formulario,
         })
       } catch (e) {
         if (active) setError(e.message)
@@ -124,20 +147,6 @@ export default function ProyectoInversion() {
     })()
     return () => { active = false }
   }, [id, puedeVer])
-
-  useEffect(() => {
-    if (!savedId || !puedeVer) return
-    let active = true
-    ;(async () => {
-      try {
-        const list = await listArchivos(savedId)
-        if (active) setArchivos(list)
-      } catch (e) {
-        if (active) setError(e.message)
-      }
-    })()
-    return () => { active = false }
-  }, [savedId, puedeVer])
 
   useEffect(() => {
     if (skipApiSearch.current) { skipApiSearch.current = false; return }
@@ -167,6 +176,11 @@ export default function ProyectoInversion() {
     setSaved(false)
   }
 
+  function setF(name, value) {
+    setForm(f => ({ ...f, formulario: { ...f.formulario, [name]: value } }))
+    setSaved(false)
+  }
+
   function handleChange(e) {
     set(e.target.name, e.target.value)
   }
@@ -188,9 +202,88 @@ export default function ProyectoInversion() {
     setSaved(false)
   }
 
+  // ── Carta Gantt ──
+  function agregarActividad() {
+    setForm(f => ({
+      ...f,
+      formulario: {
+        ...f.formulario,
+        gantt: [...(f.formulario.gantt || []), { actividad: '', semanas: Array(SEMANAS).fill(false) }],
+      },
+    }))
+    setSaved(false)
+  }
+
+  function setActividad(i, valor) {
+    setForm(f => {
+      const gantt = [...(f.formulario.gantt || [])]
+      gantt[i] = { ...gantt[i], actividad: valor }
+      return { ...f, formulario: { ...f.formulario, gantt } }
+    })
+    setSaved(false)
+  }
+
+  function toggleSemana(i, semana) {
+    setForm(f => {
+      const gantt = [...(f.formulario.gantt || [])]
+      const semanas = [...(gantt[i].semanas || Array(SEMANAS).fill(false))]
+      semanas[semana] = !semanas[semana]
+      gantt[i] = { ...gantt[i], semanas }
+      return { ...f, formulario: { ...f.formulario, gantt } }
+    })
+    setSaved(false)
+  }
+
+  function quitarActividad(i) {
+    setForm(f => ({
+      ...f,
+      formulario: { ...f.formulario, gantt: (f.formulario.gantt || []).filter((_, j) => j !== i) },
+    }))
+    setSaved(false)
+  }
+
+  // ── Ítems de inversión ──
+  function agregarItem() {
+    setForm(f => ({
+      ...f,
+      formulario: {
+        ...f.formulario,
+        inversion_items: [...(f.formulario.inversion_items || []),
+          { tipo: TIPOS_INVERSION[0], item: '', producto: '', unidad: '', medida: '', precio_unitario: '', monto: '' }],
+      },
+    }))
+    setSaved(false)
+  }
+
+  function setItem(i, campo, valor) {
+    setForm(f => {
+      const inversion_items = [...(f.formulario.inversion_items || [])]
+      const item = { ...inversion_items[i], [campo]: valor }
+      if (campo === 'precio_unitario' || campo === 'medida') {
+        const cant = parseFloat(String(item.medida).replace(',', '.')) || 0
+        const precio = parseMonto(item.precio_unitario)
+        if (cant > 0 && precio > 0) item.monto = cant * precio
+      }
+      inversion_items[i] = item
+      return { ...f, formulario: { ...f.formulario, inversion_items } }
+    })
+    setSaved(false)
+  }
+
+  function quitarItem(i) {
+    setForm(f => ({
+      ...f,
+      formulario: { ...f.formulario, inversion_items: (f.formulario.inversion_items || []).filter((_, j) => j !== i) },
+    }))
+    setSaved(false)
+  }
+
+  const gantt = form.formulario?.gantt || []
+  const items = form.formulario?.inversion_items || []
+
   async function guardar(andClose = false) {
     if (soloLectura) return
-    if (!form.apicultor_nombre.trim()) return alert('Selecciona o escribe el nombre del apicultor')
+    if (!form.apicultor_nombre.trim()) return alert('Selecciona o escribe el nombre del postulante')
     if (!form.nombre_proyecto.trim()) return alert('El nombre del proyecto de inversión es obligatorio')
     if (excedeIndap) {
       return alert(`El Aporte Indap no puede superar ${formatPesos(MAX_APORTE_INDAP)} (máximo 3,5 millones).`)
@@ -228,146 +321,8 @@ export default function ProyectoInversion() {
     guardar(true)
   }
 
-  async function adjuntar(files, tipo) {
-    if (soloLectura) return
-    if (!files || files.length === 0) return
-    if (!savedId) {
-      alert('Guarda primero el proyecto para poder adjuntar archivos.')
-      return
-    }
-    setSubiendo(true)
-    setError('')
-    try {
-      for (const file of Array.from(files)) {
-        if (tipo === 'cotizacion' && file.type !== 'application/pdf') {
-          throw new Error(`"${file.name}" no es un PDF. Las cotizaciones deben estar en formato PDF.`)
-        }
-        await subirArchivo(savedId, file, tipo)
-      }
-      setArchivos(await listArchivos(savedId))
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setSubiendo(false)
-    }
-  }
-
-  async function quitarArchivo(archivo) {
-    if (!confirm(`¿Eliminar "${archivo.nombre}"?`)) return
-    setError('')
-    try {
-      await eliminarArchivo(archivo)
-      setArchivos(await listArchivos(savedId))
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  async function bajarArchivo(archivo) {
-    setError('')
-    try {
-      await descargarArchivo(archivo)
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  async function abrirArchivo(archivo) {
-    setError('')
-    try {
-      const url = await urlArchivo(archivo)
-      window.open(url, '_blank', 'noopener')
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  function obtenerDatosInforme() {
-    return datosInforme(form, {
-      montoIndap,
-      montoPropio,
-      montoValorizado,
-      montoCredito,
-      montoTotal,
-      pctAporte,
-    })
-  }
-
-  function nombreInforme() {
-    const slug = (form.apicultor_nombre || 'apicultor')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '') || 'apicultor'
-    const hoy = new Date()
-    const fecha = `${String(hoy.getDate()).padStart(2, '0')}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${hoy.getFullYear()}`
-    return `informe-tecnico-${slug}-${fecha}.pdf`
-  }
-
-  async function exportarInforme() {
-    setError('')
-    try {
-      await exportarInformePDF({ ...obtenerDatosInforme(), adjuntos: archivos }, nombreInforme())
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  function imprimirInforme(incluirAdjuntos = false) {
-    const datos = obtenerDatosInforme()
-    if (!incluirAdjuntos || !savedId || archivos.length === 0) {
-      setInformePrint({ datos, adjuntos: [], urlsImagenes: {}, incluirAdjuntos: false })
-      return
-    }
-    setImprimiendoAdjuntos(true)
-    setError('')
-    Promise.all(archivos.map(async archivo => [archivo.id, await urlArchivo(archivo)]))
-      .then(resultados => {
-        setInformePrint({
-          datos,
-          adjuntos: archivos,
-          urlsImagenes: Object.fromEntries(resultados),
-          incluirAdjuntos: true,
-        })
-      })
-      .catch(e => {
-        setError(e.message)
-        setInformePrint({ datos, adjuntos: archivos, urlsImagenes: {}, incluirAdjuntos: true })
-      })
-      .finally(() => setImprimiendoAdjuntos(false))
-  }
-
-  function ListaArchivos({ tipo, vacio }) {
-    const items = archivos.filter(a => a.tipo === tipo)
-    if (items.length === 0) return <p className="text-xs text-gray-400">{vacio}</p>
-    return (
-      <ul className="space-y-1">
-        {items.map(a => (
-          <li key={a.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-            {tipo === 'cotizacion'
-              ? <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
-              : tipo === 'fotografia'
-                ? <ImageIcon className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                : <Paperclip className="w-4 h-4 text-gray-500 flex-shrink-0" />}
-            <button type="button" onClick={() => abrirArchivo(a)}
-              className="text-sm text-gray-700 truncate flex-1 text-left hover:text-amber-700 hover:underline">
-              {a.nombre}
-            </button>
-            <button type="button" onClick={() => bajarArchivo(a)}
-              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200" title="Descargar">
-              <Download className="w-4 h-4" />
-            </button>
-            {puedeEditar && (
-              <button type="button" onClick={() => quitarArchivo(a)}
-                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50" title="Eliminar">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-    )
+  function datosFormulario() {
+    return { ...form, monto_total: montoTotal }
   }
 
   if (!puedeVer) {
@@ -398,6 +353,11 @@ export default function ProyectoInversion() {
         </h2>
       </div>
 
+      <div className="card bg-emerald-50 border-emerald-200 text-emerald-800 text-xs">
+        <strong>FORMULARIO DE POSTULACIÓN (FORMATO OBLIGATORIO)</strong><br />
+        CONCURSO ESPECIAL PDI ALIANZAS PRODUCTIVAS AÑO {form.anio}
+      </div>
+
       {soloLectura && (
         <div className="card bg-amber-50 border-amber-200 text-amber-700 text-sm">
           Sólo lectura: no tienes permiso para crear o editar proyectos de inversión.
@@ -405,12 +365,24 @@ export default function ProyectoInversion() {
       )}
 
       <fieldset disabled={soloLectura} className="contents">
-      {/* Datos del apicultor */}
+
+      {/* 1.- Portada del Proyecto */}
       <div className="card space-y-3">
-        <h3 className="font-bold text-sm text-gray-700">Datos del Apicultor</h3>
+        <h3 className="font-bold text-sm text-gray-700">1.- Portada del Proyecto</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label text-xs font-medium text-gray-700">Concurso PDI</label>
+            <input value="PDI ALIANZAS PRODUCTIVAS" readOnly className="input-field w-full bg-gray-50" />
+          </div>
+          <div>
+            <label className="label text-xs font-medium text-gray-700">Año del proyecto</label>
+            <select name="anio" value={form.anio} onChange={e => set('anio', Number(e.target.value))}
+              className="input-field w-full">
+              {ANIOS_PROYECTO.map(anio => <option key={anio} value={anio}>{anio}</option>)}
+            </select>
+          </div>
           <div className="sm:col-span-2 relative">
-            <label className="label text-xs font-medium text-gray-700">Nombre completo</label>
+            <label className="label text-xs font-medium text-gray-700">Nombre de postulante</label>
             <input name="apicultor_nombre" value={form.apicultor_nombre} onChange={handleChange}
               autoComplete="off" className="input-field w-full"
               placeholder="Busca en la lista de apicultores del programa…" />
@@ -431,66 +403,206 @@ export default function ProyectoInversion() {
             )}
           </div>
           <div>
-            <label className="label text-xs font-medium text-gray-700">RUT</label>
+            <label className="label text-xs font-medium text-gray-700">RUT de postulante</label>
             <input name="apicultor_rut" value={form.apicultor_rut} onChange={handleChange}
               className="input-field w-full" placeholder="12.345.678-9" />
           </div>
           <div>
-            <label className="label text-xs font-medium text-gray-700">Teléfono</label>
-            <input name="apicultor_telefono" value={form.apicultor_telefono} onChange={handleChange}
-              className="input-field w-full" placeholder="+56 9 ..." />
+            <label className="label text-xs font-medium text-gray-700">Agencia de área</label>
+            <input value={form.formulario.agencia_area}
+              onChange={e => setF('agencia_area', e.target.value)}
+              className="input-field w-full" placeholder="Ej: Agencia Santa Bárbara" />
           </div>
-          <div>
-            <label className="label text-xs font-medium text-gray-700">Dirección/sector</label>
-            <input name="apicultor_direccion" value={form.apicultor_direccion} onChange={handleChange}
-              className="input-field w-full" placeholder="Dirección o sector" />
-          </div>
-          <div>
+          <div className="sm:col-span-2">
             <label className="label text-xs font-medium text-gray-700">Comuna</label>
             <input name="apicultor_comuna" value={form.apicultor_comuna} onChange={handleChange}
               className="input-field w-full" placeholder="Comuna" />
           </div>
-          <div className="sm:col-span-2">
-            <label className="label text-xs font-medium text-gray-700">Correo electrónico</label>
-            <input type="email" name="apicultor_email" value={form.apicultor_email} onChange={handleChange}
-              className="input-field w-full" placeholder="correo@ejemplo.cl" />
-          </div>
         </div>
       </div>
 
-      {/* Proyecto de inversión */}
-      <div className="card space-y-3">
-        <h3 className="font-bold text-sm text-gray-700">Proyecto de Inversión</h3>
-
+      {/* 2.- Información General del Proyecto */}
+      <div className="card space-y-4">
+        <h3 className="font-bold text-sm text-gray-700">2.- Información General del Proyecto</h3>
+        <TextoLargo label="Antecedentes del usuario/a" value={form.formulario.antecedentes_usuario}
+          onChange={v => setF('antecedentes_usuario', v)} disabled={soloLectura} />
+        <TextoLargo label="Identificación del predio" value={form.formulario.identificacion_predio}
+          onChange={v => setF('identificacion_predio', v)} disabled={soloLectura} />
+        <TextoLargo label="Régimen de tenencia del predio" value={form.formulario.regimen_tenencia_predio}
+          onChange={v => setF('regimen_tenencia_predio', v)} disabled={soloLectura} rows={2} />
+        <TextoLargo label="Régimen de tenencia del agua" value={form.formulario.regimen_tenencia_agua}
+          onChange={v => setF('regimen_tenencia_agua', v)} disabled={soloLectura} rows={2} />
         <div>
-          <label className="label text-xs font-medium text-gray-700">Nombre del proyecto de inversión</label>
+          <label className="label text-xs font-medium text-gray-700">Nombre del proyecto</label>
           <input name="nombre_proyecto" value={form.nombre_proyecto} onChange={handleChange}
             className="input-field w-full" placeholder="Sala de extracción" />
         </div>
+        <TextoLargo label="Fundamentación del proyecto" nota="Es el Por qué"
+          value={form.formulario.fundamentacion} onChange={v => setF('fundamentacion', v)} disabled={soloLectura} />
+        <TextoLargo label="Objetivos del proyecto" nota="Es el Para qué"
+          value={form.formulario.objetivos} onChange={v => setF('objetivos', v)} disabled={soloLectura} />
+        <TextoLargo label="Descripción del proyecto" nota="Es el Qué"
+          value={form.formulario.descripcion} onChange={v => setF('descripcion', v)} disabled={soloLectura} />
+        <TextoLargo label="Impacto del proyecto"
+          nota="Es el Qué cambio. Diferencia entre situación inicial (problema) y situación final (solución)"
+          value={form.formulario.impacto} onChange={v => setF('impacto', v)} disabled={soloLectura} />
+      </div>
 
-        <div>
-          <label className="label text-xs font-medium text-gray-700">Año del proyecto</label>
-          <select name="anio" value={form.anio} onChange={e => set('anio', Number(e.target.value))}
-            className="input-field w-full">
-            {ANIOS_PROYECTO.map(anio => <option key={anio} value={anio}>{anio}</option>)}
-          </select>
+      {/* 3.- Antecedentes Técnicos del Proyecto */}
+      <div className="card space-y-4">
+        <h3 className="font-bold text-sm text-gray-700">3.- Antecedentes Técnicos del Proyecto</h3>
+        <TextoLargo label="Descripción del o los rubros principales que involucra el proyecto"
+          value={form.formulario.rubros_principales} onChange={v => setF('rubros_principales', v)} disabled={soloLectura} />
+        <TextoLargo label="Descripción de la producción"
+          nota="¿Cuánto produce? ¿Cómo mejoraría la producción una vez incorporado el proyecto?"
+          value={form.formulario.descripcion_produccion} onChange={v => setF('descripcion_produccion', v)} disabled={soloLectura} />
+      </div>
+
+      {/* 4.- Carta Gantt del Proyecto */}
+      <div className="card space-y-3">
+        <h3 className="font-bold text-sm text-gray-700">4.- Carta Gantt del Proyecto</h3>
+        <p className="text-[11px] text-gray-400">
+          Actividades en la ejecución de las inversiones — periodo de ejecución: 45 días / 6 semanas
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr>
+                <th className="border border-gray-300 bg-gray-50 px-2 py-1 text-left text-xs">Actividad</th>
+                {Array.from({ length: SEMANAS }, (_, i) => (
+                  <th key={i} className="border border-gray-300 bg-gray-50 px-2 py-1 text-xs w-10">{i + 1}</th>
+                ))}
+                {puedeEditar && <th className="w-8"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {gantt.map((a, i) => (
+                <tr key={i}>
+                  <td className="border border-gray-300 p-0">
+                    <input value={a.actividad} onChange={e => setActividad(i, e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+                      placeholder="Nombre de la actividad" />
+                  </td>
+                  {Array.from({ length: SEMANAS }, (_, s) => (
+                    <td key={s} className="border border-gray-300 text-center p-0">
+                      <button type="button" onClick={() => toggleSemana(i, s)}
+                        className={`w-full h-8 ${a.semanas?.[s] ? 'bg-emerald-500' : 'bg-white hover:bg-gray-50'}`}
+                        disabled={soloLectura} />
+                    </td>
+                  ))}
+                  {puedeEditar && (
+                    <td className="text-center">
+                      <button type="button" onClick={() => quitarActividad(i)}
+                        className="p-1 text-red-400 hover:text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {gantt.length === 0 && (
+                <tr><td colSpan={SEMANAS + 2} className="border border-gray-300 px-3 py-3 text-xs text-gray-400 text-center">
+                  Sin actividades — agrega la primera con el botón de abajo
+                </td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
+        {puedeEditar && (
+          <button type="button" onClick={agregarActividad}
+            className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm">
+            <Plus className="w-4 h-4" /> Agregar actividad
+          </button>
+        )}
+      </div>
 
-        <div>
-          <label className="label text-xs font-medium text-gray-700">Informe Técnico del Proyecto</label>
-          {form.aporte_valorizado && (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mb-2 text-xs text-amber-800">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>Proyecto con aporte valorizado de {formatPesos(montoValorizado)}: recuerda considerarlo en la redacción del informe técnico.</span>
-            </div>
-          )}
-          <VoiceInput value={form.detalle_proyecto} onChange={val => set('detalle_proyecto', val)}
-            disabled={soloLectura} rows={5} placeholder="Redacta el informe técnico del proyecto (escribe o dicta)…" />
+      {/* 5.- Montos del Proyecto */}
+      <div className="card space-y-3">
+        <h3 className="font-bold text-sm text-gray-700">5.- Montos del Proyecto</h3>
+        <p className="text-xs font-semibold text-gray-600">Inversiones del Proyecto</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr>
+                {['Tipo de Inversión', 'Ítem', 'Producto', 'Unidad', 'Medida', 'Precio unitario', 'Monto total'].map(h => (
+                  <th key={h} className="border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-left">{h}</th>
+                ))}
+                {puedeEditar && <th className="w-8"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={i}>
+                  <td className="border border-gray-300 p-0">
+                    <select value={it.tipo} onChange={e => setItem(i, 'tipo', e.target.value)}
+                      className="w-full px-1 py-1.5 text-sm focus:outline-none">
+                      {TIPOS_INVERSION.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input value={it.item} onChange={e => setItem(i, 'item', e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm focus:outline-none" placeholder="Infraestructura" />
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input value={it.producto} onChange={e => setItem(i, 'producto', e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm focus:outline-none" />
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input value={it.unidad} onChange={e => setItem(i, 'unidad', e.target.value)}
+                      className="w-16 px-2 py-1.5 text-sm focus:outline-none" placeholder="unidad" />
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input value={it.medida} onChange={e => setItem(i, 'medida', e.target.value)}
+                      className="w-16 px-2 py-1.5 text-sm focus:outline-none text-right" inputMode="decimal" />
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input value={formatMiles(it.precio_unitario)}
+                      onChange={e => setItem(i, 'precio_unitario', parseMonto(e.target.value))}
+                      className="w-24 px-2 py-1.5 text-sm focus:outline-none text-right" inputMode="numeric" />
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input value={formatMiles(it.monto)}
+                      onChange={e => setItem(i, 'monto', parseMonto(e.target.value))}
+                      className="w-24 px-2 py-1.5 text-sm focus:outline-none text-right font-medium" inputMode="numeric" />
+                  </td>
+                  {puedeEditar && (
+                    <td className="text-center">
+                      <button type="button" onClick={() => quitarItem(i)}
+                        className="p-1 text-red-400 hover:text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr><td colSpan={8} className="border border-gray-300 px-3 py-3 text-xs text-gray-400 text-center">
+                  Sin ítems de inversión — agrega el primero con el botón de abajo
+                </td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
+        {puedeEditar && (
+          <button type="button" onClick={agregarItem}
+            className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm">
+            <Plus className="w-4 h-4" /> Agregar ítem de inversión
+          </button>
+        )}
+      </div>
 
+      {/* Financiamiento del Proyecto */}
+      <div className="card space-y-3">
+        <h3 className="font-bold text-sm text-gray-700">Financiamiento del Proyecto</h3>
+        {form.aporte_valorizado && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>Proyecto con aporte valorizado de {formatPesos(montoValorizado)}: recuerda considerarlo en el aporte propio.</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="label text-xs font-medium text-gray-700">Monto Aporte Indap</label>
+            <label className="label text-xs font-medium text-gray-700">Incentivo INDAP ($)</label>
             <MontoInput name="monto_indap" value={form.monto_indap} onChange={set} />
             <p className={`text-[11px] mt-1 ${excedeIndap ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
               Máximo 3,5 millones de aporte
@@ -504,7 +616,7 @@ export default function ProyectoInversion() {
           </div>
 
           <div>
-            <label className="label text-xs font-medium text-gray-700">Aporte propio usuario</label>
+            <label className="label text-xs font-medium text-gray-700">Aporte propio usuario ($)</label>
             <div className="flex items-start gap-2">
               <div className="flex-1">
                 <MontoInput name="monto_propio" value={form.monto_propio} onChange={set} />
@@ -555,86 +667,33 @@ export default function ProyectoInversion() {
           )}
 
           <div className={form.solicita_credito ? '' : 'sm:col-span-2'}>
-            <label className="label text-xs font-medium text-gray-700">Monto total del proyecto</label>
+            <label className="label text-xs font-medium text-gray-700">Monto total Inversión ($)</label>
             <input value={formatPesos(montoTotal)} readOnly
               className="input-field w-full text-right bg-gray-50 font-semibold" />
             <p className="text-[11px] text-gray-400 mt-1">Suma automática de los montos anteriores</p>
           </div>
         </div>
       </div>
-      </fieldset>
 
-      {/* Cotizaciones */}
+      {/* Firmas */}
       <div className="card space-y-3">
-        <h3 className="font-bold text-sm text-gray-700 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-red-500" /> Cotizaciones
-        </h3>
-        <p className="text-[11px] text-gray-400">Sólo archivos en formato PDF</p>
-        <input ref={cotizacionInput} type="file" accept="application/pdf" multiple className="hidden"
-          onChange={e => { adjuntar(e.target.files, 'cotizacion'); e.target.value = '' }} />
-        {puedeEditar && (
-          <button type="button" onClick={() => cotizacionInput.current?.click()} disabled={subiendo}
-            className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
-            <Upload className="w-4 h-4" /> Adjuntar cotización (PDF)
-          </button>
-        )}
-        {puedeEditar && !savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
-        <ListaArchivos tipo="cotizacion" vacio="Sin cotizaciones adjuntas." />
-      </div>
-
-      {/* Fotografías */}
-      <div className="card space-y-3">
-        <h3 className="font-bold text-sm text-gray-700 flex items-center gap-2">
-          <ImageIcon className="w-4 h-4 text-amber-500" /> Fotografías
-        </h3>
-        <input ref={fotoInput} type="file" multiple className="hidden"
-          onChange={e => { adjuntar(e.target.files, 'fotografia'); e.target.value = '' }} />
-        <div className={`flex flex-wrap gap-2 ${puedeEditar ? '' : 'hidden'}`}>
-          <button type="button" onClick={() => setShowCamera(true)} disabled={subiendo}
-            className="flex items-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
-            <Camera className="w-4 h-4" /> Tomar fotografía
-          </button>
-          <button type="button" onClick={() => fotoInput.current?.click()} disabled={subiendo}
-            className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
-            <Upload className="w-4 h-4" /> Subir archivos
-          </button>
-        </div>
-        {puedeEditar && !savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
-        <ListaArchivos tipo="fotografia" vacio="Sin fotografías adjuntas." />
-      </div>
-
-      <div className="card space-y-3">
-        <h3 className="font-bold text-sm text-gray-700 flex items-center gap-2">
-          <Paperclip className="w-4 h-4 text-gray-500" /> Documentación requerida para crédito y construcción
-        </h3>
-        {!savedId && <p className="text-[11px] text-amber-600">Guarda el proyecto para poder adjuntar archivos.</p>}
-        {DOCUMENTACION_REQUERIDA.map(({ tipo, label }) => (
-          <div key={tipo} className="space-y-2 border-t border-gray-100 pt-3 first:border-t-0 first:pt-0">
-            <p className="text-sm font-medium text-gray-700">{label}</p>
-            <input
-              ref={element => { documentInputs.current[tipo] = element }}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={e => { adjuntar(e.target.files, tipo); e.target.value = '' }}
-            />
-            {puedeEditar && (
-              <button type="button" onClick={() => documentInputs.current[tipo]?.click()}
-                disabled={subiendo || !savedId}
-                className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">
-                <Upload className="w-4 h-4" /> Adjuntar archivos
-              </button>
-            )}
-            <ListaArchivos tipo={tipo} vacio="Sin archivos adjuntos." />
+        <h3 className="font-bold text-sm text-gray-700">Firmas</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label text-xs font-medium text-gray-700">Nombre y apellidos de postulante</label>
+            <input value={form.apicultor_nombre} readOnly className="input-field w-full bg-gray-50" />
+            <p className="text-[11px] text-gray-400 mt-1">Se toma automáticamente del postulante</p>
           </div>
-        ))}
+          <div>
+            <label className="label text-xs font-medium text-gray-700">Nombre y apellidos Formulador de la postulación</label>
+            <input value={form.formulario.formulador}
+              onChange={e => setF('formulador', e.target.value)}
+              className="input-field w-full" placeholder="Quien llenó este formulario" />
+          </div>
+        </div>
       </div>
 
-      {subiendo && (
-        <div className="card flex items-center gap-2 text-sm text-gray-600">
-          <Loader2 className="w-4 h-4 animate-spin" /> Subiendo archivos…
-        </div>
-      )}
+      </fieldset>
 
       {error && (
         <div className="card bg-red-50 border-red-200 text-red-700 text-sm">{error}</div>
@@ -658,29 +717,15 @@ export default function ProyectoInversion() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={exportarInforme}
+        <button type="button" onClick={() => descargarWord(datosFormulario())}
           className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-3 rounded-lg transition-colors">
-          <FileDown className="w-4 h-4" /> Exportar PDF
+          <FileDown className="w-4 h-4" /> Exportar a Word
         </button>
-        <button type="button" onClick={() => imprimirInforme(false)}
+        <button type="button" onClick={() => imprimirFormulario(datosFormulario())}
           className="flex-1 min-w-[150px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-3 rounded-lg transition-colors">
-          <Printer className="w-4 h-4" /> Imprimir Informe
-        </button>
-        <button type="button" onClick={() => imprimirInforme(true)} disabled={imprimiendoAdjuntos}
-          className="flex-1 min-w-[180px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-3 rounded-lg transition-colors disabled:opacity-50">
-          <Printer className="w-4 h-4" /> {imprimiendoAdjuntos ? 'Preparando…' : 'Imprimir Informe y adjuntos'}
+          <Printer className="w-4 h-4" /> Imprimir formulario
         </button>
       </div>
-
-      {showCamera && (
-        <CameraCapture
-          onClose={() => setShowCamera(false)}
-          onCapture={file => { setShowCamera(false); adjuntar([file], 'fotografia') }}
-        />
-      )}
-      {informePrint && (
-        <InformeProyectoPrint {...informePrint} onClose={() => setInformePrint(null)} />
-      )}
     </form>
   )
 }
