@@ -279,7 +279,7 @@ async function syncApicultores(forceFull = false) {
   if (remoteApicultores && remoteApicultores.length > 0) {
     console.log(`[Sync] Recibidos ${remoteApicultores.length} apicultores`)
     const localApicultores = await db.apicultores.toArray()
-    const deletedLocal = localApicultores.filter(a => a.deleted_at)
+    const deletedLocal = localApicultores.filter(a => a.deleted_at && a.eliminado_manual === true)
 
     for (const remote of remoteApicultores) {
       const existing = await db.apicultores.where('uuid').equals(remote.uuid).first()
@@ -326,15 +326,25 @@ async function syncApicultores(forceFull = false) {
           sync_status: SYNC_STATUS.SYNCED 
         })
       } else if (existing.deleted_at) {
-        try {
-          await sincronizarTumbaApicultor({
+        if (existing.eliminado_manual === true) {
+          try {
+            await sincronizarTumbaApicultor({
+              ...remote,
+              deleted_at: existing.deleted_at,
+            })
+          } catch (error) {
+            console.error(`[Sync] Error al autocurar apicultor remoto ${remote.uuid}:`, error)
+          }
+          console.log(`[Sync] Ignorando apicultor remoto ${remote.uuid} porque fue eliminado localmente`)
+        } else {
+          // Eliminación local automática (no manual): el servidor manda, revivir el registro
+          await db.apicultores.update(existing.id, {
             ...remote,
-            deleted_at: existing.deleted_at,
+            id: existing.id,
+            deleted_at: null,
+            sync_status: SYNC_STATUS.SYNCED,
           })
-        } catch (error) {
-          console.error(`[Sync] Error al autocurar apicultor remoto ${remote.uuid}:`, error)
         }
-        console.log(`[Sync] Ignorando apicultor remoto ${remote.uuid} porque fue eliminado localmente`)
       } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
         // No sobrescribir registros locales pendientes (evita que una eliminación en curso se revierta)
         await db.apicultores.update(existing.id, { 
@@ -442,7 +452,16 @@ async function syncEquipoTecnico(forceFull = false) {
           sync_status: SYNC_STATUS.SYNCED
         })
       } else if (existing.deleted_at) {
-        console.log(`[Sync] Ignorando miembro remoto ${remote.uuid} porque fue eliminado localmente`)
+        if (existing.eliminado_manual === true) {
+          console.log(`[Sync] Ignorando miembro remoto ${remote.uuid} porque fue eliminado localmente`)
+        } else {
+          await db.equipo_tecnico.update(existing.id, {
+            ...remote,
+            id: existing.id,
+            deleted_at: null,
+            sync_status: SYNC_STATUS.SYNCED
+          })
+        }
       } else if (existing.sync_status !== SYNC_STATUS.PENDING && new Date(remote.updated_at) > new Date(existing.updated_at || 0)) {
         await db.equipo_tecnico.update(existing.id, {
           ...remote,
