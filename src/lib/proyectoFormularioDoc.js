@@ -66,26 +66,26 @@ export function generarHtmlFormulario(p) {
 <meta charset="utf-8">
 <title>Formulario de Postulación PDI</title>
 <style>
-  @page { size: letter; margin: 2cm; }
-  body { font-family: Arial, sans-serif; font-size: 10pt; color: #000; }
-  .logo { text-align: left; margin-bottom: 6px; }
-  .logo img { height: 70px; }
-  h1 { font-size: 12pt; text-align: center; margin: 0 0 2px; page-break-after: avoid; }
-  h2 { font-size: 11pt; text-align: center; margin: 0 0 14px; page-break-after: avoid; }
-  h3 { font-size: 11pt; margin: 14px 0 4px; page-break-after: avoid; }
+  @page { size: letter; margin: 1.4cm 1.6cm; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; }
+  .logo { text-align: left; margin-bottom: 4px; }
+  .logo img { height: 55px; }
+  h1 { font-size: 11pt; text-align: center; margin: 0 0 2px; page-break-after: avoid; }
+  h2 { font-size: 10pt; text-align: center; margin: 0 0 8px; page-break-after: avoid; }
+  h3 { font-size: 10pt; margin: 8px 0 3px; page-break-after: avoid; }
   .salto-pagina { page-break-before: always; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
   tr { page-break-inside: avoid; }
-  td, th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; font-size: 10pt; }
-  th { background: #e8e8e8; text-align: center; font-size: 9pt; }
+  td, th { border: 1px solid #000; padding: 3px 5px; vertical-align: top; font-size: 9pt; }
+  th { background: #e8e8e8; text-align: center; font-size: 8pt; }
   .label { background: #f2f2f2; font-weight: bold; width: 32%; }
-  .nota { font-weight: normal; font-size: 8pt; color: #444; font-style: italic; }
-  .contenido { font-weight: normal; padding-top: 4px; min-height: 40px; }
+  .nota { font-weight: normal; font-size: 7.5pt; color: #444; font-style: italic; }
+  .contenido { font-weight: normal; padding-top: 2px; min-height: 22px; }
   .c { text-align: center; width: 6%; }
   .num { text-align: right; white-space: nowrap; }
-  .firmas { table-layout: fixed; margin-top: 30px; }
+  .firmas { table-layout: fixed; margin-top: 20px; }
   .firmas td { border: none; }
-  .firma-td { height: 110px; vertical-align: bottom; text-align: center; width: 50%; }
+  .firma-td { height: 90px; vertical-align: bottom; text-align: center; width: 50%; }
   .firma-box { margin: 0 20px; }
   .firma-nombre { border-top: 1px solid #000; padding-top: 4px; font-weight: bold; }
 </style>
@@ -125,14 +125,14 @@ export function generarHtmlFormulario(p) {
 </table>
 
 <h3>4.- Carta Gantt del Proyecto</h3>
-<p style="font-size:9pt; margin:0 0 4px">Actividades en la ejecución de las inversiones — periodo de ejecución: 45 días / 6 semanas</p>
+<p style="font-size:8pt; margin:0 0 2px">Actividades en la ejecución de las inversiones — periodo de ejecución: 45 días / 6 semanas</p>
 <table>
   <tr><th>Actividad</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
   ${ganttRows || '<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'}
 </table>
 
 <h3>5.- Montos del Proyecto</h3>
-<p style="font-size:10pt; font-weight:bold; margin:0 0 4px">Inversiones del Proyecto</p>
+<p style="font-size:9pt; font-weight:bold; margin:0 0 2px">Inversiones del Proyecto</p>
 <table>
   <tr>
     <th>Tipo de Inversión</th><th>Ítem de Inversión</th><th>Producto</th>
@@ -142,7 +142,7 @@ export function generarHtmlFormulario(p) {
   <tr><td colspan="6" class="label">Monto total Inversión</td><td class="num"><strong>${formatPesos(montoTotal)}</strong></td></tr>
 </table>
 
-<p style="font-size:10pt; font-weight:bold; margin:8px 0 4px">Financiamiento del Proyecto</p>
+<p style="font-size:9pt; font-weight:bold; margin:6px 0 2px">Financiamiento del Proyecto</p>
 <table>
   <tr><th>Incentivo INDAP ($)</th><th>Aporte Propio ($)</th><th>Monto total Inversión ($)</th></tr>
   <tr>
