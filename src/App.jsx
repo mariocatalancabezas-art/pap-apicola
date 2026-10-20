@@ -29,6 +29,7 @@ import ProyectosInversion from './pages/ProyectosInversion'
 import ProyectosInversionAnio from './pages/ProyectosInversionAnio'
 import ProyectoInversion from './pages/ProyectoInversion'
 import ResumenProyectosInversion from './pages/ResumenProyectosInversion'
+import ImpresionProyectos from './pages/ImpresionProyectos'
 import CreditoApicola from './pages/CreditoApicola'
 import ImpresionDatos from './pages/ImpresionDatos'
 import { AuthProvider, useAuth } from './lib/AuthContext'
@@ -83,6 +84,7 @@ function AppRoutes() {
         <Route path="proyectos-inversion/nuevo" element={<ProyectoInversion />} />
         <Route path="proyectos-inversion/resumen" element={<ResumenProyectosInversion />} />
         <Route path="proyectos-inversion/anio/:anio/resumen" element={<ResumenProyectosInversion />} />
+        <Route path="proyectos-inversion/anio/:anio/imprimir" element={<ImpresionProyectos />} />
         <Route path="proyectos-inversion/anio/:anio" element={<ProyectosInversionAnio />} />
         <Route path="proyectos-inversion/:id" element={<ProyectoInversion />} />
         <Route path="credito-apicola" element={<CreditoApicola />} />

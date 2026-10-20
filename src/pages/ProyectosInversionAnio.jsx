@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Briefcase, ChevronLeft, Loader2, Pencil, Plus, Search, Trash2, User, X } from 'lucide-react'
+import { Briefcase, ChevronLeft, Loader2, Pencil, Plus, Printer, Search, Trash2, User, X } from 'lucide-react'
 import { ANIOS_PROYECTO, eliminarProyecto, formatPesos, listProyectos } from '../lib/proyectosInversion'
 import { useAuth } from '../lib/AuthContext'
 
@@ -92,12 +92,19 @@ export default function ProyectosInversionAnio() {
             <Briefcase className="w-5 h-5 text-amber-500" /> Proyectos de Inversión año {anio}
           </h2>
         </div>
-        {puedeEditar && (
-          <button type="button" onClick={() => navigate(`/proyectos-inversion/nuevo?anio=${anio}`)}
-            className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
-            <Plus className="w-4 h-4" /> Nuevo proyecto de inversión
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => navigate(`/proyectos-inversion/anio/${anio}/imprimir`)}
+            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm"
+            title="Imprimir planilla de proyectos con columnas seleccionables">
+            <Printer className="w-4 h-4" /> Imprimir
           </button>
-        )}
+          {puedeEditar && (
+            <button type="button" onClick={() => navigate(`/proyectos-inversion/nuevo?anio=${anio}`)}
+              className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
+              <Plus className="w-4 h-4" /> Nuevo proyecto de inversión
+            </button>
+          )}
+        </div>
       </div>
 
       <button type="button" onClick={() => navigate(`/proyectos-inversion/anio/${anio}/resumen`)}
