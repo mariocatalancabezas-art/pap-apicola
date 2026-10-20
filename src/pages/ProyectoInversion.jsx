@@ -5,6 +5,7 @@ import {
   Loader2, Plus, Trash2,
 } from 'lucide-react'
 import { buscarApicultoresPorNombre } from '../lib/importApicultores'
+import { db } from '../lib/db'
 import VoiceInput from '../components/VoiceInput'
 import { useAuth } from '../lib/AuthContext'
 import {
@@ -19,7 +20,7 @@ const SEMANAS = 6
 const TIPOS_INVERSION = ['Inversión física', 'Mano de obra y flete']
 
 const EMPTY_FORMULARIO = {
-  agencia_area: '',
+  agencia_area: 'Agencia Santa Barbara',
   antecedentes_usuario: '',
   identificacion_predio: '',
   regimen_tenencia_predio: '',
@@ -52,6 +53,37 @@ const EMPTY = {
   solicita_credito: false,
   monto_credito: '',
   formulario: { ...EMPTY_FORMULARIO },
+}
+
+const normStr = s => String(s || '').toUpperCase().trim()
+
+async function obtenerDiagnostico({ rut, nombre }) {
+  try {
+    const visitas = await db.visitas.toArray()
+    const activas = visitas.filter(v => !v.deleted_at)
+    const rutN = normStr(rut).replace(/[.\-]/g, '')
+    const nomN = normStr(nombre)
+    return (rutN && activas.find(v => normStr(v.f3_rut).replace(/[.\-]/g, '') === rutN))
+      || (nomN && activas.find(v => normStr(`${v.f1_nombre || ''} ${v.f2_apellido || ''}`) === nomN))
+      || null
+  } catch {
+    return null
+  }
+}
+
+function prefillDesdeDiagnostico(visita, formulario) {
+  const f = { ...formulario }
+  if (!f.agencia_area) f.agencia_area = 'Agencia Santa Barbara'
+  if (visita) {
+    if (!f.antecedentes_usuario) {
+      const anios = String(visita.asb_anios_apicultura || '').trim() || 'XX'
+      f.antecedentes_usuario = `Apicultor con "${anios}" años en el rubro apicola, actualmente perteneciente al programa de alianzas productivas Indap-Apicola Santa Barbara.`
+    }
+    if (!f.identificacion_predio && visita.f10_dir_predio) {
+      f.identificacion_predio = visita.f10_dir_predio
+    }
+  }
+  return f
 }
 
 function MontoInput({ name, value, onChange, disabled, placeholder = '0' }) {
@@ -127,6 +159,9 @@ export default function ProyectoInversion() {
         // Migración de formato antiguo: detalle_proyecto → descripción
         const formulario = { ...EMPTY_FORMULARIO, ...(p.formulario || {}) }
         if (!p.formulario && p.detalle_proyecto) formulario.descripcion = p.detalle_proyecto
+        const visita = await obtenerDiagnostico({ rut: p.apicultor_rut, nombre: p.apicultor_nombre })
+        if (!active) return
+        const formularioCompleto = prefillDesdeDiagnostico(visita, formulario)
         setForm({
           ...EMPTY,
           ...p,
@@ -137,7 +172,7 @@ export default function ProyectoInversion() {
           apicultor_direccion: p.apicultor_direccion || '',
           apicultor_email: p.apicultor_email || '',
           detalle_proyecto: p.detalle_proyecto || '',
-          formulario,
+          formulario: formularioCompleto,
         })
       } catch (e) {
         if (active) setError(e.message)
@@ -185,9 +220,10 @@ export default function ProyectoInversion() {
     set(e.target.name, e.target.value)
   }
 
-  function seleccionarApicultor(a) {
+  async function seleccionarApicultor(a) {
     const nombre = (a.nombre_completo || `${a.nombres || ''} ${a.apellidos || ''}`).trim()
     skipApiSearch.current = true
+    const visita = await obtenerDiagnostico({ rut: a.rut, nombre })
     setForm(prev => ({
       ...prev,
       apicultor_nombre: nombre,
@@ -196,6 +232,7 @@ export default function ProyectoInversion() {
       apicultor_comuna: a.comuna || '',
       apicultor_direccion: a.direccion || '',
       apicultor_email: a.email || '',
+      formulario: prefillDesdeDiagnostico(visita, prev.formulario),
     }))
     setApiResults([])
     setShowApi(false)

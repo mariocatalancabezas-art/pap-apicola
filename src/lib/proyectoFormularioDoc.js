@@ -58,6 +58,8 @@ export function generarHtmlFormulario(p) {
   const montoValorizado = p.aporte_valorizado ? parseMonto(p.monto_valorizado) : 0
   const montoTotal = parseMonto(p.monto_total) || (montoIndap + montoPropio + montoCredito + montoValorizado)
 
+  const logoUrl = `${window.location.origin}/Logo/LOGO%20INDAP.png`
+
   return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
 <head>
@@ -66,10 +68,14 @@ export function generarHtmlFormulario(p) {
 <style>
   @page { size: letter; margin: 2cm; }
   body { font-family: Arial, sans-serif; font-size: 10pt; color: #000; }
-  h1 { font-size: 12pt; text-align: center; margin: 0 0 2px; }
-  h2 { font-size: 11pt; text-align: center; margin: 0 0 14px; }
-  h3 { font-size: 11pt; margin: 14px 0 4px; }
+  .logo { text-align: left; margin-bottom: 6px; }
+  .logo img { height: 70px; }
+  h1 { font-size: 12pt; text-align: center; margin: 0 0 2px; page-break-after: avoid; }
+  h2 { font-size: 11pt; text-align: center; margin: 0 0 14px; page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14px 0 4px; page-break-after: avoid; }
+  .salto-pagina { page-break-before: always; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  tr { page-break-inside: avoid; }
   td, th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; font-size: 10pt; }
   th { background: #e8e8e8; text-align: center; font-size: 9pt; }
   .label { background: #f2f2f2; font-weight: bold; width: 32%; }
@@ -77,12 +83,16 @@ export function generarHtmlFormulario(p) {
   .contenido { font-weight: normal; padding-top: 4px; min-height: 40px; }
   .c { text-align: center; width: 6%; }
   .num { text-align: right; white-space: nowrap; }
-  .firma-td { height: 90px; vertical-align: bottom; text-align: center; width: 50%; }
+  .firmas { table-layout: fixed; margin-top: 30px; }
+  .firmas td { border: none; }
+  .firma-td { height: 110px; vertical-align: bottom; text-align: center; width: 50%; }
+  .firma-box { margin: 0 20px; }
   .firma-nombre { border-top: 1px solid #000; padding-top: 4px; font-weight: bold; }
 </style>
 </head>
 <body>
 
+<div class="logo"><img src="${logoUrl}" alt="INDAP"/></div>
 <h1>FORMULARIO DE POSTULACIÓN (FORMATO OBLIGATORIO)</h1>
 <h2>CONCURSO ESPECIAL PDI ALIANZAS PRODUCTIVAS AÑO ${anio}</h2>
 
@@ -108,7 +118,7 @@ export function generarHtmlFormulario(p) {
   ${bloqueTexto('Impacto del proyecto', 'Es el Qué cambio. Diferencia entre situación inicial (problema) y situación final (solución)', f.impacto)}
 </table>
 
-<h3>3.- Antecedentes Técnicos del Proyecto</h3>
+<h3 class="salto-pagina">3.- Antecedentes Técnicos del Proyecto</h3>
 <table>
   ${bloqueTexto('Descripción del o los rubros principales que involucra el proyecto', '', f.rubros_principales)}
   ${bloqueTexto('Descripción de la producción', '¿Cuánto produce? ¿Cómo mejoraría la producción una vez incorporado el proyecto?', f.descripcion_produccion)}
@@ -142,11 +152,10 @@ export function generarHtmlFormulario(p) {
   </tr>
 </table>
 
-<br/>
-<table>
+<table class="firmas">
   <tr>
-    <td class="firma-td"><div class="firma-nombre">Firma<br/>Nombre y apellidos de postulante</div><div>${campo(p.apicultor_nombre)}</div></td>
-    <td class="firma-td"><div class="firma-nombre">Firma<br/>Nombre y apellidos Formulador de la postulación</div><div>${campo(f.formulador)}</div></td>
+    <td class="firma-td"><div class="firma-box"><div class="firma-nombre">Firma<br/>Nombre y apellidos de postulante</div><div>${campo(p.apicultor_nombre)}</div></div></td>
+    <td class="firma-td"><div class="firma-box"><div class="firma-nombre">Firma<br/>Nombre y apellidos Formulador de la postulación</div><div>${campo(f.formulador)}</div></div></td>
   </tr>
 </table>
 
