@@ -77,10 +77,11 @@ function prefillDesdeDiagnostico(visita, formulario) {
   if (visita) {
     if (!f.antecedentes_usuario) {
       const anios = String(visita.asb_anios_apicultura || '').trim() || 'XX'
-      f.antecedentes_usuario = `Apicultor con "${anios}" años en el rubro apicola, actualmente perteneciente al programa de alianzas productivas Indap-Apicola Santa Barbara.`
+      f.antecedentes_usuario = `Apicultor con ${anios} años en el rubro apicola, actualmente perteneciente al programa de alianzas productivas Indap-Apicola Santa Barbara.`
     }
-    if (!f.identificacion_predio && visita.f10_dir_predio) {
-      f.identificacion_predio = visita.f10_dir_predio
+    if (!f.identificacion_predio) {
+      const dirPredio = visita.f10_dir_predio || visita.f9_dir_propiedad
+      if (dirPredio) f.identificacion_predio = dirPredio
     }
   }
   return f
