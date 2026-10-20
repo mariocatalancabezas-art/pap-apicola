@@ -32,9 +32,17 @@ const EMPTY_FORMULARIO = {
   rubros_principales: '',
   descripcion_produccion: '',
   formulador: '',
+  plano: '',
   gantt: [],
   inversion_items: [],
 }
+
+const OPCIONES_NOMBRE_PROYECTO = [
+  'Construcción Sala extracción',
+  'Mejoramiento Sala extracción',
+  'Construcción bodega',
+  'Maquinaria',
+]
 
 const EMPTY = {
   apicultor_nombre: '',
@@ -316,6 +324,28 @@ export default function ProyectoInversion() {
     setSaved(false)
   }
 
+  function cargarPlano(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) return alert('El plano debe ser una imagen (JPG, PNG)')
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1800
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+        setF('plano', canvas.toDataURL('image/jpeg', 0.85))
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+
   const gantt = form.formulario?.gantt || []
   const items = form.formulario?.inversion_items || []
 
@@ -393,7 +423,7 @@ export default function ProyectoInversion() {
 
       <div className="card bg-emerald-50 border-emerald-200 text-emerald-800 text-xs">
         <strong>FORMULARIO DE POSTULACIÓN (FORMATO OBLIGATORIO)</strong><br />
-        CONCURSO ESPECIAL PDI ALIANZAS PRODUCTIVAS AÑO {form.anio}
+        CONCURSO PDI ALIANZAS PRODUCTIVAS AÑO {form.anio}
       </div>
 
       {soloLectura && (
@@ -473,7 +503,11 @@ export default function ProyectoInversion() {
         <div>
           <label className="label text-xs font-medium text-gray-700">Nombre del proyecto</label>
           <input name="nombre_proyecto" value={form.nombre_proyecto} onChange={handleChange}
-            className="input-field w-full" placeholder="Sala de extracción" />
+            list="opciones-nombre-proyecto" className="input-field w-full"
+            placeholder="Selecciona una opción o escribe otro nombre" />
+          <datalist id="opciones-nombre-proyecto">
+            {OPCIONES_NOMBRE_PROYECTO.map(o => <option key={o} value={o} />)}
+          </datalist>
         </div>
         <TextoLargo label="Fundamentación del proyecto" nota="Es el Por qué"
           value={form.formulario.fundamentacion} onChange={v => setF('fundamentacion', v)} disabled={soloLectura} />
@@ -729,6 +763,31 @@ export default function ProyectoInversion() {
               className="input-field w-full" placeholder="Quien llenó este formulario" />
           </div>
         </div>
+      </div>
+
+      {/* Plano de la construcción */}
+      <div className="card space-y-3">
+        <h3 className="font-bold text-sm text-gray-700">Plano de la construcción</h3>
+        {form.formulario.plano ? (
+          <div className="space-y-2">
+            <img src={form.formulario.plano} alt="Plano de la construcción"
+              className="max-h-80 w-auto rounded-lg border border-gray-200" />
+            {puedeEditar && (
+              <button type="button" onClick={() => setF('plano', '')}
+                className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700">
+                <Trash2 className="w-4 h-4" /> Quitar plano
+              </button>
+            )}
+          </div>
+        ) : puedeEditar ? (
+          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-8 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-colors">
+            <Plus className="w-6 h-6 text-gray-400" />
+            <span className="text-sm text-gray-500">Adjuntar plano de la construcción (imagen JPG o PNG)</span>
+            <input type="file" accept="image/*" onChange={cargarPlano} className="hidden" />
+          </label>
+        ) : (
+          <p className="text-xs text-gray-400">Sin plano adjunto</p>
+        )}
       </div>
 
       </fieldset>

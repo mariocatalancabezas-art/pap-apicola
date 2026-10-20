@@ -94,7 +94,7 @@ export function generarHtmlFormulario(p) {
 
 <div class="logo"><img src="${logoUrl}" alt="INDAP"/></div>
 <h1>FORMULARIO DE POSTULACIÓN (FORMATO OBLIGATORIO)</h1>
-<h2>CONCURSO ESPECIAL PDI ALIANZAS PRODUCTIVAS AÑO ${anio}</h2>
+<h2>CONCURSO PDI ALIANZAS PRODUCTIVAS AÑO ${anio}</h2>
 
 <h3>1.- Portada del Proyecto</h3>
 <table>
@@ -158,6 +158,11 @@ export function generarHtmlFormulario(p) {
     <td class="firma-td"><div class="firma-box"><div class="firma-nombre">Firma<br/>Nombre y apellidos Formulador de la postulación</div><div>${campo(f.formulador)}</div></div></td>
   </tr>
 </table>
+
+${f.plano ? `
+<h3 class="salto-pagina">Anexo: Plano de la construcción</h3>
+<div style="text-align:center"><img src="${f.plano}" style="max-width:100%; max-height:22cm" alt="Plano de la construcción"/></div>
+` : ''}
 
 </body>
 </html>`
