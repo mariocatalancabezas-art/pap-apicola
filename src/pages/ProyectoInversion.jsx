@@ -29,7 +29,7 @@ const EMPTY_FORMULARIO = {
   objetivos: '',
   descripcion: '',
   impacto: '',
-  rubros_principales: '',
+  rubros_principales: 'Apicultura',
   descripcion_produccion: '',
   formulador: '',
   plano: '',
@@ -79,8 +79,11 @@ async function obtenerDiagnostico({ rut, nombre }) {
   }
 }
 
-function prefillDesdeDiagnostico(visita, formulario) {
-  const f = { ...formulario }
+export function prefillDesdeDiagnostico(visita, formulario) {
+  const produccionActual = String(visita?.f32_cant_producida_2024_e1 ?? '').trim()
+  const produccionAnterior = String(visita?.f31_cant_producida_2023_e1 ?? '').trim()
+  const f = { ...formulario, rubros_principales: 'Apicultura',
+    descripcion_produccion: produccionActual || produccionAnterior }
   if (!f.agencia_area) f.agencia_area = 'Agencia Santa Barbara'
   if (visita) {
     if (!f.antecedentes_usuario) {
