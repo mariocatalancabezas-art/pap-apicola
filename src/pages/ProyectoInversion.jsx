@@ -24,7 +24,7 @@ const EMPTY_FORMULARIO = {
   antecedentes_usuario: '',
   identificacion_predio: '',
   regimen_tenencia_predio: '',
-  regimen_tenencia_agua: '',
+  regimen_tenencia_agua: 'Sin información',
   fundamentacion: '',
   objetivos: '',
   descripcion: '',
@@ -82,8 +82,20 @@ async function obtenerDiagnostico({ rut, nombre }) {
 export function prefillDesdeDiagnostico(visita, formulario) {
   const produccionActual = String(visita?.f32_cant_producida_2024_e1 ?? '').trim()
   const produccionAnterior = String(visita?.f31_cant_producida_2023_e1 ?? '').trim()
-  const f = { ...formulario, rubros_principales: 'Apicultura',
-    descripcion_produccion: produccionActual || produccionAnterior }
+  const f = { ...formulario }
+  if (!f.regimen_tenencia_agua_inicializado) {
+    if (!String(f.regimen_tenencia_agua ?? '').trim()) f.regimen_tenencia_agua = 'Sin información'
+    f.regimen_tenencia_agua_inicializado = true
+  }
+  if (!f.rubros_principales_inicializado) {
+    if (!String(f.rubros_principales ?? '').trim()) f.rubros_principales = 'Apicultura'
+    f.rubros_principales_inicializado = true
+  }
+  if (!f.descripcion_produccion_inicializada) {
+    const tieneProduccion = String(f.descripcion_produccion ?? '').trim() !== ''
+    if (!tieneProduccion && visita) f.descripcion_produccion = produccionActual || produccionAnterior
+    if (tieneProduccion || visita) f.descripcion_produccion_inicializada = true
+  }
   if (!f.agencia_area) f.agencia_area = 'Agencia Santa Barbara'
   if (visita) {
     if (!f.antecedentes_usuario) {
@@ -227,7 +239,10 @@ export default function ProyectoInversion() {
   }
 
   function setF(name, value) {
-    setForm(f => ({ ...f, formulario: { ...f.formulario, [name]: value } }))
+    const inicializado = name === 'rubros_principales' ? { rubros_principales_inicializado: true }
+      : name === 'descripcion_produccion' ? { descripcion_produccion_inicializada: true }
+      : name === 'regimen_tenencia_agua' ? { regimen_tenencia_agua_inicializado: true } : {}
+    setForm(f => ({ ...f, formulario: { ...f.formulario, [name]: value, ...inicializado } }))
     setSaved(false)
   }
 
@@ -429,7 +444,7 @@ export default function ProyectoInversion() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 space-y-4">
+    <form onSubmit={handleSubmit} lang="es-CL" spellCheck={true} className="p-4 space-y-4">
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => navigate(-1)} className="p-1 rounded-lg hover:bg-gray-100">
           <ChevronLeft className="w-5 h-5" />
