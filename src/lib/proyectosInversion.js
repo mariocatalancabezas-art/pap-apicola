@@ -27,9 +27,26 @@ export function formatPesos(valor) {
 // Porcentaje que representa el aporte del usuario (propio + crédito + valorizado) sobre el aporte Indap.
 export function porcentajeAporte({ montoIndap, montoPropio, montoCredito, montoValorizado }) {
   const indap = parseMonto(montoIndap)
-  if (!indap) return 0
   const aporte = parseMonto(montoPropio) + parseMonto(montoCredito) + parseMonto(montoValorizado)
-  return (aporte / indap) * 100
+  const total = indap + aporte
+  return total > 0 ? (aporte / total) * 100 : 0
+}
+
+export function distribuirTotalProyecto(form, valor) {
+  const total = parseMonto(valor)
+  const montos = [parseMonto(form.monto_indap), parseMonto(form.monto_propio),
+    form.solicita_credito ? parseMonto(form.monto_credito) : 0,
+    form.aporte_valorizado ? parseMonto(form.monto_valorizado) : 0]
+  const anterior = montos.reduce((s, n) => s + n, 0)
+  const proporciones = anterior > 0 ? montos.map(n => n / anterior) : [0.7, 0.3, 0, 0]
+  const exactos = proporciones.map(p => p * total)
+  const nuevos = exactos.map(Math.floor)
+  const orden = exactos.map((n, i) => i).sort((a, b) =>
+    (exactos[b] - nuevos[b]) - (exactos[a] - nuevos[a]))
+  const resto = total - nuevos.reduce((s, n) => s + n, 0)
+  for (let i = 0; i < resto; i++) nuevos[orden[i % orden.length]]++
+  return { monto_indap: nuevos[0], monto_propio: nuevos[1],
+    monto_credito: nuevos[2], monto_valorizado: nuevos[3] }
 }
 
 export async function listProyectos(anio) {

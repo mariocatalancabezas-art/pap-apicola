@@ -12,7 +12,7 @@ import {
   MAX_APORTE_INDAP, PORCENTAJE_MINIMO_APORTE,
   ANIOS_PROYECTO,
   crearProyecto, editarProyecto, getProyecto,
-  formatMiles, formatPesos, parseMonto, porcentajeAporte,
+  formatMiles, formatPesos, parseMonto, porcentajeAporte, distribuirTotalProyecto,
 } from '../lib/proyectosInversion'
 import { descargarWord, imprimirFormulario } from '../lib/proyectoFormularioDoc'
 
@@ -147,6 +147,7 @@ export default function ProyectoInversion() {
   const [showApi, setShowApi] = useState(false)
   const [apiLoading, setApiLoading] = useState(false)
   const skipApiSearch = useRef(false)
+  const proporcionesTotal = useRef(null)
 
   const montoIndap = parseMonto(form.monto_indap)
   const montoPropio = parseMonto(form.monto_propio)
@@ -155,7 +156,9 @@ export default function ProyectoInversion() {
   const montoTotal = montoIndap + montoPropio + montoCredito + montoValorizado
   const excedeIndap = montoIndap > MAX_APORTE_INDAP
   const pctAporte = porcentajeAporte({ montoIndap, montoPropio, montoCredito, montoValorizado })
-  const aporteInsuficiente = montoIndap > 0 && pctAporte < PORCENTAJE_MINIMO_APORTE
+  const aporteInsuficiente = montoTotal > 0 && pctAporte < PORCENTAJE_MINIMO_APORTE
+  const pctValorizado = montoTotal > 0 ? (montoValorizado / montoTotal) * 100 : 0
+  const valorizadoExcesivo = montoValorizado > montoTotal * 0.4
 
   useEffect(() => {
     if (!id || !puedeVer) return
@@ -358,10 +361,11 @@ export default function ProyectoInversion() {
     }
     if (aporteInsuficiente) {
       const seguir = confirm(
-        `El aporte del usuario es ${pctAporte.toFixed(1)}% del Aporte Indap, menor al mínimo de ${PORCENTAJE_MINIMO_APORTE}%. ¿Deseas guardar de todas formas?`
+        `El aporte del usuario es ${pctAporte.toFixed(1)}% del total del proyecto, menor al mínimo de ${PORCENTAJE_MINIMO_APORTE}%. ¿Deseas guardar de todas formas?`
       )
       if (!seguir) return
     }
+    if (valorizadoExcesivo && !confirm(`El aporte valorizado es ${pctValorizado.toFixed(1)}% del total del proyecto y supera el máximo de 40%. ¿Deseas guardar de todas formas?`)) return
     if (saving) return
     setSaving(true)
     setError('')
@@ -386,7 +390,6 @@ export default function ProyectoInversion() {
 
   function handleSubmit(e) {
     e.preventDefault()
-    guardar(true)
   }
 
   function datosFormulario() {
@@ -694,11 +697,11 @@ export default function ProyectoInversion() {
                 <MontoInput name="monto_propio" value={form.monto_propio} onChange={set} />
               </div>
               <span className={`text-[11px] pt-2.5 whitespace-nowrap ${aporteInsuficiente ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                {montoIndap > 0 ? `${pctAporte.toFixed(1)}% del Aporte Indap` : '— % Aporte Indap'}
+                {montoTotal > 0 ? `${pctAporte.toFixed(1)}% del total del proyecto` : '— % del total'}
               </span>
             </div>
             <p className={`text-[11px] mt-1 ${aporteInsuficiente ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
-              Mínimo 30%, Aporte Indap
+              {aporteInsuficiente ? 'Alerta: el aporte del usuario es menor al 30% del total del proyecto.' : 'Mínimo 30% del total del proyecto (propio + crédito + valorizado).'}
             </p>
             <label className="flex items-center gap-2 text-xs text-gray-700 mt-2">
               <input type="checkbox" checked={!!form.aporte_valorizado}
@@ -711,7 +714,10 @@ export default function ProyectoInversion() {
             {form.aporte_valorizado && (
               <div className="mt-2">
                 <MontoInput name="monto_valorizado" value={form.monto_valorizado} onChange={set} />
-                <p className="text-[11px] text-gray-400 mt-1">Se suma al aporte del usuario para calcular el porcentaje</p>
+                <p role={valorizadoExcesivo ? 'alert' : undefined} className={`text-[11px] mt-1 ${valorizadoExcesivo ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                  {valorizadoExcesivo ? 'Alerta: el aporte valorizado supera el 40% del total del proyecto. ' : 'Máximo 40% del total del proyecto. '}
+                  Actual: {pctValorizado.toFixed(1)}%.
+                </p>
               </div>
             )}
           </div>
@@ -740,9 +746,22 @@ export default function ProyectoInversion() {
 
           <div className={form.solicita_credito ? '' : 'sm:col-span-2'}>
             <label className="label text-xs font-medium text-gray-700">Monto total Inversión ($)</label>
-            <input value={formatPesos(montoTotal)} readOnly
-              className="input-field w-full text-right bg-gray-50 font-semibold" />
-            <p className="text-[11px] text-gray-400 mt-1">Suma automática de los montos anteriores</p>
+            <input value={formatMiles(montoTotal)} inputMode="numeric"
+              onFocus={() => { proporcionesTotal.current = form }}
+              onBlur={() => { proporcionesTotal.current = null }}
+              onChange={e => {
+                const montos = distribuirTotalProyecto(proporcionesTotal.current || form, e.target.value)
+                setForm(prev => ({ ...prev, ...montos }))
+                setSaved(false)
+              }}
+              className="input-field w-full text-right font-semibold" />
+            <p className="text-[11px] text-gray-500 mt-1">
+              Total del proyecto: 100%. Al editarlo se mantienen las proporciones actuales de cada aporte.
+              Si no hay montos, se distribuye 70% INDAP y 30% usuario.
+            </p>
+            <p className="text-xs text-gray-700 mt-1">
+              INDAP: {montoTotal > 0 ? ((montoIndap / montoTotal) * 100).toFixed(1) : '0.0'}% · Usuario: {pctAporte.toFixed(1)}% del total.
+            </p>
           </div>
         </div>
       </div>
@@ -807,7 +826,7 @@ export default function ProyectoInversion() {
           className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 font-semibold py-3 rounded-lg transition-colors disabled:opacity-50">
           <Save className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}
         </button>
-        <button type="submit" disabled={saving}
+        <button type="button" onClick={() => guardar(true)} disabled={saving}
           className="flex-1 min-w-[120px] btn-primary flex items-center justify-center gap-2 py-3 disabled:opacity-50">
           <Save className="w-4 h-4" /> Guardar y cerrar
         </button>
