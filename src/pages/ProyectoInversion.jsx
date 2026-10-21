@@ -330,14 +330,25 @@ export default function ProyectoInversion() {
     setSaved(false)
   }
 
-  function cargarPlano(e) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    if (!file.type.startsWith('image/')) return alert('El plano debe ser una imagen (JPG, PNG)')
+  function cargarPlano(file) {
+    if (soloLectura || !file) return
+    const esPdf = file.type === 'application/pdf' || (!file.type && /\.pdf$/i.test(file.name))
+    if (!esPdf && !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return alert('Selecciona un archivo PDF o una imagen JPG, PNG o WebP')
+    }
+    if (file.size > 10 * 1024 * 1024) return alert('El archivo no puede superar los 10 MB')
     const reader = new FileReader()
+    reader.onerror = () => alert('No se pudo leer el archivo. Intenta nuevamente.')
     reader.onload = ev => {
+      if (esPdf) {
+        setForm(prev => ({ ...prev, formulario: { ...prev.formulario,
+          plano: `data:application/pdf;base64,${String(ev.target.result).split(',')[1]}`,
+          plano_nombre: file.name } }))
+        setSaved(false)
+        return
+      }
       const img = new Image()
+      img.onerror = () => alert('No se pudo abrir la imagen. Selecciona otra.')
       img.onload = () => {
         const MAX = 1800
         const scale = Math.min(1, MAX / Math.max(img.width, img.height))
@@ -354,6 +365,8 @@ export default function ProyectoInversion() {
 
   const gantt = form.formulario?.gantt || []
   const items = form.formulario?.inversion_items || []
+  const sumaItems = items.reduce((total, item) => total + parseMonto(item.monto), 0)
+  const diferenciaItems = sumaItems - montoTotal
 
   async function guardar(andClose = false) {
     if (soloLectura) return
@@ -659,8 +672,22 @@ export default function ProyectoInversion() {
                 </td></tr>
               )}
             </tbody>
+            <tfoot className="no-print print:hidden">
+              <tr className="bg-gray-50 font-semibold">
+                <td colSpan={6} className="border border-gray-300 px-2 py-2 text-right text-xs">Suma de ítems (solo referencia)</td>
+                <td className="border border-gray-300 px-2 py-2 text-right text-sm whitespace-nowrap">{formatPesos(sumaItems)}</td>
+                {puedeEditar && <td></td>}
+              </tr>
+            </tfoot>
           </table>
         </div>
+        {diferenciaItems !== 0 && (
+          <div role="alert" className="no-print print:hidden flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>La suma de los ítems ({formatPesos(sumaItems)}) no coincide con el total del proyecto ({formatPesos(montoTotal)}).
+              {' '}{diferenciaItems > 0 ? 'Excede el total en' : 'Faltan'} {formatPesos(Math.abs(diferenciaItems))}. Solo comparación; no modifica los montos.</span>
+          </div>
+        )}
         {puedeEditar && (
           <button type="button" onClick={agregarItem}
             className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold px-4 py-2 rounded-lg text-sm">
@@ -792,8 +819,17 @@ export default function ProyectoInversion() {
         <h3 className="font-bold text-sm text-gray-700">Plano de la construcción</h3>
         {form.formulario.plano ? (
           <div className="space-y-2">
-            <img src={form.formulario.plano} alt="Plano de la construcción"
-              className="max-h-80 w-auto rounded-lg border border-gray-200" />
+            {form.formulario.plano.startsWith('data:application/pdf;') ? (
+              <div className="rounded-lg border border-gray-200 p-4 space-y-2">
+                <p className="text-sm font-medium">{form.formulario.plano_nombre || 'Plano PDF'}</p>
+                <a href={form.formulario.plano} download={form.formulario.plano_nombre || 'plano.pdf'}
+                  className="text-sm text-emerald-700 underline">Descargar PDF para abrir o imprimir</a>
+                <p className="text-xs text-gray-500">El PDF se conserva como adjunto y se imprime por separado del formulario.</p>
+              </div>
+            ) : (
+              <img src={form.formulario.plano} alt="Plano de la construcción"
+                className="max-h-80 w-auto rounded-lg border border-gray-200" />
+            )}
             {puedeEditar && (
               <button type="button" onClick={() => setF('plano', '')}
                 className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700">
@@ -802,10 +838,20 @@ export default function ProyectoInversion() {
             )}
           </div>
         ) : puedeEditar ? (
-          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-8 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-colors">
+          <label onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }}
+            onDrop={e => {
+              e.preventDefault()
+              if (e.dataTransfer.files.length !== 1) return alert('Adjunta un solo archivo de plano')
+              cargarPlano(e.dataTransfer.files[0])
+            }}
+            className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-8 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-colors">
             <Plus className="w-6 h-6 text-gray-400" />
-            <span className="text-sm text-gray-500">Adjuntar plano de la construcción (imagen JPG o PNG)</span>
-            <input type="file" accept="image/*" onChange={cargarPlano} className="hidden" />
+            <span className="text-sm text-gray-500">Arrastra el plano aquí o haz clic para seleccionar un archivo</span>
+            <span className="text-xs text-gray-400">PDF, JPG, PNG o WebP · Máximo 10 MB</span>
+            <input type="file" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp" onChange={e => {
+              cargarPlano(e.target.files?.[0])
+              e.target.value = ''
+            }} className="sr-only" />
           </label>
         ) : (
           <p className="text-xs text-gray-400">Sin plano adjunto</p>

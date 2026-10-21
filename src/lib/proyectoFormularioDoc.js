@@ -159,7 +159,7 @@ export function generarHtmlFormulario(p) {
   </tr>
 </table>
 
-${f.plano ? `
+${f.plano && !f.plano.startsWith('data:application/pdf;') ? `
 <h3 class="salto-pagina">Anexo: Plano de la construcción</h3>
 <div style="text-align:center"><img src="${f.plano}" style="max-width:100%; max-height:22cm" alt="Plano de la construcción"/></div>
 ` : ''}
